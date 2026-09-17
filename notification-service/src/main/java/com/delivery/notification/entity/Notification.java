@@ -7,7 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications", schema = "notification")
+@Table(name = "notifications")
 @Getter
 @Setter
 @NoArgsConstructor
