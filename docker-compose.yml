@@ -17,6 +17,9 @@ services:
       timeout: 5s
       retries: 5
 
+    networks:
+      - delivery-network
+
 
   auth-service:
     build:
@@ -34,6 +37,14 @@ services:
       auth-db:
         condition: service_healthy
 
+    networks:
+      - delivery-network
+
 
 volumes:
   auth-db-data:
+
+
+networks:
+  delivery-network:
+    driver: bridge
