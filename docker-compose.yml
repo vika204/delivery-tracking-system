@@ -103,6 +103,26 @@ services:
       - delivery-network
 
 
+  dispatch-service:
+    build:
+      context: ./dispatch-service
+
+    ports:
+      - "8083:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://dispatch-db:5432/${DISPATCH_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DISPATCH_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DISPATCH_DB_PASSWORD}
+
+    depends_on:
+      dispatch-db:
+        condition: service_healthy
+
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
   shipment-db-data:
