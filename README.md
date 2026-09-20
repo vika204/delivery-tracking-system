@@ -78,6 +78,25 @@ curl localhost:8083/couriers/10
 
 У запиті прапорець доступності передається як `isAvailable`, а у відповіді повертається як `available`. Неіснуючий `id` повертає `404`.
 
+## Перевірка збереження даних
+
+1. Переконатися, що записи лежать у самих базах (значення змінних беруться з `.env`):
+
+   ```bash
+   set -a && . ./.env && set +a
+   docker compose exec shipment-db psql -U $SHIPMENT_DB_USER -d $SHIPMENT_DB_NAME -c 'select shipment_id, recipient_name, status from shipments'
+   docker compose exec dispatch-db psql -U $DISPATCH_DB_USER -d $DISPATCH_DB_NAME -c 'select user_id, work_zone from couriers'
+   ```
+
+2. Видалити контейнери та мережу, залишивши томи, і підняти все знову:
+
+   ```bash
+   docker compose down
+   docker compose up -d
+   ```
+
+3. Повторити читання з розділу вище. Раніше створені посилки та кур'єри мають повернутися без змін.
+
 ## Зупинка
 
 ```bash
