@@ -62,6 +62,26 @@ services:
       - delivery-network
 
 
+  shipment-service:
+    build:
+      context: ./shipment-service
+
+    ports:
+      - "8082:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://shipment-db:5432/${SHIPMENT_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${SHIPMENT_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${SHIPMENT_DB_PASSWORD}
+
+    depends_on:
+      shipment-db:
+        condition: service_healthy
+
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
   shipment-db-data:
