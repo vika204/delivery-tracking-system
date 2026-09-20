@@ -82,9 +82,31 @@ services:
       - delivery-network
 
 
+  dispatch-db:
+    image: postgres:${POSTGRES_VERSION}
+
+    environment:
+      POSTGRES_DB: ${DISPATCH_DB_NAME}
+      POSTGRES_USER: ${DISPATCH_DB_USER}
+      POSTGRES_PASSWORD: ${DISPATCH_DB_PASSWORD}
+
+    volumes:
+      - dispatch-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DISPATCH_DB_USER} -d ${DISPATCH_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
   shipment-db-data:
+  dispatch-db-data:
 
 
 networks:
