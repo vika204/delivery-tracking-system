@@ -41,8 +41,30 @@ services:
       - delivery-network
 
 
+  shipment-db:
+    image: postgres:${POSTGRES_VERSION}
+
+    environment:
+      POSTGRES_DB: ${SHIPMENT_DB_NAME}
+      POSTGRES_USER: ${SHIPMENT_DB_USER}
+      POSTGRES_PASSWORD: ${SHIPMENT_DB_PASSWORD}
+
+    volumes:
+      - shipment-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SHIPMENT_DB_USER} -d ${SHIPMENT_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
+  shipment-db-data:
 
 
 networks:
