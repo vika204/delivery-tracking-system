@@ -35,6 +35,8 @@
 | auth-service | 8081 | auth-db | auth-db-data |
 | shipment-service | 8082 | shipment-db | shipment-db-data |
 | dispatch-service | 8083 | dispatch-db | dispatch-db-data |
+| tracking-service | 8084 | tracking-db | tracking-db-data |
+| notification-service | 8085 | notification-db | notification-db-data |
 
 Кожен сервіс має власну базу. Усередині мережі `delivery-network` сервіси звертаються до баз за іменами служб (`shipment-db`, `dispatch-db`), а не через `localhost`.
 
@@ -78,6 +80,44 @@ curl localhost:8083/couriers/10
 
 У запиті прапорець доступності передається як `isAvailable`, а у відповіді повертається як `available`. Неіснуючий `id` повертає `404`.
 
+### tracking-service
+
+Записати локацію кур'єра (запис у `tracking-db`):
+
+```bash
+curl -X POST localhost:8084/tracking \
+  -H 'Content-Type: application/json' \
+  -d '{"shipmentId":1,"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-09-21T12:00:00"}'
+```
+
+Прочитати локації (читання з бази):
+
+```bash
+curl localhost:8084/tracking
+curl localhost:8084/tracking/1
+```
+
+Неіснуючий `id` повертає `404`.
+
+### notification-service
+
+Створити сповіщення (запис у `notification-db`):
+
+```bash
+curl -X POST localhost:8085/notifications \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":1,"shipmentId":1,"type":"SHIPMENT_CREATED","message":"Your shipment has been created."}'
+```
+
+Прочитати сповіщення (читання з бази):
+
+```bash
+curl localhost:8085/notifications
+curl localhost:8085/notifications/1
+```
+
+Неіснуючий `id` повертає `404`.
+
 ## Перевірка збереження даних
 
 1. Переконатися, що записи лежать у самих базах (значення змінних беруться з `.env`):
@@ -86,6 +126,8 @@ curl localhost:8083/couriers/10
    set -a && . ./.env && set +a
    docker compose exec shipment-db psql -U $SHIPMENT_DB_USER -d $SHIPMENT_DB_NAME -c 'select shipment_id, recipient_name, status from shipments'
    docker compose exec dispatch-db psql -U $DISPATCH_DB_USER -d $DISPATCH_DB_NAME -c 'select user_id, work_zone from couriers'
+   docker compose exec tracking-db psql -U $TRACKING_DB_USER -d $TRACKING_DB_NAME -c 'select location_id, shipment_id, latitude, longitude from locations'
+   docker compose exec notification-db psql -U $NOTIFICATION_DB_USER -d $NOTIFICATION_DB_NAME -c 'select notification_id, user_id, type, message from notifications'
    ```
 
 2. Видалити контейнери та мережу, залишивши томи, і підняти все знову:
