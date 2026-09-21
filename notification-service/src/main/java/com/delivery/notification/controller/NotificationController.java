@@ -2,7 +2,9 @@ package com.delivery.notification.controller;
 
 import com.delivery.notification.entity.Notification;
 import com.delivery.notification.repository.NotificationRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -28,7 +30,8 @@ public class NotificationController {
 
     @GetMapping("/{id}")
     public Notification getNotification(@PathVariable Long id) {
-        return notificationRepository.findById(id).orElseThrow();
+        return notificationRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
 }
