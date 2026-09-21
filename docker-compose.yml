@@ -123,10 +123,52 @@ services:
       - delivery-network
 
 
+  tracking-db:
+    image: postgres:${POSTGRES_VERSION}
+
+    environment:
+      POSTGRES_DB: ${TRACKING_DB_NAME}
+      POSTGRES_USER: ${TRACKING_DB_USER}
+      POSTGRES_PASSWORD: ${TRACKING_DB_PASSWORD}
+
+    volumes:
+      - tracking-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${TRACKING_DB_USER} -d ${TRACKING_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - delivery-network
+
+
+  tracking-service:
+    build:
+      context: ./tracking-service
+
+    ports:
+      - "8084:8080"
+      
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/${TRACKING_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${TRACKING_DB_PASSWORD}
+
+    depends_on:
+      tracking-db:
+        condition: service_healthy
+
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
   shipment-db-data:
   dispatch-db-data:
+  tracking-db-data:
 
 
 networks:
