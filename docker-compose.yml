@@ -150,7 +150,7 @@ services:
 
     ports:
       - "8084:8080"
-      
+
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/${TRACKING_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
@@ -164,11 +164,51 @@ services:
       - delivery-network
 
 
+  notification-db:
+    image: postgres:${POSTGRES_VERSION}
+
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_DB_NAME}
+      POSTGRES_USER: ${NOTIFICATION_DB_USER}
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+
+    volumes:
+      - notification-db-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${NOTIFICATION_DB_USER} -d ${NOTIFICATION_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - delivery-network
+
+
+  notification-service:
+    build:
+      context: ./notification-service
+
+    ports:
+      - "8085:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/${NOTIFICATION_DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    networks:
+      - delivery-network
+
+
 volumes:
   auth-db-data:
   shipment-db-data:
   dispatch-db-data:
   tracking-db-data:
+  notification-db-data:
 
 
 networks:
