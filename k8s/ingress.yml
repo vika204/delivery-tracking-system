@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: delivery-ingress
+  namespace: delivery
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /shipments
+            pathType: Prefix
+            backend:
+              service:
+                name: shipment-service
+                port:
+                  name: http
+          - path: /couriers
+            pathType: Prefix
+            backend:
+              service:
+                name: dispatch-service
+                port:
+                  name: http
