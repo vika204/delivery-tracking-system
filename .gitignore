@@ -17,3 +17,4 @@ Thumbs.db
 .settings/
 
 *.class
+k8s/**/secret.yml
