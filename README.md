@@ -146,3 +146,50 @@ docker compose down
 ```
 
 Команда зберігає томи з даними. Прапорець `-v` видаляє томи разом із даними.
+
+## Kubernetes (Minikube): Shipment і Dispatch
+
+Маніфести лежать у `k8s/`: `namespace.yml`, `shipment/`, `dispatch/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
+
+1. Запустити Minikube з Ingress-контролером:
+
+   ```bash
+   minikube start
+   minikube addons enable ingress
+   ```
+
+2. Зібрати образи безпосередньо в Minikube (Java 25):
+
+   ```bash
+   minikube image build -t shipment-service:1.0.0 ./shipment-service
+   minikube image build -t dispatch-service:1.0.0 ./dispatch-service
+   ```
+
+3. Створити namespace і файли зі секретами. Реальні `secret.yml` не потрапляють у git, у репозиторії лише шаблони `secret.yml.example`:
+
+   ```bash
+   kubectl apply -f k8s/namespace.yml
+   cp k8s/shipment/secret.yml.example k8s/shipment/secret.yml
+   cp k8s/dispatch/secret.yml.example k8s/dispatch/secret.yml
+   ```
+
+   Замініть `CHANGE_ME` у створених файлах на власні логін і пароль.
+
+4. Перевірити маніфести перед розгортанням і розгорнути:
+
+   ```bash
+   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=client
+   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=server
+   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml
+   kubectl -n delivery get pods
+   ```
+
+5. Перевірити маршрути Ingress без правки системних файлів:
+
+   ```bash
+   kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
+   curl localhost:8080/shipments
+   curl localhost:8080/couriers
+   ```
+
+Результати перевірок описані в [docs/kubernetes-report.md](docs/kubernetes-report.md).
