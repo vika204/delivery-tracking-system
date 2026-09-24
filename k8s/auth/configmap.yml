@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-config
+  namespace: delivery
+  labels:
+    app: auth-service
+data:
+  POSTGRES_DB: auth_db
+  SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
