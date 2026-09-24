@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dispatch-config
+  namespace: delivery
+  labels:
+    app: dispatch-service
+data:
+  POSTGRES_DB: dispatch_db
+  SPRING_DATASOURCE_URL: jdbc:postgresql://dispatch-db:5432/dispatch_db
