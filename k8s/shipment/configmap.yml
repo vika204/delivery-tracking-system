@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shipment-config
+  namespace: delivery
+  labels:
+    app: shipment-service
+data:
+  POSTGRES_DB: shipment_db
+  SPRING_DATASOURCE_URL: jdbc:postgresql://shipment-db:5432/shipment_db
