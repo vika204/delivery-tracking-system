@@ -147,9 +147,10 @@ docker compose down
 
 Команда зберігає томи з даними. Прапорець `-v` видаляє томи разом із даними.
 
-## Kubernetes (Minikube): Shipment і Dispatch
 
-Маніфести лежать у `k8s/`: `namespace.yml`, `shipment/`, `dispatch/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
+## Kubernetes (Minikube): Auth, Shipment і Dispatch
+
+Маніфести лежать у `k8s/`: `namespace.yml`, `auth/`, `shipment/`, `dispatch/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
 
 1. Запустити Minikube з Ingress-контролером:
 
@@ -161,6 +162,7 @@ docker compose down
 2. Зібрати образи безпосередньо в Minikube (Java 25):
 
    ```bash
+   minikube image build -t auth-service:1.0.0 ./auth-service
    minikube image build -t shipment-service:1.0.0 ./shipment-service
    minikube image build -t dispatch-service:1.0.0 ./dispatch-service
    ```
@@ -169,6 +171,7 @@ docker compose down
 
    ```bash
    kubectl apply -f k8s/namespace.yml
+   cp k8s/auth/secret.yml.example k8s/auth/secret.yml
    cp k8s/shipment/secret.yml.example k8s/shipment/secret.yml
    cp k8s/dispatch/secret.yml.example k8s/dispatch/secret.yml
    ```
@@ -178,9 +181,9 @@ docker compose down
 4. Перевірити маніфести перед розгортанням і розгорнути:
 
    ```bash
-   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=client
-   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=server
-   kubectl apply -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=client
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=server
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml
    kubectl -n delivery get pods
    ```
 
@@ -188,6 +191,7 @@ docker compose down
 
    ```bash
    kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
+   curl localhost:8080/users
    curl localhost:8080/shipments
    curl localhost:8080/couriers
    ```
