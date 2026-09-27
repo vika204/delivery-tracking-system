@@ -148,9 +148,9 @@ docker compose down
 Команда зберігає томи з даними. Прапорець `-v` видаляє томи разом із даними.
 
 
-## Kubernetes (Minikube): Auth, Shipment і Dispatch
+## Kubernetes (Minikube)
 
-Маніфести лежать у `k8s/`: `namespace.yml`, `auth/`, `shipment/`, `dispatch/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
+Маніфести лежать у `k8s/`: `namespace.yml`, `auth/`, `shipment/`, `dispatch/`, `tracking/`, `notification/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
 
 1. Запустити Minikube з Ingress-контролером:
 
@@ -165,6 +165,8 @@ docker compose down
    minikube image build -t auth-service:1.0.0 ./auth-service
    minikube image build -t shipment-service:1.0.0 ./shipment-service
    minikube image build -t dispatch-service:1.0.0 ./dispatch-service
+   minikube image build -t tracking-service:1.0.0 ./tracking-service
+   minikube image build -t notification-service:1.0.0 ./notification-service
    ```
 
 3. Створити namespace і файли зі секретами. Реальні `secret.yml` не потрапляють у git, у репозиторії лише шаблони `secret.yml.example`:
@@ -174,6 +176,8 @@ docker compose down
    cp k8s/auth/secret.yml.example k8s/auth/secret.yml
    cp k8s/shipment/secret.yml.example k8s/shipment/secret.yml
    cp k8s/dispatch/secret.yml.example k8s/dispatch/secret.yml
+   cp k8s/tracking/secret.yml.example k8s/tracking/secret.yml
+   cp k8s/notification/secret.yml.example k8s/notification/secret.yml
    ```
 
    Замініть `CHANGE_ME` у створених файлах на власні логін і пароль.
@@ -181,9 +185,9 @@ docker compose down
 4. Перевірити маніфести перед розгортанням і розгорнути:
 
    ```bash
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=client
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml --dry-run=server
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/ingress.yml
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml --dry-run=client
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml --dry-run=server
+   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml
    kubectl -n delivery get pods
    ```
 
@@ -194,6 +198,8 @@ docker compose down
    curl localhost:8080/users
    curl localhost:8080/shipments
    curl localhost:8080/couriers
+   curl localhost:8080/tracking
+   curl localhost:8080/notifications
    ```
 
 Результати перевірок описані в [docs/kubernetes-report.md](docs/kubernetes-report.md).
