@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tracking-config
+  namespace: delivery
+  labels:
+    app: tracking-service
+data:
+  POSTGRES_DB: tracking_db
+  SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/tracking_db

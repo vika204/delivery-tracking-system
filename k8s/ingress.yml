@@ -29,3 +29,17 @@ spec:
                 name: dispatch-service
                 port:
                   name: http
+          - path: /tracking
+            pathType: Prefix
+            backend:
+              service:
+                name: tracking-service
+                port:
+                  name: http
+          - path: /notifications
+            pathType: Prefix
+            backend:
+              service:
+                name: notification-service
+                port:
+                  name: http
