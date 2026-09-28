@@ -201,5 +201,3 @@ docker compose down
    curl localhost:8080/tracking
    curl localhost:8080/notifications
    ```
-
-Результати перевірок описані в [docs/kubernetes-report.md](docs/kubernetes-report.md).
