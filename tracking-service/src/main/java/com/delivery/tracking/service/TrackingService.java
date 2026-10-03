@@ -17,9 +17,32 @@ public class TrackingService {
     }
 
     @Bulkhead(name = "shipmentClient")
-    @CircuitBreaker(name = "shipmentClient")
+    @CircuitBreaker(
+            name = "shipmentClient",
+            fallbackMethod = "getShipmentFallback"
+    )
     @Retry(name = "shipmentClient")
     public ShipmentDto getShipmentById(Long shipmentId) {
         return shipmentClient.getShipmentById(shipmentId);
     }
+
+    public ShipmentDto getShipmentFallback(Long shipmentId, Throwable ex) {
+        return new ShipmentDto(
+                shipmentId,
+                null,
+                "Дані тимчасово недоступні (Fallback)",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "UNAVAILABLE",
+                null
+        );
+    }
+
 }
