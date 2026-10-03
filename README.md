@@ -118,6 +118,38 @@ curl localhost:8085/notifications/1
 
 Неіснуючий `id` повертає `404`.
 
+## Shipment API для Tracking
+
+Усі помилки shipment-service повертаються у форматі `ProblemDetail` (RFC 9457) з `Content-Type: application/problem+json`. Усі запити приймають заголовок `X-Correlation-Id` (якщо його немає, сервіс генерує власний) і повертають його у відповіді.
+
+| Метод і шлях | Призначення | Відповідь |
+|---|---|---|
+| `GET /shipments/{id}` | Одна посилка | `ShipmentResponse`, або `404` |
+| `GET /shipments/batch?ids=1,2,3` | Кілька посилок одним запитом (від 1 до 100 унікальних `id`) | `ShipmentBatchResponse` |
+| `POST /shipments` | Створення посилки, необов'язковий заголовок `Idempotency-Key` | `ShipmentResponse` |
+
+`ShipmentBatchResponse` повертає знайдені посилки у порядку запиту та окремо `id`, яких немає. Відсутні `id` не дають помилки:
+
+```json
+{
+  "shipments": [
+    {"shipmentId": 1, "status": "IN_TRANSIT", "pickupAddress": "Kyiv, Khreshchatyk 1", "deliveryAddress": "Lviv, Rynok Sq 5"}
+  ],
+  "missingIds": [999]
+}
+```
+
+`ShipmentSummary` (елемент `shipments`) містить лише `shipmentId`, `status`, `pickupAddress`, `deliveryAddress`. `ShipmentResponse` містить усі поля посилки.
+
+`POST /shipments` з однаковим `Idempotency-Key` і однаковим тілом не створює дубліката, а повертає ту саму посилку із заголовком `Idempotent-Replayed: true`. Той самий ключ з іншим тілом дає `422`.
+
+| Код | Коли |
+|---|---|
+| `400` | Некоректне тіло або параметри (поле `errors` перелічує порушення) |
+| `404` | Посилку не знайдено |
+| `422` | `Idempotency-Key` уже використано з іншим тілом |
+| `500` | Непередбачена помилка |
+
 ## Перевірка збереження даних
 
 1. Переконатися, що записи лежать у самих базах (значення змінних беруться з `.env`):
