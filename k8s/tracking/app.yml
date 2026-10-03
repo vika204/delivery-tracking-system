@@ -56,6 +56,11 @@ spec:
                 secretKeyRef:
                   name: tracking-db-secret
                   key: POSTGRES_PASSWORD
+            - name: SHIPMENT_SERVICE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: tracking-config
+                  key: SHIPMENT_SERVICE_URL
 
           readinessProbe:
             httpGet:

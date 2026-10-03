@@ -155,6 +155,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/${TRACKING_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${TRACKING_DB_PASSWORD}
+      SHIPMENT_SERVICE_URL: http://shipment-service:8080
 
     depends_on:
       tracking-db:

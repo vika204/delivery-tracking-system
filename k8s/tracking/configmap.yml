@@ -8,3 +8,4 @@ metadata:
 data:
   POSTGRES_DB: tracking_db
   SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/tracking_db
+  SHIPMENT_SERVICE_URL: http://shipment-service:8080
