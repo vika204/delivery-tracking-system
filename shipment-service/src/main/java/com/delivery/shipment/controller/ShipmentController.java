@@ -7,6 +7,7 @@ import com.delivery.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +16,9 @@ import java.util.List;
 @RequestMapping("/shipments")
 public class ShipmentController {
 
+    private static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+    private static final String IDEMPOTENT_REPLAYED_HEADER = "Idempotent-Replayed";
+
     private final ShipmentService shipmentService;
 
     public ShipmentController(ShipmentService shipmentService) {
@@ -22,8 +26,15 @@ public class ShipmentController {
     }
 
     @PostMapping
-    public ShipmentResponse createShipment(@Valid @RequestBody CreateShipmentRequest request) {
-        return ShipmentResponse.from(shipmentService.create(request));
+    public ResponseEntity<ShipmentResponse> createShipment(
+            @RequestHeader(name = IDEMPOTENCY_KEY_HEADER, required = false) @Size(min = 1, max = 255) String idempotencyKey,
+            @Valid @RequestBody CreateShipmentRequest request) {
+        ShipmentService.CreationResult result = shipmentService.create(idempotencyKey, request);
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok();
+        if (result.replayed()) {
+            response.header(IDEMPOTENT_REPLAYED_HEADER, "true");
+        }
+        return response.body(ShipmentResponse.from(result.shipment()));
     }
 
     @GetMapping

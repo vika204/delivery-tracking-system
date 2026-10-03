@@ -3,32 +3,57 @@ package com.delivery.shipment.service;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentSummary;
+import com.delivery.shipment.entity.IdempotencyRecord;
 import com.delivery.shipment.entity.Shipment;
+import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
+import com.delivery.shipment.repository.IdempotencyRecordRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
+import java.util.HexFormat;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
+    private final IdempotencyRecordRepository idempotencyRecordRepository;
+    private final TransactionTemplate transactionTemplate;
 
-    public ShipmentService(ShipmentRepository shipmentRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository,
+                           IdempotencyRecordRepository idempotencyRecordRepository,
+                           TransactionTemplate transactionTemplate) {
         this.shipmentRepository = shipmentRepository;
+        this.idempotencyRecordRepository = idempotencyRecordRepository;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
-    public Shipment create(CreateShipmentRequest request) {
-        return shipmentRepository.save(toEntity(request));
+    public CreationResult create(String idempotencyKey, CreateShipmentRequest request) {
+        if (idempotencyKey == null) {
+            return new CreationResult(shipmentRepository.save(toEntity(request)), false);
+        }
+        String requestHash = hash(request);
+        try {
+            return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, request));
+        } catch (DataIntegrityViolationException concurrentDuplicate) {
+            // another request with the same key committed first
+            return transactionTemplate.execute(status -> replay(idempotencyKey, requestHash));
+        }
     }
 
     @Transactional(readOnly = true)
@@ -56,6 +81,28 @@ public class ShipmentService {
         return new ShipmentBatchResponse(shipments, missingIds);
     }
 
+    private CreationResult createOrReplay(String idempotencyKey, String requestHash, CreateShipmentRequest request) {
+        if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
+            return replay(idempotencyKey, requestHash);
+        }
+        Shipment shipment = shipmentRepository.save(toEntity(request));
+        idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
+                .idempotencyKey(idempotencyKey)
+                .requestHash(requestHash)
+                .shipmentId(shipment.getShipmentId())
+                .build());
+        return new CreationResult(shipment, false);
+    }
+
+    private CreationResult replay(String idempotencyKey, String requestHash) {
+        IdempotencyRecord record = idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey)
+                .orElseThrow();
+        if (!record.getRequestHash().equals(requestHash)) {
+            throw new IdempotencyKeyReuseException(idempotencyKey);
+        }
+        return new CreationResult(getById(record.getShipmentId()), true);
+    }
+
     private Shipment toEntity(CreateShipmentRequest request) {
         return Shipment.builder()
                 .userId(request.userId())
@@ -71,5 +118,29 @@ public class ShipmentService {
                 .price(request.price())
                 .status(request.status())
                 .build();
+    }
+
+    private String hash(CreateShipmentRequest request) {
+        String canonical = Stream.of(
+                        request.userId(), request.recipientName(), request.recipientPhone(),
+                        request.pickupAddress(), request.deliveryAddress(),
+                        plain(request.weight()), plain(request.length()), plain(request.width()),
+                        plain(request.height()), plain(request.distance()), plain(request.price()),
+                        request.status())
+                .map(String::valueOf)
+                .collect(Collectors.joining("\u0000"));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private String plain(BigDecimal value) {
+        return value.stripTrailingZeros().toPlainString();
+    }
+
+    public record CreationResult(Shipment shipment, boolean replayed) {
     }
 }
