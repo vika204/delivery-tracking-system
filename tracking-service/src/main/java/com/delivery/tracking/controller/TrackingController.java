@@ -1,7 +1,9 @@
 package com.delivery.tracking.controller;
 
+import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.repository.TrackingRepository;
+import com.delivery.tracking.service.TrackingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,9 +15,13 @@ import java.util.List;
 public class TrackingController {
 
     private final TrackingRepository trackingRepository;
+    private final TrackingService trackingService;
 
-    public TrackingController(TrackingRepository trackingRepository) {
+    public TrackingController(
+            TrackingRepository trackingRepository,
+            TrackingService trackingService) {
         this.trackingRepository = trackingRepository;
+        this.trackingService = trackingService;
     }
 
     @PostMapping
@@ -32,6 +38,11 @@ public class TrackingController {
     public Location getLocation(@PathVariable Long id) {
         return trackingRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
+
+    @GetMapping("/shipments/{id}")
+    public ShipmentDto getShipment(@PathVariable Long id) {
+        return trackingService.getShipmentById(id);
     }
 
 }
