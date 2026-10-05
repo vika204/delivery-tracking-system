@@ -57,7 +57,7 @@ public class ShipmentClientConfig {
                 correlationId = UUID.randomUUID().toString();
             }
 
-            request.getHeaders().add("X-Correlation-Id", correlationId);
+            request.getHeaders().set("X-Correlation-Id", correlationId);
 
             return execution.execute(request, body);
         };
