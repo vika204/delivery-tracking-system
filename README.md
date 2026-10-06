@@ -49,6 +49,7 @@
 ```bash
 curl -X POST localhost:8082/shipments \
   -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: order-1001' \
   -d '{"userId":1,"recipientName":"Ivan Petrenko","recipientPhone":"+380501112233","pickupAddress":"Kyiv, Khreshchatyk 1","deliveryAddress":"Lviv, Rynok Sq 5","weight":2.5,"length":30,"width":20,"height":10,"distance":540,"price":150.00,"status":"WAITING_FOR_COURIER"}'
 ```
 
@@ -126,7 +127,7 @@ curl localhost:8085/notifications/1
 |---|---|---|
 | `GET /shipments/{id}` | Одна посилка | `ShipmentResponse`, або `404` |
 | `GET /shipments/batch?ids=1,2,3` | Кілька посилок одним запитом (від 1 до 100 унікальних `id`) | `ShipmentBatchResponse` |
-| `POST /shipments` | Створення посилки, необов'язковий заголовок `Idempotency-Key` | `ShipmentResponse` |
+| `POST /shipments` | Створення посилки, обов'язковий заголовок `Idempotency-Key` | `ShipmentResponse` |
 
 `ShipmentBatchResponse` повертає знайдені посилки у порядку запиту та окремо `id`, яких немає. Відсутні `id` не дають помилки:
 
@@ -141,11 +142,11 @@ curl localhost:8085/notifications/1
 
 `ShipmentSummary` (елемент `shipments`) містить лише `shipmentId`, `status`, `pickupAddress`, `deliveryAddress`. `ShipmentResponse` містить усі поля посилки.
 
-`POST /shipments` з однаковим `Idempotency-Key` і однаковим тілом не створює дубліката, а повертає ту саму посилку із заголовком `Idempotent-Replayed: true`. Той самий ключ з іншим тілом дає `422`.
+`POST /shipments` без заголовка `Idempotency-Key` (або з порожнім чи довшим за 255 символів) повертає `400`. З однаковим `Idempotency-Key` і однаковим тілом посилка не дублюється, а повертається та сама із заголовком `Idempotent-Replayed: true`. Той самий ключ з іншим тілом дає `422`.
 
 | Код | Коли |
 |---|---|
-| `400` | Некоректне тіло або параметри (поле `errors` перелічує порушення) |
+| `400` | Некоректне тіло, параметри або відсутній `Idempotency-Key` |
 | `404` | Посилку не знайдено |
 | `422` | `Idempotency-Key` уже використано з іншим тілом |
 | `500` | Непередбачена помилка |
