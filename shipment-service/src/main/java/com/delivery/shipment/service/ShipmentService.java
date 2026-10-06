@@ -44,9 +44,6 @@ public class ShipmentService {
     }
 
     public CreationResult create(String idempotencyKey, CreateShipmentRequest request) {
-        if (idempotencyKey == null) {
-            return new CreationResult(shipmentRepository.save(toEntity(request)), false);
-        }
         String requestHash = hash(request);
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, request));
