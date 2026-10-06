@@ -5,6 +5,7 @@ import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentResponse;
 import com.delivery.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class ShipmentController {
 
     @PostMapping
     public ResponseEntity<ShipmentResponse> createShipment(
-            @RequestHeader(name = IDEMPOTENCY_KEY_HEADER) @Size(min = 1, max = 255) String idempotencyKey,
+            @RequestHeader(name = IDEMPOTENCY_KEY_HEADER) @NotBlank @Size(max = 255) String idempotencyKey,
             @Valid @RequestBody CreateShipmentRequest request) {
         ShipmentService.CreationResult result = shipmentService.create(idempotencyKey, request);
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
