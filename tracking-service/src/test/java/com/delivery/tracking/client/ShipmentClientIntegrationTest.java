@@ -5,16 +5,21 @@ import com.delivery.tracking.client.dto.ShipmentBatchResponse;
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.service.TrackingService;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -26,9 +31,10 @@ import java.util.UUID;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -53,12 +59,25 @@ class ShipmentClientIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
 
-        registry.add("resilience4j.retry.instances.shipmentClient.wait-duration", () -> "10ms");
-        registry.add("resilience4j.retry.instances.shipmentClient.enable-randomized-wait", () -> "false");
+        registry.add(
+                "resilience4j.retry.instances.shipmentClient.wait-duration",
+                () -> "10ms"
+        );
+
+        registry.add(
+                "resilience4j.retry.instances.shipmentClient.enable-randomized-wait",
+                () -> "false"
+        );
     }
 
     @Autowired
     private TrackingService trackingService;
+
+    @Autowired
+    private CircuitBreakerRegistry circuitBreakerRegistry;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
@@ -66,7 +85,9 @@ class ShipmentClientIntegrationTest {
     }
 
     @Test
-    void shouldReturnShipment_andPassCorrelationId_whenShipmentServiceIsOk() {
+    void shouldReturnShipment_andPreserveCorrelationId_whenShipmentServiceIsOk()
+            throws Exception {
+
         wireMock.stubFor(get(urlEqualTo("/shipments/1"))
                 .willReturn(aResponse()
                         .withStatus(200)
@@ -79,13 +100,30 @@ class ShipmentClientIntegrationTest {
                                 }
                                 """)));
 
-        ShipmentDto result = trackingService.getShipmentById(1L);
+        String correlationId = "test-123";
 
-        assertThat(result.shipmentId()).isEqualTo(1L);
-        assertThat(result.recipientName()).isEqualTo("John Doe");
+        mockMvc.perform(
+                        MockMvcRequestBuilders
+                                .get("/tracking/shipments/1")
+                                .header("X-Correlation-Id", correlationId)
+                )
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "X-Correlation-Id",
+                        correlationId
+                ))
+                .andExpect(jsonPath("$.shipmentId").value(1))
+                .andExpect(jsonPath("$.recipientName").value("John Doe"))
+                .andExpect(jsonPath("$.status").value("CREATED"));
 
-        wireMock.verify(1, getRequestedFor(urlEqualTo("/shipments/1"))
-                .withHeader("X-Correlation-Id", matching(".*")));
+        wireMock.verify(
+                1,
+                getRequestedFor(urlEqualTo("/shipments/1"))
+                        .withHeader(
+                                "X-Correlation-Id",
+                                equalTo(correlationId)
+                        )
+        );
     }
 
     @Test
@@ -100,19 +138,26 @@ class ShipmentClientIntegrationTest {
     }
 
     @Test
-    void shouldRetry_whenShipmentServiceFails() {
-        wireMock.stubFor(post(urlPathEqualTo("/shipments"))
-                .willReturn(aResponse().withStatus(500)));
+    void shouldRetryThreeTimes_andPreserveIdempotencyKey() {
+
+        wireMock.stubFor(post(urlEqualTo("/shipments")).willReturn(aResponse().withStatus(500)));
 
         CreateShipmentRequest request = new CreateShipmentRequest(1L, "R", "P", "A", "B", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, "CREATED");
         String key = UUID.randomUUID().toString();
-        
+
         try {
             trackingService.createShipment(key, request);
         } catch (Exception ignored) {
         }
 
-        wireMock.verify(moreThan(1), postRequestedFor(urlPathEqualTo("/shipments")));
+        wireMock.verify(
+                3,
+                postRequestedFor(urlEqualTo("/shipments"))
+                        .withHeader(
+                                "Idempotency-Key",
+                                equalTo(key)
+                        )
+        );
     }
 
     @Test
@@ -124,20 +169,39 @@ class ShipmentClientIntegrationTest {
             trackingService.getShipmentById(3L);
         }
 
+        CircuitBreaker circuitBreaker =
+                circuitBreakerRegistry.circuitBreaker("shipmentClient");
+
+        assertThat(circuitBreaker.getState())
+                .isEqualTo(CircuitBreaker.State.OPEN);
+
         wireMock.resetRequests();
 
         ShipmentDto result = trackingService.getShipmentById(3L);
-        assertThat(result.status()).isEqualTo("UNAVAILABLE");
 
-        wireMock.verify(0, getRequestedFor(urlEqualTo("/shipments/3")));
+        assertThat(result.status())
+                .isEqualTo("UNAVAILABLE");
+
+        assertThat(result.recipientName())
+                .contains("Fallback");
+
+        wireMock.verify(
+                0,
+                getRequestedFor(urlEqualTo("/shipments/3"))
+        );
     }
 
     @Test
-    void shouldHandleProblemDetail() {
-        wireMock.stubFor(get(urlPathMatching("/shipments/batch.*"))
+    void shouldReturnProblemDetail_whenShipmentReturns404()
+            throws Exception {
+
+        wireMock.stubFor(get(urlEqualTo("/shipments/99"))
                 .willReturn(aResponse()
                         .withStatus(404)
-                        .withHeader("Content-Type", "application/problem+json")
+                        .withHeader(
+                                "Content-Type",
+                                "application/problem+json"
+                        )
                         .withBody("""
                                 {
                                   "type": "urn:delivery:problem:shipment-not-found",
@@ -147,40 +211,71 @@ class ShipmentClientIntegrationTest {
                                 }
                                 """)));
 
-        assertThatThrownBy(() -> trackingService.getShipmentsBatch(List.of(99L)))
-                .isInstanceOf(HttpClientErrorException.NotFound.class)
-                .hasMessageContaining("404");
+        mockMvc.perform(
+                        MockMvcRequestBuilders
+                                .get("/tracking/shipments/99")
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON
+                ))
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title")
+                        .value("Shipment not found"))
+                .andExpect(jsonPath("$.detail")
+                        .value("Shipment 99 not found"));
     }
 
     @Test
     void shouldReturnBatch() {
-        wireMock.stubFor(get(urlPathMatching("/shipments/batch.*"))
+
+        wireMock.stubFor(get(urlPathEqualTo("/shipments/batch"))
                 .withQueryParam("ids", containing("10"))
                 .withQueryParam("ids", containing("11"))
                 .willReturn(aResponse()
                         .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
+                        .withHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
                         .withBody("""
                                 {
                                   "shipments": [
-                                    {"shipmentId": 10, "status": "CREATED"},
-                                    {"shipmentId": 11, "status": "DELIVERED"}
+                                    {
+                                      "shipmentId": 10,
+                                      "status": "CREATED"
+                                    },
+                                    {
+                                      "shipmentId": 11,
+                                      "status": "DELIVERED"
+                                    }
                                   ],
                                   "missingIds": []
                                 }
                                 """)));
 
-        ShipmentBatchResponse result = trackingService.getShipmentsBatch(List.of(10L, 11L));
-        assertThat(result.shipments()).hasSize(2);
-        assertThat(result.missingIds()).isEmpty();
+        ShipmentBatchResponse result =
+                trackingService.getShipmentsBatch(
+                        List.of(10L, 11L)
+                );
+
+        assertThat(result.shipments())
+                .hasSize(2);
+
+        assertThat(result.missingIds())
+                .isEmpty();
     }
 
     @Test
     void shouldPassIdempotencyKeyOnCreate() {
+
         wireMock.stubFor(post(urlEqualTo("/shipments"))
                 .willReturn(aResponse()
                         .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
+                        .withHeader(
+                                "Content-Type",
+                                "application/json"
+                        )
                         .withBody("""
                                 {
                                   "shipmentId": 100,
@@ -191,8 +286,6 @@ class ShipmentClientIntegrationTest {
         CreateShipmentRequest request = new CreateShipmentRequest(1L, "R", "P", "A", "B", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, "CREATED");
         String key = UUID.randomUUID().toString();
         trackingService.createShipment(key, request);
-
-        wireMock.verify(1, postRequestedFor(urlEqualTo("/shipments"))
-                .withHeader("Idempotency-Key", equalTo(key)));
+        wireMock.verify(1, postRequestedFor(urlEqualTo("/shipments")).withHeader("Idempotency-Key", equalTo(key)));
     }
 }
