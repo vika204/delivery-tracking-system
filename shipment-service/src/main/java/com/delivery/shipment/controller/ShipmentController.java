@@ -27,7 +27,7 @@ public class ShipmentController {
 
     @PostMapping
     public ResponseEntity<ShipmentResponse> createShipment(
-            @RequestHeader(name = IDEMPOTENCY_KEY_HEADER, required = false) @Size(min = 1, max = 255) String idempotencyKey,
+            @RequestHeader(name = IDEMPOTENCY_KEY_HEADER) @Size(min = 1, max = 255) String idempotencyKey,
             @Valid @RequestBody CreateShipmentRequest request) {
         ShipmentService.CreationResult result = shipmentService.create(idempotencyKey, request);
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
