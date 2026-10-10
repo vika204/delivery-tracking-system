@@ -1,4 +1,8 @@
 package com.delivery.events;
 
-public class ShipmentPayload {
+public record ShipmentPayload(
+        Long shipmentId,
+        Long userId,
+        String status
+) {
 }
