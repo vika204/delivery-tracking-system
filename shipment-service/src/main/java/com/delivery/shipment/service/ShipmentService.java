@@ -1,29 +1,30 @@
 package com.delivery.shipment.service;
 
+import com.delivery.events.ShipmentCreatedEvent;
+import com.delivery.events.ShipmentPayload;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentSummary;
 import com.delivery.shipment.entity.IdempotencyRecord;
+import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
+import com.delivery.shipment.repository.OutboxEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collection;
-import java.util.HexFormat;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.Instant;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -34,12 +35,20 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final IdempotencyRecordRepository idempotencyRecordRepository;
     private final TransactionTemplate transactionTemplate;
+    private final OutboxEventRepository outboxEventRepository;
+    private final JsonMapper jsonMapper;
 
-    public ShipmentService(ShipmentRepository shipmentRepository,
-                           IdempotencyRecordRepository idempotencyRecordRepository,
-                           TransactionTemplate transactionTemplate) {
+    public ShipmentService(
+            ShipmentRepository shipmentRepository,
+            IdempotencyRecordRepository idempotencyRecordRepository,
+            OutboxEventRepository outboxEventRepository,
+            JsonMapper jsonMapper,
+            TransactionTemplate transactionTemplate
+    ) {
         this.shipmentRepository = shipmentRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
+        this.outboxEventRepository = outboxEventRepository;
+        this.jsonMapper = jsonMapper;
         this.transactionTemplate = transactionTemplate;
     }
 
@@ -88,6 +97,28 @@ public class ShipmentService {
                 .requestHash(requestHash)
                 .shipmentId(shipment.getShipmentId())
                 .build());
+
+        ShipmentCreatedEvent event = new ShipmentCreatedEvent(
+                UUID.randomUUID(),
+                ShipmentCreatedEvent.TYPE,
+                Instant.now(),
+                new ShipmentPayload(
+                        shipment.getShipmentId(),
+                        shipment.getUserId(),
+                        shipment.getStatus().name()
+                )
+        );
+
+        OutboxEvent outboxEvent = OutboxEvent.builder()
+                .eventId(event.eventId())
+                .aggregateType("Shipment")
+                .aggregateId(shipment.getShipmentId().toString())
+                .eventType(event.eventType())
+                .payload(jsonMapper.writeValueAsString(event))
+                .published(false)
+                .build();
+        outboxEventRepository.save(outboxEvent);
+
         return new CreationResult(shipment, false);
     }
 
