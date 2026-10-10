@@ -73,9 +73,12 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://shipment-db:5432/${SHIPMENT_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${SHIPMENT_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${SHIPMENT_DB_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
 
     depends_on:
       shipment-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
     networks:
@@ -197,9 +200,14 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/${NOTIFICATION_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+
     depends_on:
       notification-db:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+
     networks:
       - delivery-network
 
