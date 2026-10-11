@@ -19,6 +19,16 @@ public class ShipmentEventListener {
             groupId = "shipment-notification-group"
     )
     public void listen(ShipmentCreatedEvent event) {
+        validate(event);
         handler.handle(event);
+    }
+
+    private void validate(ShipmentCreatedEvent event) {
+        if (event.eventId() == null) {
+            throw new InvalidShipmentEventException("Shipment event has no eventId");
+        }
+        if (event.payload() == null || event.payload().shipmentId() == null) {
+            throw new InvalidShipmentEventException("Shipment event " + event.eventId() + " has no shipmentId");
+        }
     }
 }
