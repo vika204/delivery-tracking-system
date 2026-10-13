@@ -12,7 +12,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class OutboxRelay {
@@ -21,6 +23,7 @@ public class OutboxRelay {
 
     private final OutboxEventRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
 
     public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate) {
         this.outboxRepository = outboxRepository;
@@ -33,27 +36,45 @@ public class OutboxRelay {
         List<OutboxEvent> events = outboxRepository.findTop50ByPublishedFalseOrderByCreatedAtAsc();
 
         for (OutboxEvent event : events) {
+            UUID eventId = event.getEventId();
+
+            if (!inFlight.add(eventId)) {
+                continue;
+            }
+
             try {
                 kafkaTemplate.send(
                         KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC,
                         event.getAggregateId(),
                         event.getPayload()
-                ).get(10, TimeUnit.SECONDS);
+                ).whenComplete((result, ex) -> {
+                    try {
+                        if (ex != null) {
+                            log.error("Failed to publish outbox event: {}", eventId, ex);
+                            return;
+                        }
 
-                event.setPublished(true);
-                event.setPublishedAt(LocalDateTime.now());
+                        int updated = outboxRepository.markPublished(
+                                eventId,
+                                LocalDateTime.now()
+                        );
 
-                outboxRepository.saveAndFlush(event);
+                        if (updated == 1) {
+                            log.info("Outbox event published: {}", eventId);
+                        } else {
+                            log.warn("Outbox event already published: {}", eventId);
+                        }
 
-                log.info("Outbox event published: {}", event.getEventId());
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("Outbox relay interrupted");
-                return;
+                    } catch (Exception e) {
+                        log.error("Failed to update outbox event: {}", eventId, e);
+                    } finally {
+                        inFlight.remove(eventId);
+                    }
+                });
 
             } catch (Exception e) {
-                log.error("Failed to publish outbox event: {}", event.getEventId(), e);
+                inFlight.remove(eventId);
+                log.error("Failed to send outbox event: {}", eventId, e);
             }
         }
     }
