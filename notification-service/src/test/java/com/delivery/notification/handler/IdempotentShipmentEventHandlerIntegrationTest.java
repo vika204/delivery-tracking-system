@@ -39,6 +39,9 @@ class IdempotentShipmentEventHandlerIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9999");
+        registry.add("spring.kafka.listener.auto-startup", () -> "false");
+        registry.add("spring.kafka.admin.auto-create", () -> "false");
+        registry.add("logging.level.org.apache.kafka", () -> "ERROR");
     }
 
     @Autowired
