@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+  namespace: delivery
+data:
+  alert-rules.yml: |
+    groups:
+      - name: delivery-alerts
+        rules:
+          - alert: ServiceDown
+            expr: |
+              up{job="delivery-pods", namespace="delivery"} == 0
+              or absent(up{job="delivery-pods", app="auth-service"})
+              or absent(up{job="delivery-pods", app="shipment-service"})
+              or absent(up{job="delivery-pods", app="tracking-service"})
+              or absent(up{job="delivery-pods", app="notification-service"})
+              or absent(up{job="delivery-pods", app="dispatch-service"})
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service {{ $labels.app }} is down"
+
+          - alert: HighFailedShipments
+            expr: |
+              sum(rate(delivery_shipments_failed_total{app="shipment-service"}[1m])) > 0.1
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High shipment failure rate"
+
+          - alert: HighLatency
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum by (le) (
+                  rate(delivery_http_request_seconds_bucket{app="shipment-service"}[1m])
+                )
+              ) > 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High HTTP request latency"
