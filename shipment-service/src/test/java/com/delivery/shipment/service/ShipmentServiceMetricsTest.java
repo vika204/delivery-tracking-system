@@ -49,7 +49,7 @@ class ShipmentServiceMetricsTest {
             @Override protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus s) { }
         });
         service = new ShipmentService(shipmentRepository, idempotencyRepository, outboxRepository,
-                JsonMapper.builder().build(), tx, new ShipmentMetrics(registry), chaos);
+                JsonMapper.builder().build(), tx, new ShipmentMetrics(registry, outboxRepository), chaos);
     }
 
     @Test
