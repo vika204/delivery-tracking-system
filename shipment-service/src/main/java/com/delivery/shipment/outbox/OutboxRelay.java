@@ -4,6 +4,8 @@ import com.delivery.shipment.config.KafkaTopicConfig;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -23,15 +25,24 @@ public class OutboxRelay {
 
     private final OutboxEventRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final LongTaskTimer batchTimer;
     private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
 
-    public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate) {
+    public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate,
+                       MeterRegistry registry) {
         this.outboxRepository = outboxRepository;
+        this.batchTimer = LongTaskTimer.builder("delivery.outbox.relay.batch")
+                .description("Outbox relay publishing cycles currently in progress")
+                .register(registry);
         this.kafkaTemplate = kafkaTemplate;
     }
 
     @Scheduled(fixedDelayString = "${outbox.relay.delay-ms:5000}")
     public void publishPendingEvents() {
+        batchTimer.record(this::publishBatch);
+    }
+
+    private void publishBatch() {
 
         List<OutboxEvent> events = outboxRepository.findTop50ByPublishedFalseOrderByCreatedAtAsc();
 

@@ -126,7 +126,7 @@ class ShipmentServiceOutboxIntegrationTest {
         when(kafkaTemplate.send(eq("shipment.events"), eq(shipmentKey), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(
                         new KafkaException("Kafka unavailable")));
-        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate);
+        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate, new SimpleMeterRegistry());
 
         // when
         relay.publishPendingEvents();
