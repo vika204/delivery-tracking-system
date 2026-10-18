@@ -1,6 +1,7 @@
 package com.delivery.dispatch.controller;
 
 import com.delivery.dispatch.entity.Courier;
+import com.delivery.dispatch.metrics.CourierMetrics;
 import com.delivery.dispatch.repository.CourierRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -13,14 +14,18 @@ import java.util.List;
 public class CourierController {
 
     private final CourierRepository courierRepository;
+    private final CourierMetrics metrics;
 
-    public CourierController(CourierRepository courierRepository) {
+    public CourierController(CourierRepository courierRepository, CourierMetrics metrics) {
         this.courierRepository = courierRepository;
+        this.metrics = metrics;
     }
 
     @PostMapping
     public Courier createCourier(@RequestBody Courier courier) {
-        return courierRepository.save(courier);
+        Courier saved = courierRepository.save(courier);
+        metrics.courierRegistered(saved.getMaxPackageWeight());
+        return saved;
     }
 
     @GetMapping
