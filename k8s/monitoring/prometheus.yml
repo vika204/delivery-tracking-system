@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: delivery
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: delivery-prometheus-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: delivery-prometheus-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: delivery-prometheus-reader
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: delivery
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: delivery
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: delivery-pods
+
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - delivery
+
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+            action: keep
+            regex: "true"
+
+          - source_labels:
+              - __meta_kubernetes_pod_container_port_number
+            action: keep
+            regex: "8080"
+
+          - source_labels:
+              - __meta_kubernetes_pod_annotation_prometheus_io_path
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+          - source_labels:
+              - __meta_kubernetes_pod_ip
+              - __meta_kubernetes_pod_annotation_prometheus_io_port
+            action: replace
+            regex: (.+);([0-9]+)
+            replacement: $1:$2
+            target_label: __address__
+
+          - source_labels:
+              - __meta_kubernetes_pod_label_app
+            target_label: app
+
+          - source_labels:
+              - __meta_kubernetes_namespace
+            target_label: namespace
+
+          - source_labels:
+              - __meta_kubernetes_pod_name
+            target_label: pod
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: delivery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.55.1
+
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=24h
+
+          ports:
+            - containerPort: 9090
+              name: web
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: storage
+              mountPath: /prometheus
+
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: storage
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: delivery
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus
+  ports:
+    - name: web
+      port: 9090
+      targetPort: web
