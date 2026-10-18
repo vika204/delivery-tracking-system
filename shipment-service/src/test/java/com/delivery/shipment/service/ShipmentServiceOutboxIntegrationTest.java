@@ -1,6 +1,10 @@
 package com.delivery.shipment.service;
 
+import com.delivery.shipment.chaos.ChaosSettings;
 import com.delivery.shipment.dto.CreateShipmentRequest;
+import com.delivery.shipment.metrics.ShipmentMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.outbox.OutboxRelay;
@@ -45,7 +49,7 @@ import static org.mockito.Mockito.when;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Testcontainers
-@Import({ShipmentService.class, ShipmentServiceOutboxIntegrationTest.TestBeans.class})
+@Import({ShipmentService.class, ShipmentMetrics.class, ChaosSettings.class, ShipmentServiceOutboxIntegrationTest.TestBeans.class})
 class ShipmentServiceOutboxIntegrationTest {
 
     @Container
@@ -63,6 +67,11 @@ class ShipmentServiceOutboxIntegrationTest {
         @Bean
         TransactionTemplate transactionTemplate(PlatformTransactionManager manager) {
             return new TransactionTemplate(manager);
+        }
+
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
         }
 
         @Bean
@@ -117,7 +126,7 @@ class ShipmentServiceOutboxIntegrationTest {
         when(kafkaTemplate.send(eq("shipment.events"), eq(shipmentKey), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(
                         new KafkaException("Kafka unavailable")));
-        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate);
+        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate, new SimpleMeterRegistry());
 
         // when
         relay.publishPendingEvents();

@@ -2,6 +2,7 @@ package com.delivery.shipment.service;
 
 import com.delivery.events.ShipmentCreatedEvent;
 import com.delivery.events.ShipmentPayload;
+import com.delivery.shipment.chaos.ChaosSettings;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentSummary;
@@ -10,6 +11,7 @@ import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
+import com.delivery.shipment.metrics.ShipmentMetrics;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
 import com.delivery.shipment.repository.OutboxEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
@@ -37,22 +39,44 @@ public class ShipmentService {
     private final TransactionTemplate transactionTemplate;
     private final OutboxEventRepository outboxEventRepository;
     private final JsonMapper jsonMapper;
+    private final ShipmentMetrics metrics;
+    private final ChaosSettings chaos;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
             IdempotencyRecordRepository idempotencyRecordRepository,
             OutboxEventRepository outboxEventRepository,
             JsonMapper jsonMapper,
-            TransactionTemplate transactionTemplate
+            TransactionTemplate transactionTemplate,
+            ShipmentMetrics metrics,
+            ChaosSettings chaos
     ) {
         this.shipmentRepository = shipmentRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.jsonMapper = jsonMapper;
         this.transactionTemplate = transactionTemplate;
+        this.metrics = metrics;
+        this.chaos = chaos;
     }
 
     public CreationResult create(String idempotencyKey, CreateShipmentRequest request) {
+        try {
+            chaos.inject();
+            CreationResult result = doCreate(idempotencyKey, request);
+            if (!result.replayed()) {
+                metrics.shipmentCreated(request.weight());
+            }
+            return result;
+        } catch (IdempotencyKeyReuseException clientError) {
+            throw clientError;
+        } catch (RuntimeException e) {
+            metrics.shipmentFailed();
+            throw e;
+        }
+    }
+
+    private CreationResult doCreate(String idempotencyKey, CreateShipmentRequest request) {
         String requestHash = hash(request);
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, request));

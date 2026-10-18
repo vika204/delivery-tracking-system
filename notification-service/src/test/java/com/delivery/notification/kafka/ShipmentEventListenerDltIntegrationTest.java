@@ -3,6 +3,11 @@ package com.delivery.notification.kafka;
 import com.delivery.events.ShipmentCreatedEvent;
 import com.delivery.notification.config.KafkaRetryConfig;
 import com.delivery.notification.handler.ShipmentEventHandler;
+import com.delivery.notification.metrics.NotificationMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -42,7 +47,8 @@ import static org.mockito.Mockito.verify;
 
 // Контекст містить лише слухача й Kafka: обробник підмінено моком, база даних не потрібна.
 @SpringBootTest(
-        classes = {ShipmentEventListener.class, KafkaRetryConfig.class},
+        classes = {ShipmentEventListener.class, KafkaRetryConfig.class, NotificationMetrics.class,
+                ShipmentEventListenerDltIntegrationTest.MetricsConfig.class},
         properties = {
                 "app.kafka.retry.attempts=4",
                 "app.kafka.retry.delay-ms=100",
@@ -59,6 +65,14 @@ import static org.mockito.Mockito.verify;
 @DirtiesContext
 class ShipmentEventListenerDltIntegrationTest {
 
+    @TestConfiguration
+    static class MetricsConfig {
+        @Bean
+        MeterRegistry meterRegistry() {
+            return new SimpleMeterRegistry();
+        }
+    }
+
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
     private static final String FIRST_RETRY_TOPIC = ShipmentEventListener.TOPIC + "-retry-0";
 
@@ -70,6 +84,9 @@ class ShipmentEventListenerDltIntegrationTest {
 
     @MockitoBean
     private ShipmentEventHandler handler;
+
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     private Consumer<String, String> dltConsumer;
 
@@ -103,6 +120,10 @@ class ShipmentEventListenerDltIntegrationTest {
                 .contains("Notification database is unavailable");
         assertThat(wasRetried(key)).isTrue();
         verify(handler, times(4)).handle(any(ShipmentCreatedEvent.class));
+        await().atMost(TIMEOUT).untilAsserted(() ->
+                assertThat(meterRegistry.get("delivery.notifications.dlt").counter().count()).isGreaterThanOrEqualTo(1));
+        assertThat(meterRegistry.get("delivery.notifications.event.processing").timer().count())
+                .isGreaterThanOrEqualTo(4);
     }
 
     @Test

@@ -54,7 +54,21 @@ Track A names the remaining metrics (Gauge, LongTaskTimer, DistributionSummary, 
 
 | Prometheus name | Type | Service | Description |
 |---|---|---|---|
-| _(to be filled in by track A)_ | | | |
+| `delivery_shipments_registered_total` | Counter | shipment-service | shipments created (replays excluded) |
+| `delivery_outbox_pending` | Gauge | shipment-service | outbox events not yet published to Kafka |
+| `delivery_outbox_relay_batch_seconds_*` | LongTaskTimer | shipment-service | outbox relay cycles in progress |
+| `delivery_shipments_weight_kilograms` | DistributionSummary | shipment-service | weight of created shipments |
+| `delivery_notifications_dlt_total` | Counter | notification-service | shipment events moved to the DLT |
+| `delivery_notifications_event_processing_seconds` | Timer | notification-service | time to process one shipment event, per attempt |
+| `delivery_tracking_fallbacks_total` | Counter | tracking-service | requests answered with the fallback |
+| `delivery_tracking_shipment_client_seconds` | Timer | tracking-service | calls to shipment-service per attempt, tag `operation` (get, batch, create) |
+| `delivery_tracking_batch_size_ids` | DistributionSummary | tracking-service | shipment ids per batch lookup |
+| `delivery_tracking_locations_stored` | Gauge | tracking-service | locations stored in the database |
+| `delivery_couriers_registered_total` | Counter | dispatch-service | couriers registered |
+| `delivery_couriers_capacity_kilograms` | DistributionSummary | dispatch-service | max package weight of registered couriers |
+| `delivery_couriers_available` | Gauge | dispatch-service | couriers marked as available |
+
+Details, sample output and the chaos endpoints are in `04-track-a-metrics.md`.
 
 ### Alerts
 
@@ -92,6 +106,6 @@ When all three tracks are ready:
 
 ## Readiness checklist
 
-- [ ] A: `/actuator/prometheus` responds in all 5 services; Counter, Gauge, Timer, LongTaskTimer and DistributionSummary exist; the metrics table above is filled in.
+- [x] A: `/actuator/prometheus` responds in all 5 services; Counter, Gauge, Timer, LongTaskTimer and DistributionSummary exist; the metrics table above is filled in.
 - [ ] B: `promtool check rules` and `amtool check-config` pass; targets are `UP`.
 - [ ] C: a test JSON sent via `curl` reaches Telegram; test scenarios and the report skeleton are ready.

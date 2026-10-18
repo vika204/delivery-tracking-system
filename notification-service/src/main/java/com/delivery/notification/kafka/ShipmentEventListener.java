@@ -2,6 +2,7 @@ package com.delivery.notification.kafka;
 
 import com.delivery.events.ShipmentCreatedEvent;
 import com.delivery.notification.handler.ShipmentEventHandler;
+import com.delivery.notification.metrics.NotificationMetrics;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -26,9 +27,11 @@ public class ShipmentEventListener {
     private static final Logger log = LoggerFactory.getLogger(ShipmentEventListener.class);
 
     private final ShipmentEventHandler handler;
+    private final NotificationMetrics metrics;
 
-    public ShipmentEventListener(ShipmentEventHandler handler) {
+    public ShipmentEventListener(ShipmentEventHandler handler, NotificationMetrics metrics) {
         this.handler = handler;
+        this.metrics = metrics;
     }
 
     // Повторювані помилки проходять через shipment.events-retry-N із зростаючою затримкою.
@@ -49,12 +52,15 @@ public class ShipmentEventListener {
             groupId = "shipment-notification-group"
     )
     public void listen(ShipmentCreatedEvent event) {
-        validate(event);
-        handler.handle(event);
+        metrics.timeProcessing(() -> {
+            validate(event);
+            handler.handle(event);
+        });
     }
 
     @DltHandler
     public void handleDlt(ConsumerRecord<String, byte[]> record) {
+        metrics.deadLettered();
         log.error(
                 "Shipment event moved to DLT: topic={}, partition={}, offset={}, key={}, originalTopic={}, exception={}, message={}, payload={}",
                 record.topic(),
