@@ -18,3 +18,11 @@ Thumbs.db
 
 *.class
 k8s/**/secret.yml
+*secret.yml
+*.secret.yml
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.py[cod]

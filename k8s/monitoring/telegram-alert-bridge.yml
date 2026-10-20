@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-alert-bridge
+  namespace: delivery
+  labels:
+    app: telegram-alert-bridge
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: telegram-alert-bridge
+  template:
+    metadata:
+      labels:
+        app: telegram-alert-bridge
+    spec:
+      containers:
+        - name: telegram-alert-bridge
+          image: telegram-alert-bridge:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+
+          env:
+            - name: BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-telegram
+                  key: BOT_TOKEN
+            - name: CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: alertmanager-telegram
+                  key: CHAT_ID
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-alert-bridge
+  namespace: delivery
+  labels:
+    app: telegram-alert-bridge
+spec:
+  type: ClusterIP
+  selector:
+    app: telegram-alert-bridge
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
