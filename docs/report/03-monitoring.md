@@ -70,8 +70,8 @@ Alertmanager групує алерти (`group_by: [alertname, app]`), витр�
 - Повертає `200` при успішній доставці або `502` при помилці Telegram API, щоб Alertmanager виконав retry.
 
 Конфігурація у кластері:
-- Deployment та Service описано в `k8s/telegram-alert-bridge/app.yml`.
-- Секрети `BOT_TOKEN` та `CHAT_ID` монтуються з Secret `alertmanager-telegram`.
+- Deployment та Service описано в `k8s/monitoring/telegram-alert-bridge.yml`.
+- Секрети `BOT_TOKEN` та `CHAT_ID` створюються за шаблоном `k8s/monitoring/alertmanager-telegram.secret.yml.example` у Secret `alertmanager-telegram`.
 
 ---
 
@@ -127,13 +127,3 @@ Ended: 2026-10-20 17:05:00 UTC
 3. Перцентиль p95 затримки перевищує 1.0 с.
 4. Після завершення вікна `for: 2m` алерт переходить у `FIRING`, у Telegram надходить сповіщення.
 5. Виклик `DELETE /internal/chaos` повертає затримку до значень < 50 мс, алерт переходить у `RESOLVED`.
-
----
-
-## 6. Збірка архіву проєкту
-
-Для підготовки фінального архіву створено скрипт `docs/scripts/package-project.ps1` (та `.sh`):
-```powershell
-.\docs\scripts\package-project.ps1
-```
-Скрипт створює файл `delivery-tracking-system-monitoring.zip`, куди входять усі сервіси, маніфести, скрипти та звіти без тимчасових директорій (`target/`, `.git/`, `.idea/`, локальних секретів).
