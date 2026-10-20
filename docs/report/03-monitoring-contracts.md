@@ -108,4 +108,4 @@ When all three tracks are ready:
 
 - [x] A: `/actuator/prometheus` responds in all 5 services; Counter, Gauge, Timer, LongTaskTimer and DistributionSummary exist; the metrics table above is filled in.
 - [ ] B: `promtool check rules` and `amtool check-config` pass; targets are `UP`.
-- [ ] C: a test JSON sent via `curl` reaches Telegram; test scenarios and the report skeleton are ready.
+- [x] C: a test JSON sent via `curl` reaches Telegram; test scenarios and the report skeleton are ready.
