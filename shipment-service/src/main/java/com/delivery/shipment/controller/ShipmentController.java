@@ -10,6 +10,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -22,6 +24,7 @@ public class ShipmentController {
 
     private final ShipmentService shipmentService;
 
+    private static final Logger log = LoggerFactory.getLogger(ShipmentController.class);
     public ShipmentController(ShipmentService shipmentService) {
         this.shipmentService = shipmentService;
     }
@@ -51,6 +54,8 @@ public class ShipmentController {
 
     @GetMapping("/{id}")
     public ShipmentResponse getShipment(@PathVariable Long id) {
+        log.info("Shipment lookup for shipment {}", id);
+
         return ShipmentResponse.from(shipmentService.getById(id));
     }
 }
