@@ -6,6 +6,8 @@ import com.delivery.shipment.repository.OutboxEventRepository;
 
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -25,11 +27,13 @@ public class OutboxRelay {
 
     private final OutboxEventRepository outboxRepository;
     private final KafkaTemplate<String, String> kafkaTemplate;
+    private final OutboxTraceContext traceContext;
     private final LongTaskTimer batchTimer;
     private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
 
     public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate,
-                       MeterRegistry registry) {
+                       MeterRegistry registry, OutboxTraceContext traceContext) {
+        this.traceContext = traceContext;
         this.outboxRepository = outboxRepository;
         this.batchTimer = LongTaskTimer.builder("delivery.outbox.relay.batch")
                 .description("Outbox relay publishing cycles currently in progress")
@@ -53,7 +57,9 @@ public class OutboxRelay {
                 continue;
             }
 
-            try {
+            // Спан відновлює трейс HTTP-запиту, що створив подію; Kafka-продюсер стає його нащадком
+            Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
+            try (Tracer.SpanInScope ignored = traceContext.activate(span)) {
                 kafkaTemplate.send(
                         KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC,
                         event.getAggregateId(),
@@ -85,7 +91,10 @@ public class OutboxRelay {
 
             } catch (Exception e) {
                 inFlight.remove(eventId);
+                span.error(e);
                 log.error("Failed to send outbox event: {}", eventId, e);
+            } finally {
+                span.end();
             }
         }
     }

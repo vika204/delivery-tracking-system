@@ -32,6 +32,9 @@ public class OutboxEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
+    @Column(name = "traceparent")
+    private String traceparent;
+
     @Builder.Default
     @Column(name = "published", nullable = false)
     private boolean published = false;
