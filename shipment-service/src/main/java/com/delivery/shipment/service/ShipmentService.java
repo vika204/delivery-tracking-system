@@ -12,6 +12,7 @@ import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
 import com.delivery.shipment.metrics.ShipmentMetrics;
+import com.delivery.shipment.outbox.OutboxTraceContext;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
 import com.delivery.shipment.repository.OutboxEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
@@ -41,6 +42,7 @@ public class ShipmentService {
     private final JsonMapper jsonMapper;
     private final ShipmentMetrics metrics;
     private final ChaosSettings chaos;
+    private final OutboxTraceContext traceContext;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -49,7 +51,8 @@ public class ShipmentService {
             JsonMapper jsonMapper,
             TransactionTemplate transactionTemplate,
             ShipmentMetrics metrics,
-            ChaosSettings chaos
+            ChaosSettings chaos,
+            OutboxTraceContext traceContext
     ) {
         this.shipmentRepository = shipmentRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
@@ -58,6 +61,7 @@ public class ShipmentService {
         this.transactionTemplate = transactionTemplate;
         this.metrics = metrics;
         this.chaos = chaos;
+        this.traceContext = traceContext;
     }
 
     public CreationResult create(String idempotencyKey, CreateShipmentRequest request) {
@@ -139,6 +143,7 @@ public class ShipmentService {
                 .aggregateId(shipment.getShipmentId().toString())
                 .eventType(event.eventType())
                 .payload(jsonMapper.writeValueAsString(event))
+                .traceparent(traceContext.capture())
                 .published(false)
                 .build();
         outboxEventRepository.save(outboxEvent);

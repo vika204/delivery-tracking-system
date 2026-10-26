@@ -8,6 +8,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.outbox.OutboxRelay;
+import com.delivery.shipment.outbox.OutboxTraceContext;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
 import com.delivery.shipment.repository.OutboxEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
@@ -70,6 +71,11 @@ class ShipmentServiceOutboxIntegrationTest {
         }
 
         @Bean
+        OutboxTraceContext outboxTraceContext() {
+            return new OutboxTraceContext(io.micrometer.tracing.Tracer.NOOP, io.micrometer.tracing.propagation.Propagator.NOOP);
+        }
+
+        @Bean
         MeterRegistry meterRegistry() {
             return new SimpleMeterRegistry();
         }
@@ -79,6 +85,9 @@ class ShipmentServiceOutboxIntegrationTest {
             return JsonMapper.builder().build();
         }
     }
+
+    @Autowired
+    private OutboxTraceContext outboxTraceContext;
 
     @Autowired
     private ShipmentService shipmentService;
@@ -126,7 +135,7 @@ class ShipmentServiceOutboxIntegrationTest {
         when(kafkaTemplate.send(eq("shipment.events"), eq(shipmentKey), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(
                         new KafkaException("Kafka unavailable")));
-        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate, new SimpleMeterRegistry());
+        OutboxRelay relay = new OutboxRelay(outboxRepository, kafkaTemplate, new SimpleMeterRegistry(), outboxTraceContext);
 
         // when
         relay.publishPendingEvents();
