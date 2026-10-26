@@ -28,7 +28,8 @@ class OutboxRelayMetricsTest {
             activeDuringRun.add(timer.activeTasks());
             return List.of();
         });
-        OutboxRelay relay = new OutboxRelay(repository, kafka, registry);
+        OutboxRelay relay = new OutboxRelay(repository, kafka, registry,
+                new OutboxTraceContext(io.micrometer.tracing.Tracer.NOOP, io.micrometer.tracing.propagation.Propagator.NOOP));
 
         relay.publishPendingEvents();
 
