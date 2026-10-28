@@ -55,6 +55,8 @@ public class GlobalExceptionHandler
             HttpServerErrorException.class
     })
     public ProblemDetail handleUnavailable(Exception ex) {
+        log.error("Shipment service unavailable: {}", ex.getMessage(), ex);
+
         ProblemDetail problem =
                 ProblemDetail.forStatusAndDetail(
                         HttpStatus.SERVICE_UNAVAILABLE,

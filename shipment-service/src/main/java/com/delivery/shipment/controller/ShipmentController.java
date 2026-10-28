@@ -33,7 +33,9 @@ public class ShipmentController {
     public ResponseEntity<ShipmentResponse> createShipment(
             @RequestHeader(name = IDEMPOTENCY_KEY_HEADER) @NotBlank @Size(max = 255) String idempotencyKey,
             @Valid @RequestBody CreateShipmentRequest request) {
+        log.info("Creating shipment for user {} with idempotencyKey {}", request.userId(), idempotencyKey);
         ShipmentService.CreationResult result = shipmentService.create(idempotencyKey, request);
+        log.info("Shipment {} ready (replayed={})", result.shipment().getShipmentId(), result.replayed());
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
         if (result.replayed()) {
             response.header(IDEMPOTENT_REPLAYED_HEADER, "true");
