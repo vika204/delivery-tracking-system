@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-log-agent
+  namespace: delivery
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-log-agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces", "nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets", "deployments"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-log-agent
+subjects:
+  - kind: ServiceAccount
+    name: otel-log-agent
+    namespace: delivery
+roleRef:
+  kind: ClusterRole
+  name: otel-log-agent
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-log-agent-config
+  namespace: delivery
+data:
+  otel-log-agent.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      filelog:
+        include:
+          - /var/log/pods/delivery_auth-service-*/auth-service/*.log
+          - /var/log/pods/delivery_shipment-service-*/shipment-service/*.log
+          - /var/log/pods/delivery_dispatch-service-*/dispatch-service/*.log
+          - /var/log/pods/delivery_tracking-service-*/tracking-service/*.log
+          - /var/log/pods/delivery_notification-service-*/notification-service/*.log
+        start_at: beginning
+        include_file_path: true
+        operators:
+          - type: container
+            id: container-parser
+          - type: json_parser
+            id: spring-json-parser
+            parse_from: body
+            parse_to: attributes
+            on_error: send_quiet
+            severity:
+              parse_from: attributes.level
+          - type: trace_parser
+            id: trace-context-parser
+            if: 'attributes["traceId"] != nil'
+            trace_id:
+              parse_from: attributes.traceId
+            span_id:
+              parse_from: attributes.spanId
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      k8sattributes:
+        auth_type: serviceAccount
+        passthrough: false
+        filter:
+          node_from_env_var: K8S_NODE_NAME
+        extract:
+          metadata:
+            - k8s.deployment.name
+            - k8s.node.name
+          labels:
+            - tag_name: app
+              key: app
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.uid
+
+      resource/service-name:
+        attributes:
+          - key: service.name
+            from_attribute: k8s.container.name
+            action: insert
+
+      batch:
+        timeout: 1s
+
+    exporters:
+      otlphttp/loki:
+        endpoint: http://loki:3100/otlp
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        logs:
+          receivers: [filelog]
+          processors: [memory_limiter, k8sattributes, resource/service-name, batch]
+          exporters: [otlphttp/loki]
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-log-agent
+  namespace: delivery
+  labels:
+    app: otel-log-agent
+spec:
+  selector:
+    matchLabels:
+      app: otel-log-agent
+  template:
+    metadata:
+      labels:
+        app: otel-log-agent
+    spec:
+      serviceAccountName: otel-log-agent
+      containers:
+        - name: otel-log-agent
+          image: otel/opentelemetry-collector-contrib:0.163.1
+          args: ["--config=/etc/otelcol/otel-log-agent.yaml"]
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          ports:
+            - containerPort: 13133
+              name: health
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: dockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: otel-log-agent-config
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: dockercontainers
+          hostPath:
+            path: /var/lib/docker/containers

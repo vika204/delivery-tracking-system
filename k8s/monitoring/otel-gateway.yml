@@ -1,0 +1,147 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-gateway-config
+  namespace: delivery
+data:
+  otel-gateway.yaml: |
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      filter/drop-actuator:
+        error_mode: ignore
+        traces:
+          span:
+            - 'IsMatch(attributes["uri"], "^/actuator.*")'
+            - 'IsMatch(attributes["url.path"], "^/actuator.*")'
+
+      tail_sampling:
+        decision_wait: 15s
+        num_traces: 20000
+        expected_new_traces_per_sec: 50
+        decision_cache:
+          sampled_cache_size: 100000
+          non_sampled_cache_size: 100000
+        policies:
+          - name: keep-errors
+            type: status_code
+            status_code:
+              status_codes: [ERROR]
+          - name: keep-http-server-errors
+            type: string_attribute
+            string_attribute:
+              key: outcome
+              values: [SERVER_ERROR]
+          - name: keep-slow-traces
+            type: latency
+            latency:
+              threshold_ms: 1000
+          - name: keep-manual-shipments
+            type: string_attribute
+            string_attribute:
+              key: uri
+              values: ["/tracking/shipments", "/tracking/shipments/{id}", "/shipments"]
+          - name: sample-successful
+            type: probabilistic
+            probabilistic:
+              sampling_percentage: 25
+
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+
+    exporters:
+      otlp/tempo:
+        endpoint: tempo:4317
+        tls:
+          insecure: true
+
+    service:
+      extensions: [health_check]
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, filter/drop-actuator, tail_sampling, batch]
+          exporters: [otlp/tempo]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-gateway
+  namespace: delivery
+  labels:
+    app: otel-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: otel-gateway
+  template:
+    metadata:
+      labels:
+        app: otel-gateway
+    spec:
+      containers:
+        - name: otel-gateway
+          image: otel/opentelemetry-collector-contrib:0.163.1
+          args: ["--config=/etc/otelcol/otel-gateway.yaml"]
+          ports:
+            - containerPort: 4317
+              name: otlp-grpc
+            - containerPort: 13133
+              name: health
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol
+      volumes:
+        - name: config
+          configMap:
+            name: otel-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-gateway
+  namespace: delivery
+  labels:
+    app: otel-gateway
+spec:
+  clusterIP: None
+  ports:
+    - port: 4317
+      targetPort: 4317
+      name: otlp-grpc
+  selector:
+    app: otel-gateway
