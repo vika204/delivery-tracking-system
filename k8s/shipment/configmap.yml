@@ -8,3 +8,5 @@ metadata:
 data:
   POSTGRES_DB: shipment_db
   SPRING_DATASOURCE_URL: jdbc:postgresql://shipment-db:5432/shipment_db
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  APP_CHAOS_ENABLED: "true"

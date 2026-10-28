@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tracking-service
@@ -44,6 +44,9 @@ spec:
             - name: http
               containerPort: 8080
 
+          envFrom:
+            - configMapRef:
+                name: otel-exporter-config
           env:
             - name: SPRING_DATASOURCE_URL
               valueFrom:
@@ -60,6 +63,20 @@ spec:
                 secretKeyRef:
                   name: tracking-db-secret
                   key: POSTGRES_PASSWORD
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.namespace.name=$(POD_NAMESPACE),k8s.pod.name=$(POD_NAME),k8s.node.name=$(NODE_NAME)"
             - name: SHIPMENT_SERVICE_URL
               valueFrom:
                 configMapKeyRef:
