@@ -63,13 +63,22 @@ spec:
       labels:
         app: loki
     spec:
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: loki
           image: grafana/loki:3.7.8
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args:
             - "-config.file=/etc/loki/loki.yaml"
           ports:
@@ -91,11 +100,15 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 10
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: config
               mountPath: /etc/loki
             - name: data
               mountPath: /loki
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: config
           configMap:
             name: loki-config

@@ -94,9 +94,21 @@ spec:
       labels:
         app: otel-gateway
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: otel-gateway
           image: otel/opentelemetry-collector-contrib:0.163.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args: ["--config=/etc/otelcol/otel-gateway.yaml"]
           ports:
             - containerPort: 4317
