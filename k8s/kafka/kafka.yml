@@ -16,11 +16,37 @@ spec:
       labels:
         app: kafka
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       enableServiceLinks: false
+      initContainers:
+        - name: copy-config
+          image: apache/kafka:4.3.1
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "cp -r /opt/kafka/config/. /config/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /config
       containers:
         - name: kafka
           image: apache/kafka:4.3.1
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: broker
               containerPort: 9092
@@ -71,9 +97,21 @@ spec:
               cpu: "1"
               memory: 768Mi
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config
+              mountPath: /opt/kafka/config
+            - name: logs
+              mountPath: /opt/kafka/logs
             - name: data
               mountPath: /var/lib/kafka/data
       volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
         - name: data
           emptyDir: {}
 ---

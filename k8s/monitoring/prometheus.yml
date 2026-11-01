@@ -111,16 +111,24 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: prometheus
-
       securityContext:
+        runAsNonRoot: true
         runAsUser: 65534
         runAsGroup: 65534
         fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: prometheus
+
 
       containers:
         - name: prometheus
           image: prom/prometheus:v2.55.1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
 
           args:
             - --config.file=/etc/prometheus/prometheus.yml
@@ -142,6 +150,8 @@ spec:
               memory: 512Mi
 
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: config
               mountPath: /etc/prometheus
               readOnly: true
@@ -152,6 +162,8 @@ spec:
               mountPath: /prometheus
 
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: config
           configMap:
             name: prometheus-config

@@ -1,4 +1,4 @@
-﻿apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: auth-service
@@ -24,9 +24,27 @@ spec:
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8080"
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
       initContainers:
         - name: wait-for-db
           image: postgres:16-alpine
+          securityContext:
+            runAsUser: 70
+            runAsGroup: 70
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           command: ["sh", "-c", "until pg_isready -h auth-db -p 5432; do echo waiting for auth-db; sleep 2; done"]
           resources:
             requests:
@@ -40,6 +58,14 @@ spec:
         - name: auth-service
           image: auth-service:1.0.0
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           ports:
             - name: http
               containerPort: 8080
@@ -104,9 +130,6 @@ spec:
               cpu: 500m
               memory: 512Mi
 
-          securityContext:
-            allowPrivilegeEscalation: false
-            runAsNonRoot: true
 
 ---
 apiVersion: v1

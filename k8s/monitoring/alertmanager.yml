@@ -34,12 +34,23 @@ spec:
       labels:
         app: alertmanager
     spec:
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
         fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
 
       containers:
         - name: alertmanager
           image: prom/alertmanager:v0.27.0
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           args:
             - --config.file=/etc/alertmanager/alertmanager.yml
             - --storage.path=/alertmanager
@@ -49,6 +60,8 @@ spec:
               name: web
 
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: config
               mountPath: /etc/alertmanager
               readOnly: true
@@ -56,6 +69,8 @@ spec:
               mountPath: /alertmanager
 
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: config
           configMap:
             name: alertmanager-config

@@ -508,9 +508,22 @@ spec:
       labels:
         app: grafana
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: grafana
           image: grafana/grafana:12.4.13
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 3000
               name: http
@@ -541,6 +554,12 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+            - name: grafana-logs
+              mountPath: /var/log/grafana
             - name: datasources
               mountPath: /etc/grafana/provisioning/datasources
             - name: dashboard-providers
@@ -548,6 +567,12 @@ spec:
             - name: dashboards
               mountPath: /var/lib/grafana/dashboards
       volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: grafana-data
+          emptyDir: {}
+        - name: grafana-logs
+          emptyDir: {}
         - name: datasources
           configMap:
             name: grafana-datasources
