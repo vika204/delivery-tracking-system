@@ -16,9 +16,27 @@ spec:
       labels:
         app: shipment-db
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
       containers:
         - name: postgres
           image: postgres:16-alpine
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: postgres
               containerPort: 5432
@@ -41,6 +59,10 @@ spec:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /var/run/postgresql
             - name: data
               mountPath: /var/lib/postgresql/data
           readinessProbe:
