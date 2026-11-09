@@ -1,6 +1,7 @@
 package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.entity.Location;
+import com.delivery.tracking.kafka.ShipmentStatusChangedListener;
 import com.delivery.tracking.repository.TrackingRepository;
 import com.delivery.tracking.service.LocationService;
 import io.grpc.Context;
@@ -56,8 +57,8 @@ class ShipmentTrackingGrpcServiceIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("tracking.recorded-at-zone", () -> "UTC");
+        registry.add("spring.kafka.listener.auto-startup", () -> "false");
     }
-
     @Autowired
     private ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub;
 
@@ -66,6 +67,9 @@ class ShipmentTrackingGrpcServiceIntegrationTest {
 
     @Autowired
     private TrackingRepository trackingRepository;
+
+    @Autowired
+    private ShipmentStatusChangedListener statusChangedListener;
 
     @MockitoSpyBean
     private LocationStreamPublisher publisher;
@@ -177,8 +181,11 @@ class ShipmentTrackingGrpcServiceIntegrationTest {
 
         assertThat(result.get(5, TimeUnit.SECONDS)).isEqualTo(Status.Code.INVALID_ARGUMENT);
     }
-
     private void subscribe(long shipmentId, BlockingQueue<ShipmentLocationUpdate> received) throws Exception {
+        subscribe(shipmentId, received, new CountDownLatch(1));
+    }
+
+    private void subscribe(long shipmentId, BlockingQueue<ShipmentLocationUpdate> received, CountDownLatch completed) throws Exception {
         CountDownLatch registered = new CountDownLatch(1);
 
         doAnswer(invocation -> {
@@ -209,9 +216,43 @@ class ShipmentTrackingGrpcServiceIntegrationTest {
 
             @Override
             public void onCompleted() {
+                completed.countDown();
             }
         }));
 
         assertThat(registered.await(5, TimeUnit.SECONDS)).isTrue();
+    }
+    @Test
+    void shouldCompleteStreamWhenShipmentIsDelivered() throws Exception {
+        CountDownLatch completed = new CountDownLatch(1);
+        subscribe(15L, new LinkedBlockingQueue<>(), completed);
+
+        statusChangedListener.onStatusChanged("""
+            {"eventId":"00000000-0000-0000-0000-000000000015",
+             "eventType":"SHIPMENT_STATUS_CHANGED",
+             "occurredAt":"2026-11-09T14:30:00Z",
+             "shipmentId":15,
+             "status":"DELIVERED"}
+            """);
+
+        assertThat(completed.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(streamErrors).isEmpty();
+    }
+
+    @Test
+    void shouldCompleteStreamWhenShipmentIsCancelled() throws Exception {
+        CountDownLatch completed = new CountDownLatch(1);
+        subscribe(16L, new LinkedBlockingQueue<>(), completed);
+
+        statusChangedListener.onStatusChanged("""
+            {"eventId":"00000000-0000-0000-0000-000000000016",
+             "eventType":"SHIPMENT_STATUS_CHANGED",
+             "occurredAt":"2026-11-09T14:31:00Z",
+             "shipmentId":16,
+             "status":"CANCELLED"}
+            """);
+
+        assertThat(completed.await(5, TimeUnit.SECONDS)).isTrue();
+        assertThat(streamErrors).isEmpty();
     }
 }

@@ -110,6 +110,11 @@ spec:
                 configMapKeyRef:
                   name: tracking-config
                   key: SHIPMENT_SERVICE_URL
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: tracking-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
 
           readinessProbe:
             httpGet:

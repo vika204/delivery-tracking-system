@@ -1,6 +1,8 @@
 package com.delivery.shipment.outbox;
 
 import com.delivery.shipment.config.KafkaTopicConfig;
+import com.delivery.events.ShipmentCreatedEvent;
+import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
 
@@ -61,7 +63,7 @@ public class OutboxRelay {
             Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
             try (Tracer.SpanInScope ignored = traceContext.activate(span)) {
                 kafkaTemplate.send(
-                        KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC,
+                        topicFor(event),
                         event.getAggregateId(),
                         event.getPayload()
                 ).whenComplete((result, ex) -> {
@@ -97,5 +99,13 @@ public class OutboxRelay {
                 span.end();
             }
         }
+    }
+
+    static String topicFor(OutboxEvent event) {
+        return switch (event.getEventType()) {
+            case ShipmentCreatedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC;
+            case ShipmentStatusChangedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_STATUS_CHANGED_TOPIC;
+            default -> throw new IllegalArgumentException("Unknown outbox event type: " + event.getEventType());
+        };
     }
 }

@@ -2,6 +2,7 @@ package com.delivery.shipment.service;
 
 import com.delivery.events.ShipmentCreatedEvent;
 import com.delivery.events.ShipmentPayload;
+import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.chaos.ChaosSettings;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
@@ -9,8 +10,10 @@ import com.delivery.shipment.dto.ShipmentSummary;
 import com.delivery.shipment.entity.IdempotencyRecord;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
+import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
+import com.delivery.shipment.exception.ShipmentStatusConflictException;
 import com.delivery.shipment.metrics.ShipmentMetrics;
 import com.delivery.shipment.outbox.OutboxTraceContext;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
@@ -93,6 +96,42 @@ public class ShipmentService {
     @Transactional(readOnly = true)
     public Shipment getById(Long id) {
         return shipmentRepository.findById(id).orElseThrow(() -> new ShipmentNotFoundException(id));
+    }
+
+    @Transactional
+    public Shipment updateStatus(Long shipmentId, ShipmentStatus newStatus) {
+        Shipment shipment = shipmentRepository.findById(shipmentId).orElseThrow(() -> new ShipmentNotFoundException(shipmentId));
+
+        if (shipment.getStatus() == newStatus) {
+            return shipment;
+        }
+
+        if (shipment.getStatus() == ShipmentStatus.DELIVERED || shipment.getStatus() == ShipmentStatus.CANCELLED) {
+            throw new ShipmentStatusConflictException(shipmentId);
+        }
+
+        shipment.setStatus(newStatus);
+        shipmentRepository.save(shipment);
+
+        ShipmentStatusChangedEvent event = new ShipmentStatusChangedEvent(
+                UUID.randomUUID(),
+                ShipmentStatusChangedEvent.TYPE,
+                Instant.now(),
+                shipmentId,
+                newStatus.name()
+        );
+
+        outboxEventRepository.save(OutboxEvent.builder()
+                .eventId(event.eventId())
+                .aggregateType("Shipment")
+                .aggregateId(shipmentId.toString())
+                .eventType(event.eventType())
+                .payload(jsonMapper.writeValueAsString(event))
+                .traceparent(traceContext.capture())
+                .published(false)
+                .build());
+
+        return shipment;
     }
 
     @Transactional(readOnly = true)

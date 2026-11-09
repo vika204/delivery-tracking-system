@@ -3,6 +3,7 @@ package com.delivery.shipment.controller;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentResponse;
+import com.delivery.shipment.dto.UpdateShipmentStatusRequest;
 import com.delivery.shipment.service.ShipmentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -59,5 +60,11 @@ public class ShipmentController {
         log.info("Shipment lookup for shipment {}", id);
 
         return ShipmentResponse.from(shipmentService.getById(id));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ShipmentResponse updateShipmentStatus(@PathVariable Long id, @Valid @RequestBody UpdateShipmentStatusRequest request) {
+        log.info("Updating shipment {} status to {}", id, request.status());
+        return ShipmentResponse.from(shipmentService.updateStatus(id, request.status()));
     }
 }

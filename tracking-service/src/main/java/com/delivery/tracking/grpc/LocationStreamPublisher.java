@@ -62,7 +62,7 @@ public class LocationStreamPublisher {
         for (ServerCallStreamObserver<ShipmentLocationUpdate> observer : active) {
             try {
                 synchronized (observer) {
-                    if (observer.isCancelled()) {
+                    if (observer.isCancelled() || subscribers.get(event.shipmentId()) != active) {
                         unsubscribe(event.shipmentId(), observer);
                     } else {
                         observer.onNext(update);
@@ -75,6 +75,30 @@ public class LocationStreamPublisher {
         }
 
         log.info("Location update published: shipmentId={}, locationId={}", event.shipmentId(), event.locationId());
+    }
+
+    public void completeShipment(long shipmentId) {
+        Set<ServerCallStreamObserver<ShipmentLocationUpdate>> active = subscribers.remove(shipmentId);
+
+        if (active == null) {
+            return;
+        }
+
+        for (ServerCallStreamObserver<ShipmentLocationUpdate> observer : active) {
+            synchronized (observer) {
+                if (observer.isCancelled()) {
+                    continue;
+                }
+
+                try {
+                    observer.onCompleted();
+                } catch (RuntimeException ex) {
+                    log.warn("Failed to complete gRPC stream: shipmentId={}", shipmentId, ex);
+                }
+            }
+        }
+
+        log.info("gRPC streams completed for terminal shipment: shipmentId={}", shipmentId);
     }
 
     private void unsubscribe(long shipmentId, ServerCallStreamObserver<ShipmentLocationUpdate> observer) {

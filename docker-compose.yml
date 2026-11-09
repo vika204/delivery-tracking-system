@@ -161,11 +161,14 @@ services:
       SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${TRACKING_DB_PASSWORD}
       SHIPMENT_SERVICE_URL: http://shipment-service:8080
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       GRPC_REFLECTION_ENABLED: "true"
       TRACKING_RECORDED_AT_ZONE: "UTC"
 
     depends_on:
       tracking-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
     networks:
