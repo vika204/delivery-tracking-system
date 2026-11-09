@@ -195,7 +195,8 @@ services:
 
   notification-service:
     build:
-      context: ./notification-service
+      context: .
+      dockerfile: notification-service/Dockerfile
 
     ports:
       - "8085:8080"
@@ -205,6 +206,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${NOTIFICATION_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
 
     depends_on:
       notification-db:
