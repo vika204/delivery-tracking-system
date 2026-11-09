@@ -9,3 +9,4 @@ data:
   POSTGRES_DB: notification_db
   SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notification_db
   SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+  TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"

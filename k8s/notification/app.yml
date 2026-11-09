@@ -6,7 +6,7 @@ metadata:
   labels:
     app: notification-service
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -94,6 +94,11 @@ spec:
                 configMapKeyRef:
                   name: notification-config
                   key: SPRING_KAFKA_BOOTSTRAP_SERVERS
+            - name: TRACKING_GRPC_TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: notification-config
+                  key: TRACKING_GRPC_TARGET
             - name: POD_NAME
               valueFrom:
                 fieldRef:

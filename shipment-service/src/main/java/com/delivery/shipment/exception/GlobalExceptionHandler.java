@@ -29,6 +29,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final URI IDEMPOTENCY_KEY_REUSE = URI.create("urn:delivery:problem:idempotency-key-reuse");
     private static final URI VALIDATION_FAILED = URI.create("urn:delivery:problem:validation-failed");
     private static final URI INTERNAL_ERROR = URI.create("urn:delivery:problem:internal-error");
+    private static final URI SHIPMENT_STATUS_CONFLICT = URI.create("urn:delivery:problem:shipment-status-conflict");
 
     @ExceptionHandler(ShipmentNotFoundException.class)
     public ResponseEntity<Object> handleShipmentNotFound(ShipmentNotFoundException ex, WebRequest request) {
@@ -44,6 +45,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problem.setType(IDEMPOTENCY_KEY_REUSE);
         problem.setTitle("Idempotency-Key reused");
         return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.UNPROCESSABLE_ENTITY, request);
+    }
+
+    @ExceptionHandler(ShipmentStatusConflictException.class)
+    public ResponseEntity<Object> handleShipmentStatusConflict(ShipmentStatusConflictException ex, WebRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setType(SHIPMENT_STATUS_CONFLICT);
+        problem.setTitle("Shipment status conflict");
+        return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
     @ExceptionHandler(Exception.class)

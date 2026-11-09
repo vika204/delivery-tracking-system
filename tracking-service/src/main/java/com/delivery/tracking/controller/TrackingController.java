@@ -5,6 +5,7 @@ import com.delivery.tracking.client.dto.ShipmentBatchResponse;
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.repository.TrackingRepository;
+import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -21,19 +22,18 @@ public class TrackingController {
 
     private final TrackingRepository trackingRepository;
     private final TrackingService trackingService;
-
+    private final LocationService locationService;
     private static final Logger log = LoggerFactory.getLogger(TrackingController.class);
 
-    public TrackingController(
-            TrackingRepository trackingRepository,
-            TrackingService trackingService) {
+    public TrackingController(TrackingRepository trackingRepository, TrackingService trackingService, LocationService locationService) {
         this.trackingRepository = trackingRepository;
         this.trackingService = trackingService;
+        this.locationService = locationService;
     }
 
     @PostMapping
     public Location createLocation(@RequestBody Location location) {
-        return trackingRepository.save(location);
+        return locationService.createLocation(location);
     }
 
     @GetMapping

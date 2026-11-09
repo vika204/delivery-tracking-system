@@ -6,7 +6,7 @@ metadata:
   labels:
     app: tracking-service
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -69,6 +69,8 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            - name: grpc
+              containerPort: 9090
 
           envFrom:
             - configMapRef:
@@ -108,6 +110,11 @@ spec:
                 configMapKeyRef:
                   name: tracking-config
                   key: SHIPMENT_SERVICE_URL
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: tracking-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
 
           readinessProbe:
             httpGet:
@@ -152,3 +159,6 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+    - name: grpc
+      port: 9090
+      targetPort: grpc
