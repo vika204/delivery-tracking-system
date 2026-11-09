@@ -1,14 +1,22 @@
-FROM maven:3.9-eclipse-temurin-25-alpine AS builder
+FROM maven:3.9-eclipse-temurin-25 AS builder
 
 WORKDIR /workspace
 
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
+COPY tracking-api/pom.xml tracking-api/pom.xml
+RUN mvn -B -f tracking-api/pom.xml dependency:go-offline
 
-COPY src ./src
-RUN mvn clean package -DskipTests
+COPY tracking-api/src tracking-api/src
+RUN mvn -B -f tracking-api/pom.xml clean install -DskipTests
 
-RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination extracted
+COPY tracking-service/pom.xml tracking-service/pom.xml
+RUN mvn -B -f tracking-service/pom.xml dependency:go-offline
+
+COPY tracking-service/src tracking-service/src
+RUN mvn -B -f tracking-service/pom.xml clean package -DskipTests
+
+RUN java -Djarmode=tools \
+    -jar tracking-service/target/*.jar \
+    extract --layers --launcher --destination extracted
 
 FROM eclipse-temurin:25-jre-alpine
 
@@ -21,6 +29,6 @@ COPY --from=builder /workspace/extracted/application/ ./
 
 USER 10001:10001
 
-EXPOSE 8080
+EXPOSE 8080 9090
 
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "org.springframework.boot.loader.launch.JarLauncher"]

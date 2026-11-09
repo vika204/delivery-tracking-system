@@ -149,16 +149,20 @@ services:
 
   tracking-service:
     build:
-      context: ./tracking-service
+      context: .
+      dockerfile: tracking-service/Dockerfile
 
     ports:
       - "8084:8080"
+      - "9094:9090"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/${TRACKING_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${TRACKING_DB_PASSWORD}
       SHIPMENT_SERVICE_URL: http://shipment-service:8080
+      GRPC_REFLECTION_ENABLED: "true"
+      TRACKING_RECORDED_AT_ZONE: "UTC"
 
     depends_on:
       tracking-db:
