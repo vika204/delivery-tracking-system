@@ -31,7 +31,6 @@ public class TrackingPageController {
         String trackingInput = shipmentId == null ? "" : shipmentId.trim();
 
         model.addAttribute("trackingInput", trackingInput);
-        model.addAttribute("tracking", trackingViewService.getEmptyTracking());
 
         if (trackingInput.isBlank()) {
             return "pages/tracking";

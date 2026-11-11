@@ -1,0 +1,24 @@
+<dialog th:fragment="modal"
+        id="we-modal"
+        class="we-modal"
+        aria-labelledby="we-modal-title"
+        aria-describedby="we-modal-message"
+        xmlns:th="http://www.thymeleaf.org">
+
+    <h2 id="we-modal-title">NOTICE</h2>
+
+    <p id="we-modal-message"></p>
+
+    <div class="we-modal-actions">
+        <button type="button"
+                class="we-modal-cancel"
+                hidden>
+            CANCEL
+        </button>
+
+        <button type="button"
+                class="we-modal-confirm">
+            GOT IT
+        </button>
+    </div>
+</dialog>

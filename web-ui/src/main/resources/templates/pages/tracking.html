@@ -14,12 +14,14 @@
 
     <!-- MapLibre -->
     <link rel="stylesheet"
+          th:if="${tracking != null}"
           href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
 
     <!-- Shared styles -->
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
 
     <!-- Tracking page styles -->
     <link rel="stylesheet" th:href="@{/css/pages/tracking.css}">
@@ -69,92 +71,98 @@
     </div>
 
     <p th:if="${errorMessage != null}"
+       id="tracking-error"
        class="tracking-message"
        role="alert"
+       data-we-modal-alert
+       data-we-modal-title="TRACKING ERROR"
        th:text="${errorMessage}">
     </p>
     
-    <!-- Map + shipment information -->
+    <th:block th:if="${tracking != null}">
+        <!-- Map + shipment information -->
 
-    <div class="tracking-layout">
+        <div class="tracking-layout">
 
-        <!-- Interactive map -->
+            <!-- Interactive map -->
 
-        <section class="tracking-map-panel"
-                 aria-label="Courier tracking map">
+            <section class="tracking-map-panel"
+                     aria-label="Courier tracking map">
 
-            <div id="live-map"
-                 class="tracking-map"
-                 aria-label="Interactive courier tracking map"
-                 th:attr="data-spider-url=@{/images/spider-courier.webp}">
-            </div>
+                <div id="live-map"
+                     class="tracking-map"
+                     aria-label="Interactive courier tracking map"
+                     th:attr="data-spider-url=@{/images/spider-courier.webp}">
+                </div>
 
-            <div id="map-error"
-                 class="tracking-map-panel__error"
-                 role="status">
-                Loading the map…
-            </div>
+                <div id="map-error"
+                     class="tracking-map-panel__error"
+                     role="status">
+                    Loading the map…
+                </div>
 
-            <div class="tracking-map-panel__top">
-                <span class="tracking-map-panel__pill">
-                    <span class="tracking-map-panel__dot"></span>
-                    <span th:text="${tracking.shipmentLoaded} ? 'WAITING FOR COURIER LOCATION' : 'ENTER A SHIPMENT ID'">
-                        ENTER A SHIPMENT ID
+                <div class="tracking-map-panel__top">
+                    <span class="tracking-map-panel__pill">
+                        <span class="tracking-map-panel__dot"></span>
+                        <span>WAITING FOR COURIER LOCATION</span>
                     </span>
-                </span>
-            </div>
+                </div>
 
-        </section>
+            </section>
 
-        <!-- Reusable Thymeleaf shipment card -->
+            <!-- Reusable Thymeleaf shipment card -->
 
-        <aside th:replace="~{fragments/tracking/shipment-card :: shipmentCard}">
-        </aside>
-
-    </div>
-
-    <div class="tracking-controls">
-
-    <span>
-        GPS controls will activate when coordinates are available.
-    </span>
-
-        <div class="tracking-controls__buttons">
-
-            <button type="button"
-                    id="follow"
-                    class="tracking-controls__button tracking-controls__button--secondary"
-                    aria-pressed="false"
-                    disabled>
-                FOLLOW COURIER
-            </button>
-
-            <button type="button"
-                    id="overview"
-                    class="tracking-controls__button tracking-controls__button--secondary"
-                    disabled>
-                SHOW ROUTE
-            </button>
-
-            <button type="button"
-                    id="toggle-3d"
-                    class="tracking-controls__button tracking-controls__button--secondary"
-                    aria-pressed="true"
-                    disabled>
-                2D VIEW
-            </button>
+            <aside th:replace="~{fragments/tracking/shipment-card :: shipmentCard}">
+            </aside>
 
         </div>
 
-    </div>
+        <div class="tracking-controls">
+
+            <div class="tracking-controls__buttons">
+
+                <button type="button"
+                        id="follow"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        aria-pressed="false"
+                        disabled>
+                    FOLLOW COURIER
+                </button>
+
+                <button type="button"
+                        id="overview"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        disabled>
+                    SHOW ROUTE
+                </button>
+
+                <button type="button"
+                        id="toggle-3d"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        aria-pressed="true"
+                        disabled>
+                    2D VIEW
+                </button>
+
+            </div>
+
+        </div>
+    </th:block>
 </main>
 
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
+
+<!-- Shared modal controller -->
+<script th:src="@{/js/components/modal.js}"></script>
+
 <!-- MapLibre library -->
-<script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
+<script th:if="${tracking != null}"
+        src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
 </script>
 
 <!-- Tracking map -->
-<script type="module"
+<script th:if="${tracking != null}"
+        type="module"
         th:src="@{/js/components/tracking-map.js}">
 </script>
 

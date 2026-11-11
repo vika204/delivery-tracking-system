@@ -10,4 +10,5 @@
     --font-body: 'DM Sans', Arial, sans-serif;
     --font-condensed: 'Barlow Condensed', sans-serif;
     --font-display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+    --headline: var(--font-display);
 }
