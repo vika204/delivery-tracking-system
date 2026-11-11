@@ -56,6 +56,7 @@
             <input type="text"
                    name="shipmentId"
                    aria-label="Shipment ID"
+                   placeholder="Enter shipment ID"
                    th:value="${trackingInput}"
                    required>
 
@@ -75,45 +76,31 @@
     
     <!-- Map + shipment information -->
 
-    <div class="tracking-layout"
-         th:if="${tracking != null}">
+    <div class="tracking-layout">
 
         <!-- Interactive map -->
 
         <section class="tracking-map-panel"
                  aria-label="Courier tracking map">
 
-            <div th:if="${demoMode}"
-                 id="live-map"
+            <div id="live-map"
                  class="tracking-map"
                  aria-label="Interactive courier tracking map"
                  th:attr="data-spider-url=@{/images/spider-courier.webp}">
             </div>
 
-            <div th:unless="${demoMode}"
-                 class="tracking-map-placeholder">
-
-                <strong>LIVE GPS NOT CONNECTED YET</strong>
-
-                <p>
-                    The shipment status is retrieved from the backend.
-                    Live courier coordinates will be added later.
-                </p>
-
-            </div>
-
-            <div th:if="${demoMode}"
-                 id="map-error"
+            <div id="map-error"
                  class="tracking-map-panel__error"
                  role="status">
                 Loading the map…
             </div>
 
-            <div th:if="${demoMode}"
-                 class="tracking-map-panel__top">
+            <div class="tracking-map-panel__top">
                 <span class="tracking-map-panel__pill">
                     <span class="tracking-map-panel__dot"></span>
-                    DEMO TRACKING
+                    <span th:text="${tracking.shipmentLoaded} ? 'WAITING FOR COURIER LOCATION' : 'ENTER A SHIPMENT ID'">
+                        ENTER A SHIPMENT ID
+                    </span>
                 </span>
             </div>
 
@@ -125,13 +112,11 @@
         </aside>
 
     </div>
-    <!-- Demo playback controls -->
 
-    <div class="tracking-controls"
-         th:if="${demoMode}">
+    <div class="tracking-controls">
 
     <span>
-        DEMO · Test coordinates, not a live courier
+        GPS controls will activate when coordinates are available.
     </span>
 
         <div class="tracking-controls__buttons">
@@ -142,20 +127,6 @@
                     aria-pressed="false"
                     disabled>
                 FOLLOW COURIER
-            </button>
-
-            <button type="button"
-                    id="pause"
-                    class="tracking-controls__button"
-                    disabled>
-                PAUSE
-            </button>
-
-            <button type="button"
-                    id="restart"
-                    class="tracking-controls__button tracking-controls__button--secondary"
-                    disabled>
-                REPLAY
             </button>
 
             <button type="button"
@@ -176,63 +147,15 @@
         </div>
 
     </div>
-
-    <!-- Playback progress -->
-
-    <div class="tracking-progress"
-         th:if="${demoMode}">
-
-        <input type="range"
-               id="progress"
-               min="0"
-               max="1000"
-               value="0"
-               aria-label="Courier progress along the test route"
-               disabled>
-
-        <span id="progress-label"
-              class="tracking-progress__label">
-        0%
-    </span>
-
-    </div>
-
-    <!-- Test GPS data -->
-
-    <details class="tracking-gps"
-             th:if="${demoMode}">
-
-        <summary>
-            TEST COORDINATES
-            <span id="gps-current"
-                  class="tracking-gps__current"></span>
-        </summary>
-
-        <pre id="coordinates"></pre>
-
-        <button type="button"
-                id="download"
-                class="tracking-controls__button tracking-controls__button--secondary tracking-gps__download">
-            DOWNLOAD COORDINATES
-        </button>
-
-    </details>
-
-    <p id="tracking-message"
-       class="tracking-message"
-       role="status"
-       th:if="${demoMode}"></p>
 </main>
 
 <!-- MapLibre library -->
-<script th:if="${demoMode}"
-        src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
+<script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
 </script>
 
 <!-- Tracking map -->
-<script th:if="${demoMode}"
-        type="module"
-        th:src="@{/js/demo/tracking-demo.js}">
+<script type="module"
+        th:src="@{/js/components/tracking-map.js}">
 </script>
 
 </body>

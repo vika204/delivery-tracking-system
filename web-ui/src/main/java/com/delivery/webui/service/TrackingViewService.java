@@ -18,30 +18,12 @@ public class TrackingViewService {
         this.shipmentClient = shipmentClient;
     }
 
-    public TrackingPageViewModel getDemoTracking() {
+    public TrackingPageViewModel getEmptyTracking() {
         return new TrackingPageViewModel(
-                "WE-204-081",
-                "8–12",
-                "YOUR COURIER IS ON THE WAY",
-                "AL",
-                "Alex · Demo courier",
-                "Express delivery",
-                "Sumy, Ukraine",
-                "Test destination B",
-                List.of(
-                        new TrackingTimelineStepViewModel(
-                                "Package collected",
-                                "14:02 · Pickup point",
-                                true,
-                                false
-                        ),
-                        new TrackingTimelineStepViewModel(
-                                "Out for delivery",
-                                "Simulated GPS · Sumy, Ukraine",
-                                false,
-                                true
-                        )
-                )
+                false,
+                "—",
+                "Enter a shipment ID to start tracking",
+                List.of()
         );
     }
 
@@ -63,18 +45,13 @@ public class TrackingViewService {
         String statusText = formatStatus(shipment.status());
 
         return new TrackingPageViewModel(
+                true,
                 shipment.shipmentId().toString(),
-                "—",
                 statusText,
-                "—",
-                "Not available yet",
-                "Courier information is not connected",
-                "Not available yet",
-                "",
                 List.of(
                         new TrackingTimelineStepViewModel(
-                                statusText,
-                                "Current status from shipment-service",
+                                "Waiting for courier location",
+                                "Real-time GPS is not connected yet",
                                 false,
                                 true
                         )

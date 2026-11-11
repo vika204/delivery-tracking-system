@@ -47,26 +47,22 @@
 
     <div class="tracking-card__order">
         <strong th:text="${tracking.trackingNumber}">
-            WE-204-081
+            —
         </strong>
 
-        <span>YOUR PACKAGE</span>
+        <span th:text="${tracking.shipmentLoaded} ? 'YOUR PACKAGE' : 'TRACKING'">
+            TRACKING
+        </span>
     </div>
 
     <!-- Estimated arrival -->
 
     <p class="tracking-card__eta">
-    <span id="eta"
-          th:text="${tracking.etaText}">
-        8–12
-    </span>
-
-        <small th:if="${demoMode}">MIN</small>
+        <span id="eta">—</span>
     </p>
 
-    <p class="tracking-card__eta-caption"
-       th:text="${demoMode} ? 'Estimated arrival' : 'ETA not available yet'">
-        Estimated arrival
+    <p class="tracking-card__eta-caption">
+        ETA not available yet
     </p>
 
     <!-- Current status -->
@@ -78,25 +74,26 @@
 
         <span id="delivery-status"
               th:text="${tracking.statusText}">
-        YOUR COURIER IS ON THE WAY
+        Enter a shipment ID to start tracking
     </span>
 
     </div>
 
     <!-- Delivery timeline -->
 
-    <ol class="tracking-card__timeline">
+    <ol class="tracking-card__timeline"
+        th:if="${tracking.shipmentLoaded}">
 
         <li th:each="step : ${tracking.timeline}"
             th:classappend="${step.done} ? 'done' : (${step.current} ? 'current' : '')"
             th:attr="aria-current=${step.current} ? 'step' : null">
 
         <span th:text="${step.title}">
-            Package collected
+            Waiting for courier location
         </span>
 
             <small th:text="${step.description}">
-                14:02 · Pickup point
+                Real-time GPS is not connected yet
             </small>
 
         </li>
@@ -105,43 +102,30 @@
 
     <!-- Courier information -->
 
-    <div class="tracking-card__courier">
+    <div class="tracking-card__courier"
+         th:if="${tracking.shipmentLoaded}">
 
         <div class="tracking-card__avatar"
-             aria-hidden="true"
-             th:text="${tracking.courierInitials}">
-            AL
+             aria-hidden="true">
+            —
         </div>
 
         <div>
-            <strong th:text="${tracking.courierName}">
-                Alex · Demo courier
-            </strong>
+            <strong>Courier location unavailable</strong>
 
-            <p th:text="${tracking.courierDescription}">
-                Express delivery
-            </p>
+            <p>Waiting for courier location</p>
         </div>
 
     </div>
 
     <!-- Destination -->
 
-    <div class="tracking-card__details">
+    <div class="tracking-card__details"
+         th:if="${tracking.shipmentLoaded}">
 
-        <small>DELIVERING TO</small>
+        <small>SHIPMENT PRIVACY</small>
 
-        <p>
-        <span th:text="${tracking.destinationCity}">
-            Sumy, Ukraine
-        </span>
-
-            <br>
-
-            <span th:text="${tracking.destinationAddress}">
-            Test destination B
-        </span>
-        </p>
+        <p>Recipient information is not displayed.</p>
 
     </div>
 

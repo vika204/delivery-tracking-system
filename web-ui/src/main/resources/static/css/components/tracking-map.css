@@ -17,32 +17,6 @@
     height: 100%;
 }
 
-.tracking-map-placeholder {
-    position: absolute;
-    inset: 0;
-
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-
-    padding: 35px;
-    text-align: center;
-    background: #e9dfcb;
-    color: #78634e;
-}
-
-.tracking-map-placeholder strong {
-    color: var(--red);
-    font: 400 27px var(--font-display);
-}
-
-.tracking-map-placeholder p {
-    max-width: 300px;
-    font-size: 12px;
-    line-height: 1.6;
-}
-
 .tracking-map-panel__top {
     position: absolute;
     z-index: 1;
@@ -113,25 +87,6 @@
     border: 1px solid #39261b;
     border-radius: 8px;
     box-shadow: 2px 3px #2a181233;
-}
-
-/* Route markers */
-
-.tracking-stop-marker {
-    display: grid;
-    place-items: center;
-
-    width: 30px;
-    height: 30px;
-
-    border: 2px solid #fff0db;
-    border-radius: 50%;
-
-    background: var(--ink);
-    color: var(--cream);
-
-    font: 700 16px var(--font-condensed);
-    box-shadow: 1px 2px #39261b44;
 }
 
 /* Original spider courier */

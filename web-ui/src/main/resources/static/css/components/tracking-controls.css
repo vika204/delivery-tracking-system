@@ -45,63 +45,6 @@
     opacity: 0.5;
 }
 
-.tracking-progress {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-
-    margin-top: 18px;
-}
-
-.tracking-progress input {
-    flex: 1;
-    min-width: 0;
-
-    accent-color: var(--red);
-    cursor: pointer;
-}
-
-.tracking-progress__label {
-    min-width: 35px;
-    font: 700 13px var(--font-condensed);
-}
-
-.tracking-gps {
-    margin-top: 18px;
-    padding-top: 15px;
-
-    border-top: 1px solid #39261b33;
-
-    color: #78634e;
-    font-size: 11px;
-}
-
-.tracking-gps summary {
-    cursor: pointer;
-
-    font: 700 12px var(--font-condensed);
-    letter-spacing: 0.04em;
-}
-
-.tracking-gps__current {
-    float: right;
-    font: 11px monospace;
-}
-
-.tracking-gps pre {
-    max-height: 160px;
-    overflow: auto;
-
-    padding: 14px;
-
-    background: #f6e6cf44;
-    line-height: 1.7;
-}
-
-.tracking-gps__download {
-    margin-top: 12px;
-}
-
 .tracking-message {
     min-height: 18px;
     margin: 10px 0 0;
@@ -116,11 +59,6 @@
         flex-direction: column;
     }
 
-    .tracking-gps__current {
-        float: none;
-        display: block;
-        margin-top: 8px;
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,14 +3,9 @@ package com.delivery.webui.viewmodel;
 import java.util.List;
 
 public record TrackingPageViewModel(
+        boolean shipmentLoaded,
         String trackingNumber,
-        String etaText,
         String statusText,
-        String courierInitials,
-        String courierName,
-        String courierDescription,
-        String destinationCity,
-        String destinationAddress,
         List<TrackingTimelineStepViewModel> timeline
 ) {
 }

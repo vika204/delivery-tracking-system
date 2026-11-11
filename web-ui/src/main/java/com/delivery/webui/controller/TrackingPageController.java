@@ -28,24 +28,17 @@ public class TrackingPageController {
         );
         model.addAttribute("activePage", "tracking");
 
-        boolean demoMode = shipmentId == null || shipmentId.isBlank();
+        String trackingInput = shipmentId == null ? "" : shipmentId.trim();
 
-        model.addAttribute("demoMode", demoMode);
-        model.addAttribute(
-                "trackingInput",
-                demoMode ? "WE-204-081" : shipmentId.trim()
-        );
+        model.addAttribute("trackingInput", trackingInput);
+        model.addAttribute("tracking", trackingViewService.getEmptyTracking());
 
-        if (demoMode) {
-            model.addAttribute(
-                    "tracking",
-                    trackingViewService.getDemoTracking()
-            );
+        if (trackingInput.isBlank()) {
             return "pages/tracking";
         }
 
         try {
-            long id = Long.parseLong(shipmentId.trim());
+            long id = Long.parseLong(trackingInput);
 
             if (id <= 0) {
                 model.addAttribute(
