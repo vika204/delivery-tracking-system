@@ -1,0 +1,148 @@
+<aside class="tracking-card"
+       th:fragment="shipmentCard"
+       aria-label="Shipment details"
+       xmlns:th="http://www.thymeleaf.org">
+
+    <!-- Decorative spiderweb: left corner -->
+    <svg class="tracking-card__web tracking-card__web--left"
+         viewBox="0 0 120 100"
+         preserveAspectRatio="none"
+         aria-hidden="true"
+         focusable="false">
+
+        <g fill="none"
+           stroke="currentColor"
+           stroke-width=".7"
+           stroke-linecap="round">
+
+            <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
+
+            <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
+        </g>
+    </svg>
+
+    <!-- Decorative spiderweb: right corner -->
+    <svg class="tracking-card__web tracking-card__web--right"
+         viewBox="0 0 120 100"
+         preserveAspectRatio="none"
+         aria-hidden="true"
+         focusable="false">
+
+        <g fill="none"
+           stroke="currentColor"
+           stroke-width=".7"
+           stroke-linecap="round">
+
+            <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
+
+            <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
+        </g>
+    </svg>
+
+    <p class="tracking-card__kicker">
+        SPECIAL DELIVERY
+    </p>
+
+    <!-- Shipment number -->
+
+    <div class="tracking-card__order">
+        <strong th:text="${tracking.trackingNumber}">
+            WE-204-081
+        </strong>
+
+        <span>YOUR PACKAGE</span>
+    </div>
+
+    <!-- Estimated arrival -->
+
+    <p class="tracking-card__eta">
+    <span id="eta"
+          th:text="${tracking.etaText}">
+        8–12
+    </span>
+
+        <small th:if="${demoMode}">MIN</small>
+    </p>
+
+    <p class="tracking-card__eta-caption"
+       th:text="${demoMode} ? 'Estimated arrival' : 'ETA not available yet'">
+        Estimated arrival
+    </p>
+
+    <!-- Current status -->
+
+    <div class="tracking-card__status" role="status">
+
+    <span class="tracking-card__status-dot"
+          aria-hidden="true"></span>
+
+        <span id="delivery-status"
+              th:text="${tracking.statusText}">
+        YOUR COURIER IS ON THE WAY
+    </span>
+
+    </div>
+
+    <!-- Delivery timeline -->
+
+    <ol class="tracking-card__timeline">
+
+        <li th:each="step : ${tracking.timeline}"
+            th:classappend="${step.done} ? 'done' : (${step.current} ? 'current' : '')"
+            th:attr="aria-current=${step.current} ? 'step' : null">
+
+        <span th:text="${step.title}">
+            Package collected
+        </span>
+
+            <small th:text="${step.description}">
+                14:02 · Pickup point
+            </small>
+
+        </li>
+
+    </ol>
+
+    <!-- Courier information -->
+
+    <div class="tracking-card__courier">
+
+        <div class="tracking-card__avatar"
+             aria-hidden="true"
+             th:text="${tracking.courierInitials}">
+            AL
+        </div>
+
+        <div>
+            <strong th:text="${tracking.courierName}">
+                Alex · Demo courier
+            </strong>
+
+            <p th:text="${tracking.courierDescription}">
+                Express delivery
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Destination -->
+
+    <div class="tracking-card__details">
+
+        <small>DELIVERING TO</small>
+
+        <p>
+        <span th:text="${tracking.destinationCity}">
+            Sumy, Ukraine
+        </span>
+
+            <br>
+
+            <span th:text="${tracking.destinationAddress}">
+            Test destination B
+        </span>
+        </p>
+
+    </div>
+
+</aside>
