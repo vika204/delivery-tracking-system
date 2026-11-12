@@ -28,11 +28,12 @@
     <link rel="stylesheet" th:href="@{/css/components/tracking-map.css}">
     <link rel="stylesheet" th:href="@{/css/components/tracking-card.css}">
     <link rel="stylesheet" th:href="@{/css/components/tracking-controls.css}">
+    <script th:src="@{/js/components/header.js}" defer></script>
 </head>
 
 <body>
 
-<header th:replace="~{fragments/header :: siteHeader}"></header>
+<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
 
 <main class="tracking-page" id="tracking">
 
@@ -54,6 +55,11 @@
         <form class="tracking-search"
               th:action="@{/tracking}"
               method="get">
+
+            <input th:if="${authenticated}"
+                   type="hidden"
+                   name="authenticated"
+                   value="true">
 
             <input type="text"
                    name="shipmentId"

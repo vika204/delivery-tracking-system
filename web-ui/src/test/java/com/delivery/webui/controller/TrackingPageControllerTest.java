@@ -56,6 +56,32 @@ class TrackingPageControllerTest {
     }
 
     @Test
+    void showsGuestHeaderByDefault() throws Exception {
+        mockMvc.perform(get("/tracking"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/tracking\"")))
+                .andExpect(content().string(containsString("href=\"/login\"")))
+                .andExpect(content().string(containsString("href=\"/register\"")))
+                .andExpect(content().string(containsString("SIGN UP")))
+                .andExpect(content().string(not(containsString("data-profile-menu"))));
+    }
+
+    @Test
+    void showsAuthenticatedHeaderPreview() throws Exception {
+        mockMvc.perform(get("/tracking").param("authenticated", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("SHIP")))
+                .andExpect(content().string(containsString("MY PARCELS")))
+                .andExpect(content().string(containsString("PROFILE")))
+                .andExpect(content().string(containsString("MY PROFILE")))
+                .andExpect(content().string(containsString("LOG OUT")))
+                .andExpect(content().string(containsString("data-profile-menu")))
+                .andExpect(content().string(containsString("aria-expanded=\"false\"")))
+                .andExpect(content().string(not(containsString("href=\"/login\""))))
+                .andExpect(content().string(not(containsString("href=\"/register\""))));
+    }
+
+    @Test
     void showsNeutralTrackingPageWithoutShipmentId() throws Exception {
         mockMvc.perform(get("/tracking"))
                 .andExpect(status().isOk())
