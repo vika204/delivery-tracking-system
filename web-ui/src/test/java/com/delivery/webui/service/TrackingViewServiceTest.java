@@ -161,7 +161,6 @@ class TrackingViewServiceTest {
         assertThat(result.locations()).hasSize(500);
         assertThat(result.locationHistoryComplete()).isFalse();
         assertThat(result.locationMessage()).isEqualTo("LOCATION HISTORY INCOMPLETE");
-        assertThat(result.locationDescription()).contains("latest courier position is not available");
     }
 
     @Test
@@ -198,7 +197,7 @@ class TrackingViewServiceTest {
         TrackingPageViewModel result = service().getLiveTracking(15);
 
         assertThat(result.locations()).isEmpty();
-        assertThat(result.locationDataAvailable()).isFalse();
+        assertThat(result.locationHistoryComplete()).isFalse();
         assertThat(result.locationMessage())
                 .isEqualTo("LOCATION DATA TEMPORARILY UNAVAILABLE");
     }

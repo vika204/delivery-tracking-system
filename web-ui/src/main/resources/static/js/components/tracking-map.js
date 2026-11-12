@@ -43,7 +43,6 @@ function readTrackingData() {
     return {
         shipmentId: data.shipmentId,
         locations: Array.isArray(data.locations) ? data.locations : [],
-        locationDataAvailable: data.locationDataAvailable === true,
         locationHistoryComplete: data.locationHistoryComplete === true
     };
 }
