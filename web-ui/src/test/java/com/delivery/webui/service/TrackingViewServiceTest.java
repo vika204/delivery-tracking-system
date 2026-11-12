@@ -115,6 +115,31 @@ class TrackingViewServiceTest {
                 .isEqualTo("LOCATION DATA TEMPORARILY UNAVAILABLE");
     }
 
+    @Test
+    void marksDeliveredAndCancelledShipmentsAsTerminal() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "DELIVERED"));
+        when(shipmentClient.getShipmentById(16L))
+                .thenReturn(new TrackingShipmentResponse(16L, null, "cancelled"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+        when(locationClient.getShipmentLocations(16, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).terminal()).isTrue();
+        assertThat(service().getLiveTracking(16).terminal()).isTrue();
+    }
+
+    @Test
+    void keepsActiveShipmentNonTerminal() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).terminal()).isFalse();
+    }
+
     private TrackingViewService service() {
         return new TrackingViewService(shipmentClient, locationClient);
     }

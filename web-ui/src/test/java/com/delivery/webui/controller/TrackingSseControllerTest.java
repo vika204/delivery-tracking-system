@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -118,5 +120,81 @@ class TrackingSseControllerTest {
                 .andExpect(content().string(not(containsString(
                         "/js/components/tracking-live.js"
                 ))));
+    }
+
+    @Test
+    void returnsOnlyPublicShipmentStatusForLoopbackClient() throws Exception {
+        when(shipmentClient.getShipmentById(15))
+                .thenReturn(new TrackingShipmentResponse(
+                        15L,
+                        "Private Recipient",
+                        "DELIVERED"
+                ));
+
+        mockMvc.perform(get("/api/tracking/shipments/15/status")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shipmentId").value(15))
+                .andExpect(jsonPath("$.status").value("DELIVERED"))
+                .andExpect(jsonPath("$.recipientName").doesNotExist())
+                .andExpect(content().string(not(containsString(
+                        "Private Recipient"
+                ))));
+    }
+
+    @Test
+    void reportsStatusApiAsUnavailableWhenTrackingServiceFails() throws Exception {
+        when(shipmentClient.getShipmentById(15))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+
+        mockMvc.perform(get("/api/tracking/shipments/15/status")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isServiceUnavailable());
+    }
+
+    @Test
+    void rejectsStatusRequestFromNonLoopbackClient() throws Exception {
+        mockMvc.perform(get("/api/tracking/shipments/15/status")
+                        .with(request -> {
+                            request.setRemoteAddr("192.0.2.10");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void terminalShipmentShowsHistoryWithoutOpeningLiveStream() throws Exception {
+        when(shipmentClient.getShipmentById(15))
+                .thenReturn(new TrackingShipmentResponse(
+                        15L,
+                        null,
+                        "CANCELLED"
+                ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(java.util.List.of());
+
+        mockMvc.perform(get("/tracking").param("shipmentId", "15"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(
+                        "id=\"delivery-status\""
+                )))
+                .andExpect(content().string(containsString("CANCELLED")))
+                .andExpect(content().string(containsString(
+                        "terminal: true"
+                )))
+                .andExpect(content().string(not(containsString(
+                        "id=\"tracking-stream-status\""
+                ))))
+                .andExpect(content().string(not(containsString(
+                        "/js/components/tracking-live.js"
+                ))));
+
+        verifyNoInteractions(streamService);
     }
 }

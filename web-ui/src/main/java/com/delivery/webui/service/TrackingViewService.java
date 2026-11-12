@@ -41,7 +41,8 @@ public class TrackingViewService {
                 true,
                 true,
                 "WAITING FOR COURIER LOCATION",
-                "Enter a shipment ID to start tracking"
+                "Enter a shipment ID to start tracking",
+                false
         );
     }
 
@@ -81,7 +82,8 @@ public class TrackingViewService {
                 locationHistory.available(),
                 locationHistory.complete(),
                 locationPresentation.mapMessage(),
-                locationPresentation.description()
+                locationPresentation.description(),
+                isTerminalStatus(shipment.status())
         );
     }
 
@@ -222,6 +224,11 @@ public class TrackingViewService {
             case "CANCELLED" -> "CANCELLED";
             default -> status.replace('_', ' ');
         };
+    }
+
+    private boolean isTerminalStatus(String status) {
+        return "DELIVERED".equalsIgnoreCase(status)
+                || "CANCELLED".equalsIgnoreCase(status);
     }
 
     private record LocationHistory(

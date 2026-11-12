@@ -13,6 +13,7 @@ public record TrackingPageViewModel(
         boolean locationDataAvailable,
         boolean locationHistoryComplete,
         String locationMessage,
-        String locationDescription
+        String locationDescription,
+        boolean terminal
 ) {
 }
