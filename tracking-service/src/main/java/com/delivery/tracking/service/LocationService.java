@@ -1,11 +1,15 @@
 package com.delivery.tracking.service;
 
+import com.delivery.tracking.dto.ShipmentLocationResponse;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.event.LocationSavedEvent;
 import com.delivery.tracking.repository.TrackingRepository;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class LocationService {
@@ -31,5 +35,21 @@ public class LocationService {
         ));
 
         return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ShipmentLocationResponse> getShipmentLocations(
+            long shipmentId,
+            long afterLocationId,
+            int limit
+    ) {
+        return trackingRepository.findByShipmentIdAndLocationIdGreaterThanOrderByLocationIdAsc(
+                        shipmentId,
+                        afterLocationId,
+                        PageRequest.of(0, limit)
+                )
+                .stream()
+                .map(ShipmentLocationResponse::from)
+                .toList();
     }
 }
