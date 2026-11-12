@@ -21,8 +21,11 @@
         <th:block th:if="${authenticated}">
             <span class="site-header__placeholder site-header__desktop-only"
                   aria-disabled="true">SHIP</span>
-            <span class="site-header__placeholder site-header__desktop-only"
-                  aria-disabled="true">MY PARCELS</span>
+            <a class="site-header__desktop-only"
+               th:href="@{/my-parcels}"
+               th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
+                MY PARCELS
+            </a>
             <a th:href="@{/tracking}"
                th:classappend="${activePage == 'tracking'} ? 'active' : ''">
                 TRACK
@@ -49,8 +52,12 @@
                      hidden>
                     <button class="site-header__mobile-only"
                             type="button" role="menuitem">SHIP</button>
-                    <button class="site-header__mobile-only"
-                            type="button" role="menuitem">MY PARCELS</button>
+                    <a class="site-header__mobile-only"
+                       role="menuitem"
+                       th:href="@{/my-parcels}"
+                       th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
+                        MY PARCELS
+                    </a>
                     <button type="button" role="menuitem">MY PROFILE</button>
                     <button type="button" role="menuitem">LOG OUT</button>
                 </div>

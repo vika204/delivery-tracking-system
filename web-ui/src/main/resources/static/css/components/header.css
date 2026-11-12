@@ -105,17 +105,22 @@
     display: none;
 }
 
-.site-header__menu button {
+.site-header__menu button,
+.site-header__menu a {
     padding: 8px 10px;
     border: 0;
     background: transparent;
     color: inherit;
     text-align: left;
+    text-decoration: none;
     font: 700 13px var(--font-condensed);
 }
 
 .site-header__menu button:hover,
-.site-header__menu button:focus-visible {
+.site-header__menu button:focus-visible,
+.site-header__menu a:hover,
+.site-header__menu a:focus-visible,
+.site-header__menu a.active {
     color: #e68976;
 }
 

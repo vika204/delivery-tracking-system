@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle}">Shipment details — WEB EXPRESS</title>
+
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
+    <script th:src="@{/js/components/header.js}" defer></script>
+</head>
+<body>
+<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+
+<svg class="parcel-svg-definitions" aria-hidden="true">
+    <defs>
+        <symbol id="parcel-button-web" viewBox="0 0 94 56">
+            <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
+                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14
+                         M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28
+                         M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42
+                         M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"/>
+            </g>
+        </symbol>
+    </defs>
+</svg>
+
+<main class="parcels-page">
+    <a class="back" th:href="@{/my-parcels}">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none"
+             xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12.0009 1.33452C12.0012 1.05646 11.9145 0.785269 11.753 0.558912C11.5915 0.332554 11.3632 0.162356 11.1002 0.0721339C10.8372 -0.018088 10.5525 -0.0238181 10.2861 0.0557453C10.0196 0.135309 9.78474 0.296184 9.61426 0.515858L0.280925 12.5159C0.0988525 12.7499 0 13.038 0 13.3345C0 13.6311 0.0988525 13.9191 0.280925 14.1532L9.61426 26.1532C9.78474 26.3729 10.0196 26.5337 10.2861 26.6133C10.5525 26.6929 10.8372 26.6871 11.1002 26.5969C11.3632 26.5067 11.5915 26.3365 11.753 26.1101C11.9145 25.8838 12.0012 25.6126 12.0009 25.3345V20.0145C19.1729 20.1639 22.6183 21.5252 24.3489 23.0052C25.9943 24.4119 26.2956 26.0665 26.6089 27.7999L26.6903 28.2465C26.7501 28.5661 26.9247 28.8529 27.1811 29.0528C27.4376 29.2527 27.7582 29.352 28.0828 29.332C28.4073 29.312 28.7134 29.1741 28.9434 28.9442C29.1734 28.7144 29.3114 28.4084 29.3316 28.0839C29.5596 24.4199 29.2169 19.1105 26.6289 14.6692C24.1169 10.3585 19.5943 7.04386 12.0009 6.69719V1.33452Z"
+                  fill-rule="evenodd" clip-rule="evenodd" fill="#D41404"/>
+        </svg>
+        BACK TO MY PARCELS
+    </a>
+
+    <article class="parcel-card">
+        <div class="parcel-inner">
+            <div class="parcel-top">
+                <h1 class="parcel-number"
+                    th:classappend="${parcel.delivered()} ? 'special' : ''"
+                    th:text="|SHIPMENT #${parcel.shipmentId()}|">
+                    SHIPMENT #15
+                </h1>
+                <span class="status"
+                      th:classappend="${parcel.statusClass()}"
+                      th:text="${parcel.statusLabel()}">
+                    IN TRANSIT
+                </span>
+            </div>
+
+            <hr class="dashed-rule">
+
+            <section>
+                <h2 class="section-title">DELIVERY</h2>
+                <div class="fields">
+                    <div class="field">
+                        <span class="field-label">PICKUP ADDRESS</span>
+                        <span class="field-value" th:text="${parcel.pickupAddress()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">DELIVERY ADDRESS</span>
+                        <span class="field-value" th:text="${parcel.deliveryAddress()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">RECIPIENT</span>
+                        <span class="field-value" th:text="${parcel.recipientName()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">RECIPIENT PHONE</span>
+                        <span class="field-value" th:text="${parcel.recipientPhone()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">CREATED AT</span>
+                        <span class="field-value" th:text="${parcel.createdAt()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">DISTANCE</span>
+                        <span class="field-value" th:text="${parcel.distance()}"></span>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="dashed-rule">
+
+            <section>
+                <h2 class="section-title">PACKAGE</h2>
+                <div class="fields">
+                    <div class="field">
+                        <span class="field-label">WEIGHT</span>
+                        <span class="field-value" th:text="${parcel.weight()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">LENGTH</span>
+                        <span class="field-value" th:text="${parcel.length()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">WIDTH</span>
+                        <span class="field-value" th:text="${parcel.width()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">HEIGHT</span>
+                        <span class="field-value" th:text="${parcel.height()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">DELIVERY PRICE</span>
+                        <span class="field-value" th:text="${parcel.price()}"></span>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="dashed-rule">
+
+            <section>
+                <h2 class="section-title">COURIER</h2>
+                <div class="fields">
+                    <div class="field">
+                        <span class="field-label">COURIER NAME</span>
+                        <span class="field-value" th:text="${parcel.courierName()}"></span>
+                    </div>
+                    <div class="field">
+                        <span class="field-label">COURIER PHONE</span>
+                        <span class="field-value" th:text="${parcel.courierPhone()}"></span>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="dashed-rule">
+
+            <div class="detail-actions">
+                <a class="btn btn-red"
+                   th:href="@{/tracking(shipmentId=${parcel.shipmentId()})}">
+                    <svg class="button-web button-web-left" viewBox="0 0 94 56"
+                         preserveAspectRatio="none" aria-hidden="true">
+                        <use href="#parcel-button-web"/>
+                    </svg>
+                    <svg class="button-web button-web-right" viewBox="0 0 94 56"
+                         preserveAspectRatio="none" aria-hidden="true">
+                        <use href="#parcel-button-web"
+                             transform="translate(94 56) rotate(180)"/>
+                    </svg>
+                    <span class="btn-label">TRACK PACKAGE</span>
+                </a>
+            </div>
+        </div>
+    </article>
+</main>
+</body>
+</html>
