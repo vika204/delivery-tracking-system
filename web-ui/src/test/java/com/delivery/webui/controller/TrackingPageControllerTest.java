@@ -1,6 +1,8 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +15,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -32,6 +39,9 @@ class TrackingPageControllerTest {
 
     @MockitoBean
     private TrackingShipmentClient shipmentClient;
+
+    @MockitoBean
+    private TrackingLocationClient locationClient;
 
     @Test
     void contextLoads() {
@@ -69,6 +79,7 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("tracking-demo.js"))));
 
         verifyNoInteractions(shipmentClient);
+        verifyNoInteractions(locationClient);
     }
 
     @Test
@@ -85,6 +96,7 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("FOLLOW COURIER"))));
 
         verifyNoInteractions(shipmentClient);
+        verifyNoInteractions(locationClient);
     }
 
     @Test
@@ -95,6 +107,8 @@ class TrackingPageControllerTest {
                         "Private Recipient",
                         "IN_TRANSIT"
                 ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
 
         mockMvc.perform(get("/tracking").param("shipmentId", "15"))
                 .andExpect(status().isOk())
@@ -115,6 +129,62 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("Alex"))));
 
         verify(shipmentClient).getShipmentById(15L);
+        verify(locationClient).getShipmentLocations(15, 0, 100);
+    }
+
+    @Test
+    void serializesRealCoordinatesForTrackingMap() throws Exception {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(
+                        15L,
+                        null,
+                        "IN_TRANSIT"
+                ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of(
+                        location(1, "50.450100", "30.523400"),
+                        location(2, "50.451000", "30.525000")
+                ));
+
+        mockMvc.perform(get("/tracking").param("shipmentId", "15"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(
+                        "\"locationId\":1,\"shipmentId\":15,\"latitude\":50.450100,\"longitude\":30.523400"
+                )))
+                .andExpect(content().string(containsString(
+                        "\"locationId\":2,\"shipmentId\":15,\"latitude\":50.451000,\"longitude\":30.525000"
+                )))
+                .andExpect(content().string(containsString(
+                        "locationHistoryComplete: true"
+                )))
+                .andExpect(content().string(containsString(
+                        "COURIER LOCATION AVAILABLE"
+                )));
+    }
+
+    @Test
+    void keepsShipmentVisibleWhenLocationApiIsUnavailable() throws Exception {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(
+                        15L,
+                        null,
+                        "IN_TRANSIT"
+                ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+
+        mockMvc.perform(get("/tracking").param("shipmentId", "15"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"live-map\"")))
+                .andExpect(content().string(containsString(
+                        "YOUR COURIER IS ON THE WAY"
+                )))
+                .andExpect(content().string(containsString(
+                        "Location data temporarily unavailable"
+                )))
+                .andExpect(content().string(containsString(
+                        "LOCATION DATA TEMPORARILY UNAVAILABLE"
+                )));
     }
 
     @Test
@@ -137,6 +207,9 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("id=\"live-map\""))))
                 .andExpect(content().string(not(containsString("class=\"tracking-card\""))))
                 .andExpect(content().string(not(containsString("FOLLOW COURIER"))));
+
+        verify(locationClient, never())
+                .getShipmentLocations(99, 0, 100);
     }
 
     @Test
@@ -153,5 +226,21 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("id=\"live-map\""))))
                 .andExpect(content().string(not(containsString("class=\"tracking-card\""))))
                 .andExpect(content().string(not(containsString("FOLLOW COURIER"))));
+
+        verifyNoInteractions(locationClient);
+    }
+
+    private TrackingLocationResponse location(
+            long locationId,
+            String latitude,
+            String longitude
+    ) {
+        return new TrackingLocationResponse(
+                locationId,
+                15L,
+                new BigDecimal(latitude),
+                new BigDecimal(longitude),
+                LocalDateTime.of(2026, 11, 12, 9, 30)
+        );
     }
 }

@@ -111,9 +111,13 @@
         </div>
 
         <div>
-            <strong>Courier location unavailable</strong>
+            <strong th:text="${tracking.timeline[0].title}">
+                Waiting for courier location
+            </strong>
 
-            <p>Waiting for courier location</p>
+            <p th:text="${tracking.locationDescription}">
+                No GPS location has been recorded yet.
+            </p>
         </div>
 
     </div>

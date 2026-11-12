@@ -104,7 +104,9 @@
                 <div class="tracking-map-panel__top">
                     <span class="tracking-map-panel__pill">
                         <span class="tracking-map-panel__dot"></span>
-                        <span>WAITING FOR COURIER LOCATION</span>
+                        <span th:text="${tracking.locationMessage}">
+                            WAITING FOR COURIER LOCATION
+                        </span>
                     </span>
                 </div>
 
@@ -158,6 +160,15 @@
 <!-- MapLibre library -->
 <script th:if="${tracking != null}"
         src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
+</script>
+
+<!-- Safely serialized server-side tracking data -->
+<script th:if="${tracking != null}" th:inline="javascript">
+    window.webExpressTracking = Object.freeze({
+        locations: /*[[${tracking.locations}]]*/ [],
+        locationDataAvailable: /*[[${tracking.locationDataAvailable}]]*/ false,
+        locationHistoryComplete: /*[[${tracking.locationHistoryComplete}]]*/ false
+    });
 </script>
 
 <!-- Tracking map -->
