@@ -2,6 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.service.TrackingStreamService;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -196,5 +201,78 @@ class TrackingSseControllerTest {
                 ))));
 
         verifyNoInteractions(streamService);
+    }
+
+    @Test
+    void returnsBoundedLocationBackfillForRequestedShipment() throws Exception {
+        when(locationClient.getShipmentLocations(15, 10, 100))
+                .thenReturn(List.of(new TrackingLocationResponse(
+                        11L,
+                        15L,
+                        new BigDecimal("50.455"),
+                        new BigDecimal("30.530"),
+                        LocalDateTime.of(2026, 11, 12, 13, 0)
+                )));
+
+        mockMvc.perform(get("/api/tracking/shipments/15/locations")
+                        .param("afterLocationId", "10")
+                        .param("limit", "100")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].locationId").value(11))
+                .andExpect(jsonPath("$[0].shipmentId").value(15))
+                .andExpect(jsonPath("$[0].latitude").value(50.455))
+                .andExpect(jsonPath("$[0].longitude").value(30.530))
+                .andExpect(jsonPath("$[0].recipientName").doesNotExist());
+
+        verify(locationClient).getShipmentLocations(15, 10, 100);
+    }
+
+    @Test
+    void rejectsInvalidLocationBackfillQuery() throws Exception {
+        mockMvc.perform(get("/api/tracking/shipments/15/locations")
+                        .param("afterLocationId", "-1")
+                        .param("limit", "101")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsLocationBackfillFromNonLoopbackClient() throws Exception {
+        mockMvc.perform(get("/api/tracking/shipments/15/locations")
+                        .param("afterLocationId", "10")
+                        .param("limit", "100")
+                        .with(request -> {
+                            request.setRemoteAddr("192.0.2.10");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void doesNotExposeLocationsReturnedForAnotherShipment() throws Exception {
+        when(locationClient.getShipmentLocations(15, 10, 100))
+                .thenReturn(List.of(new TrackingLocationResponse(
+                        11L,
+                        99L,
+                        new BigDecimal("50.455"),
+                        new BigDecimal("30.530"),
+                        LocalDateTime.of(2026, 11, 12, 13, 0)
+                )));
+
+        mockMvc.perform(get("/api/tracking/shipments/15/locations")
+                        .param("afterLocationId", "10")
+                        .param("limit", "100")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isServiceUnavailable());
     }
 }

@@ -2,6 +2,9 @@ const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 const STABLE_CONNECTION_MS = 10000;
 const JITTER_RATIO = 0.1;
+const BACKFILL_PAGE_SIZE = 100;
+const MAX_BACKFILL_LOCATIONS = 500;
+const MAX_BUFFERED_SSE_LOCATIONS = 500;
 
 const STATUS = Object.freeze({
     CONNECTING: Object.freeze({state: "connecting", text: "CONNECTING"}),
@@ -13,12 +16,20 @@ const STATUS = Object.freeze({
     LOST: Object.freeze({state: "lost", text: "CONNECTION LOST"})
 });
 
-function validShipmentId(value) {
-    const shipmentId = Number(value);
+function positiveSafeInteger(value) {
+    const number = Number(value);
 
-    return Number.isSafeInteger(shipmentId) && shipmentId > 0
-        ? shipmentId
-        : null;
+    return Number.isSafeInteger(number) && number > 0 ? number : null;
+}
+
+function nonNegativeSafeInteger(value) {
+    const number = Number(value);
+
+    return Number.isSafeInteger(number) && number >= 0 ? number : null;
+}
+
+function validShipmentId(value) {
+    return positiveSafeInteger(value);
 }
 
 function updateStatusElement(element, status) {
@@ -69,6 +80,108 @@ function retryDelay(attempt, random) {
     );
 }
 
+function validateLocationPage(
+    page,
+    shipmentId,
+    afterLocationId,
+    requestedLimit
+) {
+    if (!Array.isArray(page) || page.length > requestedLimit) {
+        throw new Error("GPS backfill returned an invalid page");
+    }
+
+    let previousLocationId = afterLocationId;
+
+    for (const location of page) {
+        const locationId = positiveSafeInteger(location?.locationId);
+        const responseShipmentId = positiveSafeInteger(location?.shipmentId);
+
+        if (locationId === null || responseShipmentId !== shipmentId ||
+            locationId <= previousLocationId) {
+            throw new Error("GPS backfill returned an invalid location");
+        }
+
+        previousLocationId = locationId;
+    }
+
+    return previousLocationId;
+}
+
+export async function loadLocationBackfill({
+    shipmentId,
+    afterLocationId,
+    fetchPage,
+    pageSize = BACKFILL_PAGE_SIZE,
+    maxLocations = MAX_BACKFILL_LOCATIONS
+}) {
+    const validShipment = validShipmentId(shipmentId);
+    const validAfterLocationId = nonNegativeSafeInteger(afterLocationId);
+
+    if (validShipment === null || validAfterLocationId === null ||
+        typeof fetchPage !== "function" ||
+        !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100 ||
+        !Number.isInteger(maxLocations) || maxLocations < 1 ||
+        maxLocations > MAX_BACKFILL_LOCATIONS) {
+        throw new Error("Invalid GPS backfill configuration");
+    }
+
+    const locations = [];
+    let cursor = validAfterLocationId;
+
+    while (locations.length < maxLocations) {
+        const limit = Math.min(pageSize, maxLocations - locations.length);
+        const page = await fetchPage(validShipment, cursor, limit);
+
+        if (page.length === 0) {
+            return Object.freeze({
+                locations: Object.freeze([...locations]),
+                complete: true
+            });
+        }
+
+        cursor = validateLocationPage(
+            page,
+            validShipment,
+            cursor,
+            limit
+        );
+        locations.push(...page);
+
+        if (page.length < limit) {
+            return Object.freeze({
+                locations: Object.freeze([...locations]),
+                complete: true
+            });
+        }
+    }
+
+    const probe = await fetchPage(validShipment, cursor, 1);
+    validateLocationPage(probe, validShipment, cursor, 1);
+
+    return Object.freeze({
+        locations: Object.freeze([...locations]),
+        complete: probe.length === 0
+    });
+}
+
+function orderedUniqueLocations(locations, shipmentId) {
+    const byLocationId = new Map();
+
+    for (const location of locations) {
+        const locationId = positiveSafeInteger(location?.locationId);
+        const responseShipmentId = positiveSafeInteger(location?.shipmentId);
+
+        if (locationId !== null && responseShipmentId === shipmentId &&
+            !byLocationId.has(locationId)) {
+            byLocationId.set(locationId, location);
+        }
+    }
+
+    return [...byLocationId.values()].sort(
+        (left, right) => Number(left.locationId) - Number(right.locationId)
+    );
+}
+
 async function requestShipmentStatus(shipmentId) {
     const response = await fetch(
         `/api/tracking/shipments/${encodeURIComponent(shipmentId)}/status`,
@@ -89,6 +202,31 @@ async function requestShipmentStatus(shipmentId) {
     return response.json();
 }
 
+async function requestLocationPage(shipmentId, afterLocationId, limit) {
+    const query = new URLSearchParams({
+        afterLocationId: String(afterLocationId),
+        limit: String(limit)
+    });
+    const response = await fetch(
+        `/api/tracking/shipments/${encodeURIComponent(shipmentId)}` +
+        `/locations?${query}`,
+        {
+            headers: {Accept: "application/json"},
+            cache: "no-store"
+        }
+    );
+
+    if (!response.ok) {
+        const error = new Error(
+            `GPS backfill request failed: ${response.status}`
+        );
+        error.httpStatus = response.status;
+        throw error;
+    }
+
+    return response.json();
+}
+
 export function startLiveTracking({
     config,
     mapApi,
@@ -96,6 +234,7 @@ export function startLiveTracking({
     deliveryStatusElement,
     createEventSource,
     fetchStatus,
+    fetchBackfill,
     pageTarget,
     setTimer = (callback, delay) => globalThis.setTimeout(callback, delay),
     clearTimer = timer => globalThis.clearTimeout(timer),
@@ -110,8 +249,12 @@ export function startLiveTracking({
     }
 
     if (typeof mapApi?.appendLocation !== "function" ||
+        typeof mapApi?.appendLocations !== "function" ||
+        typeof mapApi?.getLastLocationId !== "function" ||
+        typeof mapApi?.setLocationHistoryComplete !== "function" ||
         typeof createEventSource !== "function" ||
         typeof fetchStatus !== "function" ||
+        typeof fetchBackfill !== "function" ||
         typeof setTimer !== "function" ||
         typeof clearTimer !== "function" ||
         typeof random !== "function") {
@@ -171,6 +314,14 @@ export function startLiveTracking({
 
         retryAttempt = 0;
         cancelStabilityTimer();
+    };
+
+    const startStabilityTimer = (source, version) => {
+        cancelStabilityTimer();
+        stabilityTimer = setTimer(() => {
+            stabilityTimer = null;
+            markConnectionStable(source, version);
+        }, stableConnectionMs);
     };
 
     const stop = ({terminalStatus = null, showLost = false} = {}) => {
@@ -295,19 +446,92 @@ export function startLiveTracking({
 
         activeSource = source;
         const version = ++connectionVersion;
+        const bufferedLocations = [];
+        const bufferedLocationIds = new Set();
+        let bufferOverflow = false;
+        let synchronizing = true;
+        let synchronizationRequest = null;
 
-        source.addEventListener("open", () => {
+        const synchronize = () => {
             if (!isCurrent(source, version)) {
-                return;
+                return Promise.resolve(null);
             }
 
-            updateStatusElement(statusElement, STATUS.LIVE);
-            cancelStabilityTimer();
-            stabilityTimer = setTimer(() => {
-                stabilityTimer = null;
-                markConnectionStable(source, version);
-            }, stableConnectionMs);
-        });
+            if (synchronizationRequest !== null) {
+                return synchronizationRequest;
+            }
+
+            const afterLocationId = nonNegativeSafeInteger(
+                mapApi.getLastLocationId()
+            );
+
+            if (afterLocationId === null) {
+                mapApi.setLocationHistoryComplete(false);
+                return recover(source, version);
+            }
+
+            synchronizationRequest = Promise.resolve()
+                .then(() => fetchBackfill(shipmentId, afterLocationId))
+                .then(result => {
+                    if (!isCurrent(source, version)) {
+                        return null;
+                    }
+
+                    if (!result || !Array.isArray(result.locations) ||
+                        typeof result.complete !== "boolean") {
+                        throw new Error("GPS backfill returned an invalid result");
+                    }
+
+                    if (!result.complete) {
+                        mapApi.appendLocations(result.locations, {
+                            updateCurrentPosition: false
+                        });
+                        mapApi.setLocationHistoryComplete(false);
+                        return recover(source, version);
+                    }
+
+                    const merged = orderedUniqueLocations(
+                        [...result.locations, ...bufferedLocations],
+                        shipmentId
+                    );
+
+                    if (bufferOverflow) {
+                        mapApi.appendLocations(merged, {
+                            updateCurrentPosition: false
+                        });
+                        mapApi.setLocationHistoryComplete(false);
+                        return recover(source, version);
+                    }
+
+                    synchronizing = false;
+                    const appendedCount = mapApi.appendLocations(merged, {
+                        updateCurrentPosition: false
+                    });
+                    mapApi.setLocationHistoryComplete(true);
+                    updateStatusElement(statusElement, STATUS.LIVE);
+
+                    if (appendedCount > 0) {
+                        markConnectionStable(source, version);
+                    } else {
+                        startStabilityTimer(source, version);
+                    }
+
+                    return appendedCount;
+                })
+                .catch(error => {
+                    if (!isCurrent(source, version)) {
+                        return null;
+                    }
+
+                    console.warn("Could not restore GPS history", error);
+                    mapApi.setLocationHistoryComplete(false);
+                    return recover(source, version);
+                });
+
+            return synchronizationRequest;
+        };
+
+        source.addEventListener("open", synchronize);
 
         source.addEventListener("location", event => {
             if (!isCurrent(source, version)) {
@@ -315,9 +539,34 @@ export function startLiveTracking({
             }
 
             try {
-                const appended = mapApi.appendLocation(JSON.parse(event.data));
+                const location = JSON.parse(event.data);
 
-                if (appended === true) {
+                if (synchronizing) {
+                    const locationId = positiveSafeInteger(
+                        location?.locationId
+                    );
+                    const responseShipmentId = positiveSafeInteger(
+                        location?.shipmentId
+                    );
+
+                    if (locationId === null ||
+                        responseShipmentId !== shipmentId ||
+                        bufferedLocationIds.has(locationId)) {
+                        return;
+                    }
+
+                    if (bufferedLocations.length <
+                        MAX_BUFFERED_SSE_LOCATIONS) {
+                        bufferedLocations.push(location);
+                        bufferedLocationIds.add(locationId);
+                    } else {
+                        bufferOverflow = true;
+                    }
+
+                    return;
+                }
+
+                if (mapApi.appendLocation(location) === true) {
                     markConnectionStable(source, version);
                 }
             } catch (error) {
@@ -359,6 +608,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
             : null,
         fetchStatus: typeof window.fetch === "function"
             ? requestShipmentStatus
+            : null,
+        fetchBackfill: typeof window.fetch === "function"
+            ? (shipmentId, afterLocationId) => loadLocationBackfill({
+                shipmentId,
+                afterLocationId,
+                fetchPage: requestLocationPage
+            })
             : null,
         pageTarget: window
     });
