@@ -1,0 +1,246 @@
+.tracking-card {
+    position: relative;
+
+    border: 1.5px solid #39261b;
+    border-radius: 12px;
+
+    padding: 39px 24px 23px;
+
+    background: #f6e6cf55;
+    box-shadow: 4px 5px #2a181233;
+}
+
+/* Decorative spiderweb corners */
+
+.tracking-card__web {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+
+    width: 64px;
+    height: 36px;
+
+    opacity: 0.65;
+    color: #39261b;
+}
+
+.tracking-card__web--left {
+    left: 0;
+}
+
+.tracking-card__web--right {
+    right: 0;
+    transform: scaleX(-1);
+}
+
+/* Card heading */
+
+.tracking-card__kicker {
+    margin: 0 0 20px;
+    text-align: center;
+
+    font: 700 11px var(--font-condensed);
+    letter-spacing: 0.17em;
+}
+
+/* Order number */
+
+.tracking-card__order {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    font-size: 10px;
+    letter-spacing: 0.05em;
+}
+
+.tracking-card__order strong {
+    font: 700 17px var(--font-condensed);
+}
+
+/* Estimated arrival */
+
+.tracking-card__eta {
+    margin: 23px 0 3px;
+
+    color: var(--red);
+    font: 400 55px/1 var(--font-display);
+    letter-spacing: -0.02em;
+
+    -webkit-text-stroke: 0.5px #2a150f;
+    text-shadow: 1px 1px #23150f;
+}
+
+.tracking-card__eta small {
+    color: var(--ink);
+    font: 600 18px var(--font-condensed);
+
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+}
+
+.tracking-card__eta-caption {
+    margin: 8px 0 22px;
+    color: #78634e;
+
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+/* Current shipment status */
+
+.tracking-card__status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    border-top: 1px solid #39261b30;
+    padding-top: 19px;
+
+    color: var(--red);
+    font: 700 15px var(--font-condensed);
+}
+
+.tracking-card__status-dot {
+    flex-shrink: 0;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+    background: var(--red);
+    box-shadow: 0 0 0 4px #bc2c1d16;
+}
+
+/* Shipment timeline */
+
+.tracking-card__timeline {
+    list-style: none;
+    padding: 0;
+    margin: 19px 0 24px;
+}
+
+.tracking-card__timeline li {
+    position: relative;
+    padding: 0 0 20px 25px;
+    font-size: 11px;
+}
+
+.tracking-card__timeline li::before {
+    content: '';
+
+    position: absolute;
+    left: 0;
+    top: 2px;
+
+    width: 9px;
+    height: 9px;
+
+    border: 1px solid #a99883;
+    border-radius: 50%;
+
+    background: var(--paper);
+}
+
+.tracking-card__timeline li:not(:last-child)::after {
+    content: '';
+
+    position: absolute;
+    left: 4px;
+    top: 14px;
+    bottom: 3px;
+
+    border-left: 1px solid #b4a18a;
+}
+
+.tracking-card__timeline .done::before {
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+.tracking-card__timeline .current::before {
+    background: var(--red);
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px #bc2c1d17;
+}
+
+.tracking-card__timeline li:last-child {
+    padding-bottom: 0;
+    color: #8e7b65;
+}
+
+.tracking-card__timeline small {
+    display: block;
+    margin-top: 4px;
+
+    color: #8a755f;
+    font-size: 10px;
+}
+
+/* Courier */
+
+.tracking-card__courier {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+
+    padding-top: 17px;
+    border-top: 1px solid #39261b30;
+}
+
+.tracking-card__avatar {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+
+    width: 39px;
+    height: 39px;
+
+    border: 1.5px solid #29120e;
+    border-radius: 50%;
+
+    background: var(--red);
+    color: var(--cream);
+
+    box-shadow: 2px 2px #2a1812;
+    font: 700 17px var(--font-condensed);
+}
+
+.tracking-card__courier strong {
+    font-size: 12px;
+}
+
+.tracking-card__courier p {
+    margin: 3px 0 0;
+    color: #78634e;
+    font-size: 10px;
+}
+
+/* Destination */
+
+.tracking-card__details {
+    margin: 20px 0 0;
+    padding-top: 17px;
+
+    border-top: 1px solid #39261b30;
+}
+
+.tracking-card__details small {
+    display: block;
+    margin-bottom: 5px;
+
+    color: #8a755f;
+    font-size: 10px;
+}
+
+.tracking-card__details p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+    .tracking-card {
+        padding-top: 38px;
+    }
+}

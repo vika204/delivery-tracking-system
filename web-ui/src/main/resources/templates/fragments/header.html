@@ -1,0 +1,27 @@
+<header class="site-header"
+        th:fragment="siteHeader"
+        xmlns:th="http://www.thymeleaf.org">
+
+    <nav class="site-header__nav"
+         aria-label="Main navigation">
+
+        <a class="site-header__brand"
+           th:href="@{/tracking}">
+            WEB EXPRESS
+        </a>
+
+        <span class="site-header__divider"
+              aria-hidden="true"></span>
+
+        <a th:href="@{/tracking}"
+           th:classappend="${activePage == 'tracking'} ? 'active' : ''">
+            TRACK
+        </a>
+
+        <span class="site-header__placeholder">SEND</span>
+
+        <span class="site-header__placeholder">JOIN</span>
+
+    </nav>
+
+</header>

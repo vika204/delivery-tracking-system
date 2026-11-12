@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:js": "node --test --experimental-test-isolation=none src/test/js/*.test.mjs"
+  }
+}

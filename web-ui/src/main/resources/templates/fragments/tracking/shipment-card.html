@@ -1,0 +1,136 @@
+<aside class="tracking-card"
+       th:fragment="shipmentCard"
+       aria-label="Shipment details"
+       xmlns:th="http://www.thymeleaf.org">
+
+    <!-- Decorative spiderweb: left corner -->
+    <svg class="tracking-card__web tracking-card__web--left"
+         viewBox="0 0 120 100"
+         preserveAspectRatio="none"
+         aria-hidden="true"
+         focusable="false">
+
+        <g fill="none"
+           stroke="currentColor"
+           stroke-width=".7"
+           stroke-linecap="round">
+
+            <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
+
+            <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
+        </g>
+    </svg>
+
+    <!-- Decorative spiderweb: right corner -->
+    <svg class="tracking-card__web tracking-card__web--right"
+         viewBox="0 0 120 100"
+         preserveAspectRatio="none"
+         aria-hidden="true"
+         focusable="false">
+
+        <g fill="none"
+           stroke="currentColor"
+           stroke-width=".7"
+           stroke-linecap="round">
+
+            <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
+
+            <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
+        </g>
+    </svg>
+
+    <p class="tracking-card__kicker">
+        SPECIAL DELIVERY
+    </p>
+
+    <!-- Shipment number -->
+
+    <div class="tracking-card__order">
+        <strong th:text="${tracking.trackingNumber}">
+            —
+        </strong>
+
+        <span th:text="${tracking.shipmentLoaded} ? 'YOUR PACKAGE' : 'TRACKING'">
+            TRACKING
+        </span>
+    </div>
+
+    <!-- Estimated arrival -->
+
+    <p class="tracking-card__eta">
+        <span id="eta">—</span>
+    </p>
+
+    <p class="tracking-card__eta-caption">
+        ETA not available yet
+    </p>
+
+    <!-- Current status -->
+
+    <div class="tracking-card__status" role="status">
+
+    <span class="tracking-card__status-dot"
+          aria-hidden="true"></span>
+
+        <span id="delivery-status"
+              th:text="${tracking.statusText}">
+        Enter a shipment ID to start tracking
+    </span>
+
+    </div>
+
+    <!-- Delivery timeline -->
+
+    <ol class="tracking-card__timeline"
+        th:if="${tracking.shipmentLoaded}">
+
+        <li th:each="step : ${tracking.timeline}"
+            th:classappend="${step.done} ? 'done' : (${step.current} ? 'current' : '')"
+            th:attr="aria-current=${step.current} ? 'step' : null">
+
+        <span th:text="${step.title}">
+            Waiting for courier location
+        </span>
+
+            <small th:text="${step.description}">
+                Real-time GPS is not connected yet
+            </small>
+
+        </li>
+
+    </ol>
+
+    <!-- Courier information -->
+
+    <div class="tracking-card__courier"
+         th:if="${tracking.shipmentLoaded}">
+
+        <div class="tracking-card__avatar"
+             aria-hidden="true">
+            —
+        </div>
+
+        <div>
+            <strong th:text="${tracking.timeline[0].title}">
+                Waiting for courier location
+            </strong>
+
+            <p th:text="${tracking.locationDescription}">
+                No GPS location has been recorded yet.
+            </p>
+        </div>
+
+    </div>
+
+    <!-- Destination -->
+
+    <div class="tracking-card__details"
+         th:if="${tracking.shipmentLoaded}">
+
+        <small>SHIPMENT PRIVACY</small>
+
+        <p>Recipient information is not displayed.</p>
+
+    </div>
+
+</aside>

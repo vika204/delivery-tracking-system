@@ -1,0 +1,69 @@
+.tracking-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+
+    margin-top: 20px;
+
+    color: #78634e;
+    font-size: 10px;
+}
+
+.tracking-controls__buttons {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.tracking-controls__button {
+    padding: 11px 18px;
+
+    border: 1.5px solid #29120e;
+    border-radius: 99px;
+
+    background: var(--red);
+    color: #fff0db;
+
+    box-shadow: 2px 3px #2a1812;
+
+    font: 700 12px var(--font-condensed);
+    cursor: pointer;
+}
+
+.tracking-controls__button--secondary {
+    border: 1px solid #39261b;
+
+    background: #f6e6cf66;
+    color: var(--ink);
+
+    box-shadow: none;
+}
+
+.tracking-controls__button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.tracking-message {
+    min-height: 18px;
+    margin: 10px 0 0;
+
+    color: var(--red);
+    font-size: 11px;
+}
+
+@media (max-width: 760px) {
+    .tracking-controls {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tracking-controls__button {
+        transition: none;
+    }
+}

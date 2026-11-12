@@ -1,0 +1,14 @@
+:root {
+    --paper: #e7d6c2;
+    --ink: #16110e;
+    --red: #bc2c1d;
+    --cream: #f6e6cf;
+
+    --border-color: #39261b;
+    --nav-background: #0f0c0a;
+
+    --font-body: 'DM Sans', Arial, sans-serif;
+    --font-condensed: 'Barlow Condensed', sans-serif;
+    --font-display: 'Anton', Impact, 'Arial Narrow', sans-serif;
+    --headline: var(--font-display);
+}

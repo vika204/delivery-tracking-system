@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title th:text="${pageTitle}">WEB EXPRESS</title>
+
+    <!-- Fonts -->
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+
+    <!-- MapLibre -->
+    <link rel="stylesheet"
+          th:if="${tracking != null}"
+          href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
+
+    <!-- Shared styles -->
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
+
+    <!-- Tracking page styles -->
+    <link rel="stylesheet" th:href="@{/css/pages/tracking.css}">
+    <link rel="stylesheet" th:href="@{/css/components/tracking-map.css}">
+    <link rel="stylesheet" th:href="@{/css/components/tracking-card.css}">
+    <link rel="stylesheet" th:href="@{/css/components/tracking-controls.css}">
+</head>
+
+<body>
+
+<header th:replace="~{fragments/header :: siteHeader}"></header>
+
+<main class="tracking-page" id="tracking">
+
+    <!-- Heading and search -->
+
+    <div class="tracking-heading">
+
+        <div>
+            <p class="tracking-heading__eyebrow">
+                — YOUR FRIENDLY NEIGHBORHOOD DELIVERY —
+            </p>
+
+            <h1>
+                YOUR PACKAGE.<br>
+                <span>ON THE MOVE.</span>
+            </h1>
+        </div>
+
+        <form class="tracking-search"
+              th:action="@{/tracking}"
+              method="get">
+
+            <input type="text"
+                   name="shipmentId"
+                   aria-label="Shipment ID"
+                   placeholder="Enter shipment ID"
+                   th:value="${trackingInput}"
+                   required>
+
+            <button type="submit">
+                TRACK PACKAGE
+            </button>
+
+        </form>
+
+    </div>
+
+    <p th:if="${errorMessage != null}"
+       id="tracking-error"
+       class="tracking-message"
+       role="alert"
+       data-we-modal-alert
+       data-we-modal-title="TRACKING ERROR"
+       th:text="${errorMessage}">
+    </p>
+    
+    <th:block th:if="${tracking != null}">
+        <!-- Map + shipment information -->
+
+        <div class="tracking-layout">
+
+            <!-- Interactive map -->
+
+            <section class="tracking-map-panel"
+                     aria-label="Courier tracking map">
+
+                <div id="live-map"
+                     class="tracking-map"
+                     aria-label="Interactive courier tracking map"
+                     th:attr="data-spider-url=@{/images/spider-courier.webp}">
+                </div>
+
+                <div id="map-error"
+                     class="tracking-map-panel__error"
+                     role="status">
+                    Loading the map…
+                </div>
+
+                <div class="tracking-map-panel__top">
+                    <span class="tracking-map-panel__pill">
+                        <span class="tracking-map-panel__dot"></span>
+                        <span id="tracking-location-status"
+                              th:text="${tracking.locationMessage}">
+                            WAITING FOR COURIER LOCATION
+                        </span>
+                    </span>
+
+                    <span th:if="${trackingStreamEnabled}"
+                          id="tracking-stream-status"
+                          class="tracking-map-panel__pill tracking-map-panel__pill--stream"
+                          data-state="connecting"
+                          role="status">
+                        <span class="tracking-map-panel__dot"></span>
+                        <span data-stream-status-text>CONNECTING</span>
+                    </span>
+                </div>
+
+            </section>
+
+            <!-- Reusable Thymeleaf shipment card -->
+
+            <aside th:replace="~{fragments/tracking/shipment-card :: shipmentCard}">
+            </aside>
+
+        </div>
+
+        <div class="tracking-controls">
+
+            <div class="tracking-controls__buttons">
+
+                <button type="button"
+                        id="follow"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        aria-pressed="false"
+                        disabled>
+                    FOLLOW COURIER
+                </button>
+
+                <button type="button"
+                        id="overview"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        disabled>
+                    SHOW ROUTE
+                </button>
+
+                <button type="button"
+                        id="toggle-3d"
+                        class="tracking-controls__button tracking-controls__button--secondary"
+                        aria-pressed="true"
+                        disabled>
+                    2D VIEW
+                </button>
+
+            </div>
+
+        </div>
+    </th:block>
+</main>
+
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
+
+<!-- Shared modal controller -->
+<script th:src="@{/js/components/modal.js}"></script>
+
+<!-- MapLibre library -->
+<script th:if="${tracking != null}"
+        src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
+</script>
+
+<!-- Safely serialized server-side tracking data -->
+<script th:if="${tracking != null}" th:inline="javascript">
+    window.webExpressTracking = Object.freeze({
+        shipmentId: /*[[${tracking.trackingNumber}]]*/ null,
+        locations: /*[[${tracking.locations}]]*/ [],
+        locationDataAvailable: /*[[${tracking.locationDataAvailable}]]*/ false,
+        locationHistoryComplete: /*[[${tracking.locationHistoryComplete}]]*/ false,
+        streamEnabled: /*[[${trackingStreamEnabled}]]*/ false
+    });
+</script>
+
+<!-- Tracking map -->
+<script th:if="${tracking != null}"
+        type="module"
+        th:src="@{/js/components/tracking-map.js}">
+</script>
+
+<!-- Live GPS stream -->
+<script th:if="${tracking != null and trackingStreamEnabled}"
+        type="module"
+        th:src="@{/js/components/tracking-live.js}">
+</script>
+
+</body>
+</html>

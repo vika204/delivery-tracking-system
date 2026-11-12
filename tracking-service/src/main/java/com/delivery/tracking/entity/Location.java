@@ -23,10 +23,10 @@ public class Location {
     @Column(name = "shipment_id", nullable = false)
     private Long shipmentId;
 
-    @Column(name = "latitude", nullable = false)
+    @Column(name = "latitude", nullable = false, precision = 9, scale = 6)
     private BigDecimal latitude;
 
-    @Column(name = "longitude", nullable = false)
+    @Column(name = "longitude", nullable = false, precision = 9, scale = 6)
     private BigDecimal longitude;
 
     @Column(name = "recorded_at", nullable = false)
