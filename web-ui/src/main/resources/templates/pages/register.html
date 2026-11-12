@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Join the web — WEB EXPRESS</title>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/pages/register.css}">
+    <script th:src="@{/js/pages/register.js}" defer></script>
+</head>
+<body>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+
+<!-- Decorative SVG used by the form frame and the CTA button. -->
+<svg xmlns="http://www.w3.org/2000/svg" class="svg-definitions" aria-hidden="true">
+    <defs>
+        <symbol id="corner-web" viewBox="0 0 120 100" preserveAspectRatio="none">
+            <g fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round">
+                <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
+                <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24
+                         M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49
+                         M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75
+                         M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99
+                         M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
+            </g>
+        </symbol>
+        <symbol id="button-web" viewBox="0 0 94 56" preserveAspectRatio="none">
+            <g fill="none" stroke="currentColor" stroke-width="0.65" stroke-linecap="round">
+                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
+                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14
+                         M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28
+                         M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42
+                         M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"/>
+            </g>
+        </symbol>
+    </defs>
+</svg>
+
+<header class="site-header">
+    <nav class="nav" aria-label="Main navigation">
+        <a class="brand" th:href="@{/tracking}">WEB EXPRESS</a>
+        <span class="divider" aria-hidden="true"></span>
+        <a th:href="@{/tracking}">HOME</a>
+        <span class="nav-current">JOIN THE WEB</span>
+    </nav>
+</header>
+
+<main class="registration-page">
+    <aside class="visual" aria-label="Web Express courier illustration">
+        <div class="hanger" role="button" tabindex="0"
+             aria-label="Gently swing the courier" title="Give me a little swing">
+            <img th:src="@{/images/registration-spider.png}"
+                 alt="Spider courier hanging upside down on a web with an EXPRESS package">
+        </div>
+        <p class="visual-note">YOUR FRIENDLY NEIGHBORHOOD DELIVERY.</p>
+    </aside>
+
+    <section class="form-area" aria-labelledby="register-title">
+        <svg class="frame-web frame-web-left" aria-hidden="true"><use href="#corner-web"/></svg>
+        <svg class="frame-web frame-web-right" aria-hidden="true"><use href="#corner-web"/></svg>
+        <svg class="frame-web frame-web-bottom" aria-hidden="true"><use href="#corner-web"/></svg>
+
+        <div class="title-frame">
+            <h1 id="register-title"><span>CREATE</span> <span>ACCOUNT.</span></h1>
+        </div>
+
+        <!-- Design preview only: Keycloak will handle real registration. -->
+        <form id="register"
+              action="#"
+              data-auth-form
+              data-prototype-message="This is a design preview. Registration will be available after Keycloak integration.">
+            <div class="field">
+                <label for="email">EMAIL ADDRESS</label>
+                <input id="email" type="email" autocomplete="email"
+                       placeholder="you@example.com" required>
+            </div>
+
+            <div class="field">
+                <label for="password">PASSWORD</label>
+                <div class="password">
+                    <input id="password" type="password"
+                           autocomplete="new-password" minlength="8"
+                           placeholder="Create a password" required>
+                    <button class="show" type="button" aria-label="Show password"
+                            aria-pressed="false">SHOW</button>
+                </div>
+                <p class="hint">At least 8 characters.</p>
+            </div>
+
+            <div class="field">
+                <label for="confirm-password">CONFIRM PASSWORD</label>
+                <div class="password">
+                    <input id="confirm-password" type="password"
+                           autocomplete="new-password" minlength="8"
+                           placeholder="Confirm your password" required>
+                    <button class="show" type="button" aria-label="Show confirmed password"
+                            aria-pressed="false">SHOW</button>
+                </div>
+            </div>
+
+            <button class="cta" type="submit">
+                <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
+                <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
+                <span>CREATE ACCOUNT</span>
+            </button>
+
+            <p class="footer-note">Already have an account?
+                <a th:href="@{/login}">Log in</a>
+            </p>
+            <p class="status" role="status" aria-live="polite"></p>
+        </form>
+    </section>
+</main>
+</body>
+</html>
