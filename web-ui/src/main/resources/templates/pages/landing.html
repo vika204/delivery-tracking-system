@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">WEB EXPRESS — Great Speed. Great Delivery.</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/landing.css}">
+
+    <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/pages/landing.js}"></script>
+</head>
+<body>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+
+<div class="landing-page" id="top">
+    <header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+
+    <main class="landing-hero">
+        <div class="landing-runner"
+             role="img"
+             aria-label="Vintage comic-style superhero courier running with an EXPRESS package">
+            <img th:src="@{/images/landing-courier.webp}"
+                 src="/images/landing-courier.webp"
+                 alt="Animated superhero courier running with an EXPRESS package">
+        </div>
+
+        <div class="landing-rule" aria-hidden="true"></div>
+
+        <p class="landing-eyebrow">
+            <span class="landing-dash">–</span>
+            COURIER SERVICE, REIMAGINED
+            <span class="landing-dash">–</span>
+        </p>
+
+        <h1 class="landing-headline">
+            <span>WITH GREAT SPEED</span>
+            <span class="landing-headline-red">COMES GREAT DELIVERY</span>
+        </h1>
+
+        <p class="landing-description">
+            Every package caught, wrapped, and saved straight to your door —<br>
+            tracked the whole way, no detours, no drama.
+        </p>
+
+        <button type="button" class="landing-cta" data-feature="Send a package">
+            <svg class="landing-button-web landing-button-web-left"
+                 viewBox="0 0 94 56"
+                 preserveAspectRatio="none"
+                 aria-hidden="true"
+                 focusable="false">
+                <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                    <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                    <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                </g>
+            </svg>
+            <svg class="landing-button-web landing-button-web-right"
+                 viewBox="0 0 94 56"
+                 preserveAspectRatio="none"
+                 aria-hidden="true"
+                 focusable="false">
+                <g transform="translate(94 56) rotate(180)"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width=".65"
+                   stroke-linecap="round">
+                    <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                    <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                </g>
+            </svg>
+            SEND A PACKAGE
+        </button>
+    </main>
+</div>
+
+<dialog id="demo-dialog" aria-labelledby="dialog-heading">
+    <h2 id="dialog-heading">Coming soon!</h2>
+    <p>
+        This is a visual demo of the Web Express landing page.
+        The delivery service itself is not connected yet.
+    </p>
+    <button type="button" id="close-dialog">GOT IT</button>
+</dialog>
+</body>
+</html>

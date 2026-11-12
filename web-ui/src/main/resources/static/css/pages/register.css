@@ -1,0 +1,427 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+    --paper: #e7d6c2;
+    --ink: #16110e;
+    --red: #bc2c1d;
+    --cream: #f6e6cf;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-width: 320px;
+    overflow-x: hidden;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', Arial, sans-serif;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: .13;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.34' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+a { color: inherit; }
+button, input { font: inherit; }
+
+button:focus-visible,
+a:focus-visible,
+.hanger:focus-visible {
+    outline: 3px solid var(--red);
+    outline-offset: 4px;
+}
+
+.svg-definitions {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+#cursor-webs {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Navigation */
+
+.site-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    padding: 18px 20px 0;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 16px 25px;
+    border: 2px solid var(--red);
+    border-radius: 99px;
+    background: #0f0c0a;
+    color: #e9ddcd;
+    font: 700 14px 'Barlow Condensed', sans-serif;
+}
+
+.nav a { text-decoration: none; }
+.nav .brand { font-size: 17px; color: #fff3df; }
+
+.nav .divider {
+    height: 18px;
+    width: 1px;
+    background: #5e5247;
+}
+
+.nav-current { color: #e68976; }
+
+/* Centered form and spider positioned beside it */
+
+.registration-page {
+    position: relative;
+    min-height: calc(100svh - 75px);
+    padding: 65px 24px 40px;
+}
+
+.form-area {
+    position: relative;
+    z-index: 1;
+    width: min(450px, 100%);
+    margin: 0 auto;
+    padding: 112px 29px 30px;
+    border: 1.5px solid #39261b;
+    border-radius: 8px;
+    background: rgba(246, 230, 207, .22);
+    box-shadow: 4px 5px 0 rgba(42, 24, 18, .13);
+}
+
+.frame-web {
+    position: absolute;
+    top: 0;
+    display: block;
+    width: 125px;
+    height: 100px;
+    clip-path: inset(0 round 7px 0 0 0);
+    color: #574534;
+    opacity: .72;
+    pointer-events: none;
+}
+
+.frame-web-left { left: 0; }
+
+.frame-web-right {
+    right: 0;
+    width: 109px;
+    height: 84px;
+    transform: scaleX(-1);
+}
+
+.frame-web-bottom {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    width: 72px;
+    height: 65px;
+    opacity: .55;
+    transform: rotate(180deg);
+}
+
+h1 {
+    margin: 0;
+    text-align: center;
+    font: 400 44px/1.06 'Anton', Impact, sans-serif;
+    text-transform: uppercase;
+}
+
+h1 span {
+    color: var(--red);
+    -webkit-text-stroke: .6px #2a150f;
+    text-shadow: 1.5px 2px #23150f;
+}
+
+.title-frame {
+    margin: 0 0 27px;
+}
+
+.intro {
+    margin: 0 0 25px;
+    text-align: center;
+    color: #6b5847;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* Spider and thread */
+
+.visual {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.hanger {
+    position: absolute;
+    top: -85px;
+    left: calc(50% - 370px);
+    width: 205px;
+    transform: translate(-50%, -110vh);
+    transform-origin: 50% 0;
+    pointer-events: auto;
+    cursor: pointer;
+    will-change: transform;
+}
+
+.hanger::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% - 2px);
+    left: 50%;
+    width: 3px;
+    height: 120vh;
+    background: #fff9e9;
+    box-shadow: 1px 0 #675548;
+}
+
+.hanger img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.visual-note {
+    position: absolute;
+    top: 335px;
+    left: calc(50% - 490px);
+    width: 240px;
+    margin: 0;
+    text-align: center;
+    font: 700 11px/1.7 'Barlow Condensed', sans-serif;
+    letter-spacing: .12em;
+}
+
+.visual-note::before {
+    content: '';
+    display: block;
+    width: 95px;
+    height: 1px;
+    margin: 0 auto 17px;
+    background: #574534;
+}
+
+/* Registration form */
+
+form {
+    display: grid;
+    gap: 14px;
+}
+
+label {
+    display: block;
+    font: 700 13px 'Barlow Condensed', sans-serif;
+    letter-spacing: .07em;
+}
+
+input {
+    display: block;
+    width: 100%;
+    padding: 13px 14px;
+    border: 1.5px solid #39261b;
+    border-radius: 7px;
+    background: rgba(255, 246, 229, .35);
+    color: var(--ink);
+    font: 14px 'DM Sans', Arial, sans-serif;
+    margin-top: 6px;
+}
+
+input::placeholder { color: #8a7969; }
+
+input:focus {
+    outline: none;
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px #bc2c1d25;
+}
+
+.password { position: relative; }
+.password input { padding-right: 65px; }
+
+.show {
+    position: absolute;
+    right: 10px;
+    bottom: 11px;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: #754235;
+    cursor: pointer;
+    font: 700 12px 'Barlow Condensed', sans-serif;
+}
+
+.hint {
+    margin: 5px 0 0;
+    color: #6b5847;
+    font-size: 11px;
+}
+
+/* Red button and hover cobwebs */
+
+.cta {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #29120e;
+    border-radius: 99px;
+    background: var(--red);
+    color: #fff0db;
+    box-shadow: 3px 4px #2a1812;
+    cursor: pointer;
+    font: 700 18px 'Barlow Condensed', sans-serif;
+    transition: transform .15s, box-shadow .15s;
+}
+
+.cta > span {
+    position: relative;
+    z-index: 1;
+}
+
+.cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 3px 6px #2a1812;
+}
+
+.cta:active {
+    transform: translateY(2px);
+    box-shadow: 1px 2px #2a1812;
+}
+
+.button-web {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    width: 94px;
+    height: 100%;
+    color: #fff4df;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(.12);
+    transition: transform .65s cubic-bezier(.2,.65,.3,1), opacity .3s;
+}
+
+.button-web-left {
+    left: 0;
+    transform-origin: 0 0;
+}
+
+.button-web-right {
+    right: 0;
+    transform-origin: 100% 100%;
+    transition-delay: .08s;
+}
+
+.button-web-right use {
+    transform: rotate(180deg);
+    transform-origin: 50% 50%;
+}
+
+.cta:hover .button-web,
+.cta:focus-visible .button-web {
+    opacity: .8;
+    transform: scale(1);
+}
+
+.status {
+    margin: 0;
+    padding: 14px;
+    border: 1px solid #917957;
+    border-radius: 9px;
+    background: var(--cream);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.status:empty { display: none; }
+
+.footer-note {
+    margin: 4px 0 0;
+    text-align: center;
+    color: #6b5847;
+    font-size: 11px;
+}
+
+.footer-note a { font-weight: 700; }
+
+/* Tablet and mobile */
+
+@media (max-width: 900px) {
+    .hanger {
+        left: calc(50% - 320px);
+        width: 165px;
+        top: -40px;
+    }
+
+    .visual-note { display: none; }
+}
+
+@media (max-width: 760px) {
+    .registration-page {
+        padding: 135px 24px 35px;
+    }
+
+    .form-area {
+        width: min(430px, 100%);
+        padding: 95px 21px 28px;
+    }
+
+    h1 { font-size: 37px; }
+
+    .title-frame { margin-bottom: 25px; }
+
+    .hanger {
+        left: calc(50% + 95px);
+        top: -91px;
+        width: 96px;
+    }
+
+    .frame-web-left {
+        width: 105px;
+        height: 85px;
+    }
+
+    .frame-web-right {
+        width: 92px;
+        height: 73px;
+    }
+
+    .nav {
+        gap: 15px;
+        padding: 13px 20px;
+    }
+}
+
+@media (max-width: 360px) {
+    .form-area {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    h1 { font-size: 31px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cta, .button-web { transition: none; }
+    #cursor-webs { display: none; }
+    .hanger { transform: translateX(-50%); }
+}

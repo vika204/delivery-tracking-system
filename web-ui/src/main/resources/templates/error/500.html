@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#e7d6c2">
+    <title>500 — Internal Server Error | WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/error.css}">
+</head>
+<body class="error-page">
+<header th:replace="~{fragments/header :: siteHeader(authenticated=${false})}"></header>
+
+<main class="error-main">
+    <section class="error-panel" aria-labelledby="error-title">
+        <p class="error-number" aria-label="Error 500">500</p>
+
+        <div class="error-art">
+            <video aria-label="Sad WEB EXPRESS courier tangled in spiderwebs beside broken gears, animated"
+                   autoplay
+                   loop
+                   muted
+                   playsinline
+                   preload="auto">
+                <source th:src="@{/videos/error-courier.webm}"
+                        src="/videos/error-courier.webm"
+                        type="video/webm">
+                Your browser does not support WebM video.
+            </video>
+        </div>
+
+        <h1 class="error-title" id="error-title">
+            INTERNAL SERVER ERROR<span>.</span>
+        </h1>
+
+    </section>
+</main>
+</body>
+</html>

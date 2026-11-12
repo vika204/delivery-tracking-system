@@ -27,6 +27,7 @@ public class TrackingPageController {
     @GetMapping("/tracking")
     public String tracking(
             @RequestParam(required = false) String shipmentId,
+            @RequestParam(defaultValue = "false") boolean authenticated,
             Model model
     ) {
         model.addAttribute(
@@ -34,6 +35,8 @@ public class TrackingPageController {
                 "Track your delivery — WEB EXPRESS"
         );
         model.addAttribute("activePage", "tracking");
+        // Display-only preview until real authentication is integrated.
+        model.addAttribute("authenticated", authenticated);
         model.addAttribute("trackingStreamEnabled", trackingStreamEnabled);
 
         String trackingInput = shipmentId == null ? "" : shipmentId.trim();

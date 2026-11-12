@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">Create Shipment — WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/create-shipment.css}">
+
+    <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/pages/create-shipment.js}"></script>
+</head>
+<body>
+<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+
+<main class="create-shipment-page">
+    <article class="create-card" id="create-form">
+        <form id="shipment-form" class="card-content" autocomplete="on">
+            <div class="card-heading">
+                <h1>CREATE SHIPMENT</h1>
+            </div>
+
+            <hr class="rule">
+
+            <section aria-labelledby="route-title">
+                <div class="section-top">
+                    <span class="step-num">01 /</span>
+                    <h2 class="section-title" id="route-title">DELIVERY ROUTE</h2>
+                </div>
+
+                <div class="field-grid route-fields">
+                    <div class="field">
+                        <label for="pickup">PICKUP ADDRESS</label>
+                        <div class="input-box">
+                            <input required
+                                   type="text"
+                                   name="pickupAddress"
+                                   id="pickup"
+                                   placeholder="e.g. Kharkiv, Sumska St, 10"
+                                   autocomplete="street-address"
+                                   maxlength="250">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="destination">DELIVERY ADDRESS</label>
+                        <div class="input-box">
+                            <input required
+                                   type="text"
+                                   name="deliveryAddress"
+                                   id="destination"
+                                   placeholder="e.g. Kyiv, Khreshchatyk St, 12"
+                                   maxlength="250">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="rule">
+
+            <section aria-labelledby="recipient-title">
+                <div class="section-top">
+                    <span class="step-num">02 /</span>
+                    <h2 class="section-title" id="recipient-title">RECIPIENT DETAILS</h2>
+                </div>
+
+                <div class="field-grid">
+                    <div class="field">
+                        <label for="recipient-name">FULL NAME</label>
+                        <div class="input-box">
+                            <input required
+                                   type="text"
+                                   name="recipientName"
+                                   id="recipient-name"
+                                   placeholder="e.g. Marta Shevchenko"
+                                   autocomplete="name"
+                                   maxlength="150">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="recipient-phone">PHONE NUMBER</label>
+                        <div class="input-box">
+                            <input required
+                                   type="tel"
+                                   name="recipientPhone"
+                                   id="recipient-phone"
+                                   placeholder="+380 XX XXX XX XX"
+                                   autocomplete="tel"
+                                   maxlength="25"
+                                   pattern="[+0-9() .-]{7,25}"
+                                   title="Enter a valid phone number (digits, spaces, + or dashes)">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="rule">
+
+            <section aria-labelledby="package-title">
+                <div class="section-top">
+                    <span class="step-num">03 /</span>
+                    <h2 class="section-title" id="package-title">PACKAGE DETAILS</h2>
+                </div>
+
+                <div class="field-grid four">
+                    <div class="field">
+                        <label for="weight">WEIGHT</label>
+                        <div class="input-box">
+                            <input required id="weight" name="weight" type="number"
+                                   min="0.01" step="0.01" placeholder="0.00" inputmode="decimal">
+                            <span class="suffix">KG</span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="length">LENGTH</label>
+                        <div class="input-box">
+                            <input required id="length" name="length" type="number"
+                                   min="0.01" step="0.01" placeholder="0.00" inputmode="decimal">
+                            <span class="suffix">CM</span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="width">WIDTH</label>
+                        <div class="input-box">
+                            <input required id="width" name="width" type="number"
+                                   min="0.01" step="0.01" placeholder="0.00" inputmode="decimal">
+                            <span class="suffix">CM</span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label for="height">HEIGHT</label>
+                        <div class="input-box">
+                            <input required id="height" name="height" type="number"
+                                   min="0.01" step="0.01" placeholder="0.00" inputmode="decimal">
+                            <span class="suffix">CM</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="rule">
+
+            <section aria-labelledby="summary-title">
+                <div class="section-top">
+                    <span class="step-num">04 /</span>
+                    <h2 class="section-title" id="summary-title">ORDER SUMMARY</h2>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-heading">
+                        <h3>YOUR PARCEL</h3>
+                    </div>
+
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-label">FROM</span>
+                            <span class="summary-value placeholder" id="summary-from">Not specified yet</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">TO</span>
+                            <span class="summary-value placeholder" id="summary-to">Not specified yet</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">WEIGHT</span>
+                            <span class="summary-value placeholder" id="summary-weight">—</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">DIMENSIONS</span>
+                            <span class="summary-value placeholder" id="summary-dims">—</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">DISTANCE</span>
+                            <span class="summary-value placeholder">To be calculated</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">DELIVERY PRICE</span>
+                            <span class="summary-value placeholder">To be calculated</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="actions">
+                <button class="btn btn-primary" type="submit">
+                    <svg class="button-web button-web-left"
+                         viewBox="0 0 94 56"
+                         preserveAspectRatio="none"
+                         aria-hidden="true">
+                        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                        </g>
+                    </svg>
+                    <svg class="button-web button-web-right"
+                         viewBox="0 0 94 56"
+                         preserveAspectRatio="none"
+                         aria-hidden="true">
+                        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round"
+                           transform="translate(94 56) rotate(180)">
+                            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                        </g>
+                    </svg>
+                    <span class="btn-label">CREATE SHIPMENT</span>
+                </button>
+            </div>
+        </form>
+    </article>
+</main>
+
+<div class="modal" id="confirmation" hidden role="presentation">
+    <div class="modal-card"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modal-title"
+         aria-describedby="modal-description">
+        <h2 id="modal-title">READY TO SHIP!</h2>
+        <p id="modal-description">
+            Your form is complete. This standalone HTML is a design preview: no shipment has been created.
+            Connect the form to <strong>shipment-service</strong> to save it.
+        </p>
+        <button class="btn btn-primary" type="button" id="close-modal">
+            <span class="btn-label">BACK TO FORM</span>
+        </button>
+    </div>
+</div>
+</body>
+</html>
