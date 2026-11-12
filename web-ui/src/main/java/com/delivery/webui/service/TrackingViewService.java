@@ -8,7 +8,6 @@ import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
-import com.delivery.webui.viewmodel.TrackingTimelineStepViewModel;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
@@ -39,23 +38,6 @@ public class TrackingViewService {
         this.courierClient = courierClient;
     }
 
-    public TrackingPageViewModel getEmptyTracking() {
-        return new TrackingPageViewModel(
-                false,
-                "—",
-                "Enter a shipment ID to start tracking",
-                NOT_AVAILABLE,
-                NOT_AVAILABLE,
-                List.of(),
-                List.of(),
-                true,
-                true,
-                "WAITING FOR COURIER LOCATION",
-                "Enter a shipment ID to start tracking",
-                false
-        );
-    }
-
     public TrackingPageViewModel getLiveTracking(long shipmentId) {
         TrackingShipmentResponse shipment =
                 shipmentClient.getShipmentById(shipmentId);
@@ -75,28 +57,15 @@ public class TrackingViewService {
         String destinationText = loadDestination(shipmentId);
         String courierText = loadCourier(shipmentId);
         LocationHistory locationHistory = loadLocationHistory(shipmentId);
-        LocationPresentation locationPresentation =
-                presentLocationHistory(locationHistory);
 
         return new TrackingPageViewModel(
-                true,
                 shipment.shipmentId().toString(),
                 statusText,
                 destinationText,
                 courierText,
-                List.of(
-                        new TrackingTimelineStepViewModel(
-                                locationPresentation.title(),
-                                locationPresentation.description(),
-                                false,
-                                true
-                        )
-                ),
                 locationHistory.locations(),
-                locationHistory.available(),
                 locationHistory.complete(),
-                locationPresentation.mapMessage(),
-                locationPresentation.description(),
+                locationMessage(locationHistory),
                 isTerminalStatus(shipment.status())
         );
     }
@@ -237,40 +206,20 @@ public class TrackingViewService {
                 && value.compareTo(new BigDecimal(maximum)) <= 0;
     }
 
-    private LocationPresentation presentLocationHistory(
-            LocationHistory locationHistory
-    ) {
+    private String locationMessage(LocationHistory locationHistory) {
         if (!locationHistory.available()) {
-            return new LocationPresentation(
-                    "Location data temporarily unavailable",
-                    "Shipment status is still available.",
-                    "LOCATION DATA TEMPORARILY UNAVAILABLE"
-            );
+            return "LOCATION DATA TEMPORARILY UNAVAILABLE";
         }
 
         if (!locationHistory.complete()) {
-            return new LocationPresentation(
-                    "Location history is incomplete",
-                    "Showing the first 500 GPS points. The latest courier position is not available.",
-                    "LOCATION HISTORY INCOMPLETE"
-            );
+            return "LOCATION HISTORY INCOMPLETE";
         }
 
         if (locationHistory.locations().isEmpty()) {
-            return new LocationPresentation(
-                    "Waiting for courier location",
-                    "No GPS location has been recorded yet.",
-                    "WAITING FOR COURIER LOCATION"
-            );
+            return "WAITING FOR COURIER LOCATION";
         }
 
-        return new LocationPresentation(
-                "Courier location received",
-                locationHistory.locations().size() == 1
-                        ? "1 GPS point available."
-                        : locationHistory.locations().size() + " GPS points available.",
-                "COURIER LOCATION AVAILABLE"
-        );
+        return "COURIER LOCATION AVAILABLE";
     }
 
     private String formatStatus(String status) {
@@ -311,13 +260,6 @@ public class TrackingViewService {
         static LocationHistory unavailable() {
             return new LocationHistory(List.of(), false, false);
         }
-    }
-
-    private record LocationPresentation(
-            String title,
-            String description,
-            String mapMessage
-    ) {
     }
 
     private static final class InvalidLocationHistoryException
