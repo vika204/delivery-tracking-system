@@ -19,8 +19,11 @@
         </th:block>
 
         <th:block th:if="${authenticated}">
-            <span class="site-header__placeholder site-header__desktop-only"
-                  aria-disabled="true">SHIP</span>
+            <a class="site-header__desktop-only"
+               th:href="@{/ship}"
+               th:classappend="${activePage == 'ship'} ? 'active' : ''">
+                SHIP
+            </a>
             <a class="site-header__desktop-only"
                th:href="@{/my-parcels}"
                th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
@@ -33,6 +36,7 @@
 
             <div class="site-header__profile" data-profile-menu>
                 <button class="site-header__profile-button"
+                        th:classappend="${activePage == 'profile'} ? 'active' : ''"
                         type="button"
                         aria-label="Open profile menu"
                         aria-expanded="false"
@@ -50,15 +54,23 @@
                      role="menu"
                      data-profile-menu-panel
                      hidden>
-                    <button class="site-header__mobile-only"
-                            type="button" role="menuitem">SHIP</button>
+                    <a class="site-header__mobile-only"
+                       role="menuitem"
+                       th:href="@{/ship}"
+                       th:classappend="${activePage == 'ship'} ? 'active' : ''">
+                        SHIP
+                    </a>
                     <a class="site-header__mobile-only"
                        role="menuitem"
                        th:href="@{/my-parcels}"
                        th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
                         MY PARCELS
                     </a>
-                    <button type="button" role="menuitem">MY PROFILE</button>
+                    <a role="menuitem"
+                       th:href="@{/profile}"
+                       th:classappend="${activePage == 'profile'} ? 'active' : ''">
+                        MY PROFILE
+                    </a>
                     <button type="button" role="menuitem">LOG OUT</button>
                 </div>
             </div>
