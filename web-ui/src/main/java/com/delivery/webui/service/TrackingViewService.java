@@ -2,6 +2,7 @@ package com.delivery.webui.service;
 
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
@@ -19,6 +20,7 @@ public class TrackingViewService {
 
     static final int LOCATION_PAGE_SIZE = 100;
     static final int MAX_LOCATION_COUNT = 500;
+    private static final String NOT_AVAILABLE = "Not available";
 
     private final TrackingShipmentClient shipmentClient;
     private final TrackingLocationClient locationClient;
@@ -36,6 +38,8 @@ public class TrackingViewService {
                 false,
                 "—",
                 "Enter a shipment ID to start tracking",
+                NOT_AVAILABLE,
+                NOT_AVAILABLE,
                 List.of(),
                 List.of(),
                 true,
@@ -62,6 +66,7 @@ public class TrackingViewService {
         }
 
         String statusText = formatStatus(shipment.status());
+        String destinationText = loadDestination(shipmentId);
         LocationHistory locationHistory = loadLocationHistory(shipmentId);
         LocationPresentation locationPresentation =
                 presentLocationHistory(locationHistory);
@@ -70,6 +75,8 @@ public class TrackingViewService {
                 true,
                 shipment.shipmentId().toString(),
                 statusText,
+                destinationText,
+                NOT_AVAILABLE,
                 List.of(
                         new TrackingTimelineStepViewModel(
                                 locationPresentation.title(),
@@ -85,6 +92,25 @@ public class TrackingViewService {
                 locationPresentation.description(),
                 isTerminalStatus(shipment.status())
         );
+    }
+
+    private String loadDestination(long shipmentId) {
+        try {
+            ShipmentDetailsResponse details =
+                    shipmentClient.getShipmentDetails(shipmentId);
+
+            if (details == null
+                    || details.shipmentId() == null
+                    || details.shipmentId() != shipmentId
+                    || details.deliveryAddress() == null
+                    || details.deliveryAddress().isBlank()) {
+                return NOT_AVAILABLE;
+            }
+
+            return details.deliveryAddress().trim();
+        } catch (RestClientException ex) {
+            return NOT_AVAILABLE;
+        }
     }
 
     private LocationHistory loadLocationHistory(long shipmentId) {

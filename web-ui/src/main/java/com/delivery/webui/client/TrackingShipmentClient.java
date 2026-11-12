@@ -1,6 +1,9 @@
 package com.delivery.webui.client;
 
+import com.delivery.webui.client.dto.ShipmentDetailsResponse;
+import com.delivery.webui.client.dto.TrackingShipmentBatchResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -14,6 +17,7 @@ public class TrackingShipmentClient {
 
     private final RestClient restClient;
 
+    @Autowired
     public TrackingShipmentClient(
             RestClient.Builder builder,
             @Value("${tracking.client.base-url}") String baseUrl
@@ -33,10 +37,35 @@ public class TrackingShipmentClient {
                 .build();
     }
 
+    TrackingShipmentClient(RestClient restClient) {
+        this.restClient = restClient;
+    }
+
     public TrackingShipmentResponse getShipmentById(long shipmentId) {
         return restClient.get()
                 .uri("/tracking/shipments/{id}", shipmentId)
                 .retrieve()
                 .body(TrackingShipmentResponse.class);
+    }
+
+    public ShipmentDetailsResponse getShipmentDetails(long shipmentId) {
+        TrackingShipmentBatchResponse response = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/tracking/shipments/batch")
+                        .queryParam("ids", shipmentId)
+                        .build())
+                .retrieve()
+                .body(TrackingShipmentBatchResponse.class);
+
+        if (response == null || response.shipments() == null) {
+            return null;
+        }
+
+        return response.shipments().stream()
+                .filter(details -> details != null
+                        && details.shipmentId() != null
+                        && details.shipmentId() == shipmentId)
+                .findFirst()
+                .orElse(null);
     }
 }

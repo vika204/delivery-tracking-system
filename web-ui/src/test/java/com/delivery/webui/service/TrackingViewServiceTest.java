@@ -2,6 +2,7 @@ package com.delivery.webui.service;
 
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +30,40 @@ class TrackingViewServiceTest {
 
     @Mock
     private TrackingLocationClient locationClient;
+
+    @Test
+    void displaysRealDestinationAndUsesNeutralCourierFallback() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(shipmentClient.getShipmentDetails(15L))
+                .thenReturn(new ShipmentDetailsResponse(
+                        15L,
+                        "  Kyiv, Delivery Street 2  "
+                ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.destinationText())
+                .isEqualTo("Kyiv, Delivery Street 2");
+        assertThat(result.courierText()).isEqualTo("Not available");
+    }
+
+    @Test
+    void keepsCardAvailableWhenShipmentDetailsCannotBeRead() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(shipmentClient.getShipmentDetails(15L))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.destinationText()).isEqualTo("Not available");
+        assertThat(result.courierText()).isEqualTo("Not available");
+    }
 
     @Test
     void readsLocationHistoryPageByPageUsingLastLocationId() {
