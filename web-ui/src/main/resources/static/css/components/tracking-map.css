@@ -25,6 +25,34 @@
     transform: translateX(-50%);
     white-space: nowrap;
     pointer-events: none;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.tracking-map-panel__pill--stream {
+    padding: 6px 10px;
+    font-weight: 700;
+}
+
+.tracking-map-panel__pill--stream[data-state="live"]
+.tracking-map-panel__dot {
+    background: #496f4f;
+    box-shadow: 0 0 0 4px #496f4f20;
+}
+
+.tracking-map-panel__pill--stream[data-state="lost"]
+.tracking-map-panel__dot {
+    background: var(--red);
+    box-shadow: 0 0 0 4px #bc2c1d20;
+}
+
+.tracking-map-panel__pill--stream[data-state="connecting"]
+.tracking-map-panel__dot {
+    background: #9a6d2d;
+    box-shadow: 0 0 0 4px #9a6d2d20;
 }
 
 .tracking-map-panel__pill {

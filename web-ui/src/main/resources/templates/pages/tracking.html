@@ -104,9 +104,19 @@
                 <div class="tracking-map-panel__top">
                     <span class="tracking-map-panel__pill">
                         <span class="tracking-map-panel__dot"></span>
-                        <span th:text="${tracking.locationMessage}">
+                        <span id="tracking-location-status"
+                              th:text="${tracking.locationMessage}">
                             WAITING FOR COURIER LOCATION
                         </span>
+                    </span>
+
+                    <span th:if="${trackingStreamEnabled}"
+                          id="tracking-stream-status"
+                          class="tracking-map-panel__pill tracking-map-panel__pill--stream"
+                          data-state="connecting"
+                          role="status">
+                        <span class="tracking-map-panel__dot"></span>
+                        <span data-stream-status-text>CONNECTING</span>
                     </span>
                 </div>
 
@@ -165,9 +175,11 @@
 <!-- Safely serialized server-side tracking data -->
 <script th:if="${tracking != null}" th:inline="javascript">
     window.webExpressTracking = Object.freeze({
+        shipmentId: /*[[${tracking.trackingNumber}]]*/ null,
         locations: /*[[${tracking.locations}]]*/ [],
         locationDataAvailable: /*[[${tracking.locationDataAvailable}]]*/ false,
-        locationHistoryComplete: /*[[${tracking.locationHistoryComplete}]]*/ false
+        locationHistoryComplete: /*[[${tracking.locationHistoryComplete}]]*/ false,
+        streamEnabled: /*[[${trackingStreamEnabled}]]*/ false
     });
 </script>
 
@@ -175,6 +187,12 @@
 <script th:if="${tracking != null}"
         type="module"
         th:src="@{/js/components/tracking-map.js}">
+</script>
+
+<!-- Live GPS stream -->
+<script th:if="${tracking != null and trackingStreamEnabled}"
+        type="module"
+        th:src="@{/js/components/tracking-live.js}">
 </script>
 
 </body>

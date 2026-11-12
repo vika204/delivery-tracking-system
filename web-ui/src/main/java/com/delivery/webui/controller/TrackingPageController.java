@@ -1,6 +1,7 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.service.TrackingViewService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +13,15 @@ import org.springframework.web.client.RestClientException;
 public class TrackingPageController {
 
     private final TrackingViewService trackingViewService;
+    private final boolean trackingStreamEnabled;
 
-    public TrackingPageController(TrackingViewService trackingViewService) {
+    public TrackingPageController(
+            TrackingViewService trackingViewService,
+            @Value("${tracking.stream.enabled:false}")
+            boolean trackingStreamEnabled
+    ) {
         this.trackingViewService = trackingViewService;
+        this.trackingStreamEnabled = trackingStreamEnabled;
     }
 
     @GetMapping("/tracking")
@@ -27,6 +34,7 @@ public class TrackingPageController {
                 "Track your delivery — WEB EXPRESS"
         );
         model.addAttribute("activePage", "tracking");
+        model.addAttribute("trackingStreamEnabled", trackingStreamEnabled);
 
         String trackingInput = shipmentId == null ? "" : shipmentId.trim();
 

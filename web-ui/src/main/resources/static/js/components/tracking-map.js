@@ -1,34 +1,47 @@
+import {TrackingLocationStore} from "./tracking-map-state.js";
+import {TrackingMarkerAnimator} from "./tracking-marker-animator.js";
+
 const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const DEFAULT_MAP_CENTER = [31.1656, 48.3794];
 const ROUTE_SOURCE_ID = "web-express-tracking-route";
 const ROUTE_LAYER_ID = "web-express-tracking-route-line";
+const MARKER_ANIMATION_DURATION_MS = 1000;
 
 const mapElement = document.getElementById("live-map");
 const errorElement = document.getElementById("map-error");
+const locationStatusElement = document.getElementById(
+    "tracking-location-status"
+);
 const followButton = document.getElementById("follow");
 const overviewButton = document.getElementById("overview");
 const toggle3dButton = document.getElementById("toggle-3d");
 
+const trackingData = readTrackingData();
+const locationStore = new TrackingLocationStore(
+    trackingData.shipmentId,
+    trackingData.locations
+);
+
+let mapInstance = null;
+let mapLoaded = false;
+let courierMarker = null;
+let followingCourier = false;
+let is3d = true;
+let hasCurrentPosition = trackingData.locationHistoryComplete &&
+    locationStore.size() > 0;
+const markerAnimator = new TrackingMarkerAnimator({
+    requestFrame: callback => window.requestAnimationFrame(callback),
+    cancelFrame: frame => window.cancelAnimationFrame(frame),
+    reducedMotion: prefersReducedMotion,
+    duration: MARKER_ANIMATION_DURATION_MS
+});
+
 function readTrackingData() {
     const data = window.webExpressTracking ?? {};
-    const locations = Array.isArray(data.locations)
-        ? data.locations
-            .filter(location =>
-                Number.isFinite(Number(location.latitude)) &&
-                Number.isFinite(Number(location.longitude)) &&
-                Number(location.latitude) >= -90 &&
-                Number(location.latitude) <= 90 &&
-                Number(location.longitude) >= -180 &&
-                Number(location.longitude) <= 180
-            )
-            .map(location => [
-                Number(location.longitude),
-                Number(location.latitude)
-            ])
-        : [];
 
     return {
-        coordinates: locations,
+        shipmentId: data.shipmentId,
+        locations: Array.isArray(data.locations) ? data.locations : [],
         locationDataAvailable: data.locationDataAvailable === true,
         locationHistoryComplete: data.locationHistoryComplete === true
     };
@@ -132,21 +145,32 @@ function addBuildings(map) {
     });
 }
 
-function addRoute(map, coordinates) {
+function routeFeature(coordinates) {
+    return {
+        type: "Feature",
+        properties: {},
+        geometry: {
+            type: "LineString",
+            coordinates
+        }
+    };
+}
+
+function updateRoute(map, coordinates) {
     if (coordinates.length < 2) {
+        return;
+    }
+
+    const source = map.getSource(ROUTE_SOURCE_ID);
+
+    if (source) {
+        source.setData(routeFeature(coordinates));
         return;
     }
 
     map.addSource(ROUTE_SOURCE_ID, {
         type: "geojson",
-        data: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-                type: "LineString",
-                coordinates
-            }
-        }
+        data: routeFeature(coordinates)
     });
 
     map.addLayer({
@@ -165,7 +189,7 @@ function addRoute(map, coordinates) {
     });
 }
 
-function addCourierMarker(map, coordinate) {
+function createCourierMarker(map, coordinate) {
     const markerElement = document.createElement("div");
     markerElement.className = "tracking-courier-pin";
     markerElement.setAttribute("aria-label", "Last known courier location");
@@ -175,7 +199,7 @@ function addCourierMarker(map, coordinate) {
     image.alt = "";
     markerElement.appendChild(image);
 
-    new maplibregl.Marker({
+    return new maplibregl.Marker({
         element: markerElement,
         anchor: "bottom"
     })
@@ -183,7 +207,23 @@ function addCourierMarker(map, coordinate) {
         .addTo(map);
 }
 
-function fitRoute(map, coordinates) {
+function prefersReducedMotion() {
+    return typeof window.matchMedia === "function" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function moveCourierMarker(map, coordinate) {
+    if (!courierMarker) {
+        courierMarker = createCourierMarker(map, coordinate);
+        return;
+    }
+
+    markerAnimator.move(courierMarker, coordinate);
+}
+
+function fitRoute(map) {
+    const coordinates = locationStore.coordinates();
+
     if (coordinates.length < 2) {
         return;
     }
@@ -196,52 +236,103 @@ function fitRoute(map, coordinates) {
     map.fitBounds(bounds, {
         padding: 70,
         maxZoom: 16,
-        duration: 800
+        duration: prefersReducedMotion() ? 0 : 800
     });
 }
 
-function activateControls(
-    map,
-    coordinates,
-    locationDataAvailable,
-    locationHistoryComplete
-) {
-    if (!locationDataAvailable || coordinates.length === 0) {
-        return;
+function setFollowingCourier(enabled) {
+    followingCourier = enabled && hasCurrentPosition;
+    followButton.setAttribute(
+        "aria-pressed",
+        String(followingCourier)
+    );
+}
+
+function updateControlAvailability() {
+    const locationCount = locationStore.size();
+
+    followButton.disabled = !hasCurrentPosition;
+    overviewButton.disabled = locationCount < 2;
+    toggle3dButton.disabled = locationCount === 0;
+
+    if (!hasCurrentPosition) {
+        setFollowingCourier(false);
     }
+}
 
-    const lastCoordinate = coordinates.at(-1);
+function configureControls(map) {
+    followButton.addEventListener("click", () => {
+        setFollowingCourier(!followingCourier);
 
-    if (locationHistoryComplete) {
-        followButton.disabled = false;
-        followButton.addEventListener("click", () => {
-            map.easeTo({
-                center: lastCoordinate,
-                zoom: Math.max(map.getZoom(), 15),
-                duration: 700
-            });
-        });
-    }
+        if (followingCourier) {
+            const lastCoordinate = locationStore.lastLocation()?.coordinate;
 
-    if (coordinates.length >= 2) {
-        overviewButton.disabled = false;
-        overviewButton.addEventListener("click", () => {
-            fitRoute(map, coordinates);
-        });
-    }
+            if (lastCoordinate) {
+                map.easeTo({
+                    center: lastCoordinate,
+                    zoom: Math.max(map.getZoom(), 15),
+                    duration: prefersReducedMotion() ? 0 : 700
+                });
+            }
+        }
+    });
 
-    toggle3dButton.disabled = false;
-    let is3d = true;
+    overviewButton.addEventListener("click", () => {
+        setFollowingCourier(false);
+        fitRoute(map);
+    });
 
     toggle3dButton.addEventListener("click", () => {
         is3d = !is3d;
         map.easeTo({
             pitch: is3d ? 35 : 0,
-            duration: 500
+            duration: prefersReducedMotion() ? 0 : 500
         });
         toggle3dButton.textContent = is3d ? "2D VIEW" : "3D VIEW";
         toggle3dButton.setAttribute("aria-pressed", String(is3d));
     });
+
+    map.on("movestart", event => {
+        if (event.originalEvent) {
+            setFollowingCourier(false);
+        }
+    });
+
+    updateControlAvailability();
+}
+
+export function appendLocation(location) {
+    const appended = locationStore.append(location);
+
+    if (!appended) {
+        return false;
+    }
+
+    hasCurrentPosition = true;
+
+    if (trackingData.locationHistoryComplete && locationStatusElement) {
+        locationStatusElement.textContent = "COURIER LOCATION AVAILABLE";
+    }
+
+    if (!mapLoaded || !mapInstance) {
+        return true;
+    }
+
+    const coordinates = locationStore.coordinates();
+    updateRoute(mapInstance, coordinates);
+    moveCourierMarker(mapInstance, appended.coordinate);
+    updateControlAvailability();
+
+    if (followingCourier) {
+        mapInstance.easeTo({
+            center: appended.coordinate,
+            duration: prefersReducedMotion()
+                ? 0
+                : MARKER_ANIMATION_DURATION_MS
+        });
+    }
+
+    return true;
 }
 
 async function initializeTrackingMap() {
@@ -262,21 +353,20 @@ async function initializeTrackingMap() {
         }
 
         const style = customizeMapStyle(await response.json());
-        const trackingData = readTrackingData();
-        const lastCoordinate = trackingData.coordinates.at(-1);
+        const lastCoordinate = hasCurrentPosition
+            ? locationStore.lastLocation()?.coordinate
+            : null;
         const map = new maplibregl.Map({
             container: "live-map",
             style,
-            center: trackingData.locationHistoryComplete && lastCoordinate
-                ? lastCoordinate
-                : DEFAULT_MAP_CENTER,
-            zoom: trackingData.locationHistoryComplete && lastCoordinate
-                ? 14
-                : 5.5,
+            center: lastCoordinate ?? DEFAULT_MAP_CENTER,
+            zoom: lastCoordinate ? 14 : 5.5,
             pitch: 35,
             bearing: 0,
             attributionControl: true
         });
+
+        mapInstance = map;
 
         map.addControl(
             new maplibregl.NavigationControl({
@@ -304,19 +394,25 @@ async function initializeTrackingMap() {
 
         map.on("load", () => {
             try {
-                addBuildings(map);
-                addRoute(map, trackingData.coordinates);
+                const coordinates = locationStore.coordinates();
 
-                if (trackingData.locationHistoryComplete && lastCoordinate) {
-                    addCourierMarker(map, lastCoordinate);
+                addBuildings(map);
+                updateRoute(map, coordinates);
+
+                if (hasCurrentPosition) {
+                    const currentCoordinate =
+                        locationStore.lastLocation()?.coordinate;
+
+                    if (currentCoordinate) {
+                        courierMarker = createCourierMarker(
+                            map,
+                            currentCoordinate
+                        );
+                    }
                 }
 
-                activateControls(
-                    map,
-                    trackingData.coordinates,
-                    trackingData.locationDataAvailable,
-                    trackingData.locationHistoryComplete
-                );
+                configureControls(map);
+                mapLoaded = true;
                 loaded = true;
                 errorElement.hidden = true;
             } catch (error) {
@@ -328,6 +424,10 @@ async function initializeTrackingMap() {
         console.error("MapLibre error:", error);
         showError("The map could not load. Internet access is required.");
     }
+}
+
+if (typeof window !== "undefined") {
+    window.webExpressTrackingMap = Object.freeze({appendLocation});
 }
 
 initializeTrackingMap();

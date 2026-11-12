@@ -64,6 +64,7 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(not(containsString("2D VIEW"))))
                 .andExpect(content().string(not(containsString("maplibre-gl.js"))))
                 .andExpect(content().string(not(containsString("tracking-map.js"))))
+                .andExpect(content().string(not(containsString("tracking-live.js"))))
                 .andExpect(content().string(not(containsString(
                         "GPS controls will activate when coordinates are available."
                 ))))
@@ -122,6 +123,10 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(containsString("2D VIEW")))
                 .andExpect(content().string(containsString("maplibre-gl.js")))
                 .andExpect(content().string(containsString("tracking-map.js")))
+                .andExpect(content().string(not(containsString("tracking-live.js"))))
+                .andExpect(content().string(not(containsString(
+                        "id=\"tracking-stream-status\""
+                ))))
                 .andExpect(content().string(not(containsString(
                         "GPS controls will activate when coordinates are available."
                 ))))
