@@ -1,7 +1,10 @@
 package com.delivery.webui.service;
 
+import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.DispatchCourierResponse;
+import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
@@ -19,16 +22,21 @@ public class TrackingViewService {
 
     static final int LOCATION_PAGE_SIZE = 100;
     static final int MAX_LOCATION_COUNT = 500;
+    private static final String NOT_AVAILABLE = "Not available";
+    private static final String NOT_ASSIGNED = "Not assigned";
 
     private final TrackingShipmentClient shipmentClient;
     private final TrackingLocationClient locationClient;
+    private final DispatchCourierClient courierClient;
 
     public TrackingViewService(
             TrackingShipmentClient shipmentClient,
-            TrackingLocationClient locationClient
+            TrackingLocationClient locationClient,
+            DispatchCourierClient courierClient
     ) {
         this.shipmentClient = shipmentClient;
         this.locationClient = locationClient;
+        this.courierClient = courierClient;
     }
 
     public TrackingPageViewModel getEmptyTracking() {
@@ -36,12 +44,15 @@ public class TrackingViewService {
                 false,
                 "—",
                 "Enter a shipment ID to start tracking",
+                NOT_AVAILABLE,
+                NOT_AVAILABLE,
                 List.of(),
                 List.of(),
                 true,
                 true,
                 "WAITING FOR COURIER LOCATION",
-                "Enter a shipment ID to start tracking"
+                "Enter a shipment ID to start tracking",
+                false
         );
     }
 
@@ -61,6 +72,8 @@ public class TrackingViewService {
         }
 
         String statusText = formatStatus(shipment.status());
+        String destinationText = loadDestination(shipmentId);
+        String courierText = loadCourier(shipmentId);
         LocationHistory locationHistory = loadLocationHistory(shipmentId);
         LocationPresentation locationPresentation =
                 presentLocationHistory(locationHistory);
@@ -69,6 +82,8 @@ public class TrackingViewService {
                 true,
                 shipment.shipmentId().toString(),
                 statusText,
+                destinationText,
+                courierText,
                 List.of(
                         new TrackingTimelineStepViewModel(
                                 locationPresentation.title(),
@@ -81,8 +96,54 @@ public class TrackingViewService {
                 locationHistory.available(),
                 locationHistory.complete(),
                 locationPresentation.mapMessage(),
-                locationPresentation.description()
+                locationPresentation.description(),
+                isTerminalStatus(shipment.status())
         );
+    }
+
+    private String loadDestination(long shipmentId) {
+        try {
+            ShipmentDetailsResponse details =
+                    shipmentClient.getShipmentDetails(shipmentId);
+
+            if (details == null
+                    || details.shipmentId() == null
+                    || details.shipmentId() != shipmentId
+                    || details.deliveryAddress() == null
+                    || details.deliveryAddress().isBlank()) {
+                return NOT_AVAILABLE;
+            }
+
+            return details.deliveryAddress().trim();
+        } catch (RestClientException ex) {
+            return NOT_AVAILABLE;
+        }
+    }
+
+    private String loadCourier(long shipmentId) {
+        try {
+            DispatchCourierResponse response =
+                    courierClient.getShipmentCourier(shipmentId);
+
+            if (response == null
+                    || response.shipmentId() == null
+                    || response.shipmentId() != shipmentId) {
+                return NOT_AVAILABLE;
+            }
+
+            if (!response.assigned()) {
+                return NOT_ASSIGNED;
+            }
+
+            if (response.courierName() == null
+                    || response.courierName().isBlank()) {
+                return NOT_AVAILABLE;
+            }
+
+            return response.courierName().trim();
+        } catch (RestClientException ex) {
+            return NOT_AVAILABLE;
+        }
     }
 
     private LocationHistory loadLocationHistory(long shipmentId) {
@@ -222,6 +283,11 @@ public class TrackingViewService {
             case "CANCELLED" -> "CANCELLED";
             default -> status.replace('_', ' ');
         };
+    }
+
+    private boolean isTerminalStatus(String status) {
+        return "DELIVERED".equalsIgnoreCase(status)
+                || "CANCELLED".equalsIgnoreCase(status);
     }
 
     private record LocationHistory(

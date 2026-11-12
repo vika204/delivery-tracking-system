@@ -1,7 +1,10 @@
 package com.delivery.webui.service;
 
+import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.DispatchCourierResponse;
+import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
@@ -10,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -28,6 +32,90 @@ class TrackingViewServiceTest {
 
     @Mock
     private TrackingLocationClient locationClient;
+
+    @Mock
+    private DispatchCourierClient courierClient;
+
+    @Test
+    void displaysRealDestinationAndCourierName() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(shipmentClient.getShipmentDetails(15L))
+                .thenReturn(new ShipmentDetailsResponse(
+                        15L,
+                        "  Kyiv, Delivery Street 2  "
+                ));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(
+                        15L,
+                        true,
+                        "  Andrii Kovalenko  "
+                ));
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.destinationText())
+                .isEqualTo("Kyiv, Delivery Street 2");
+        assertThat(result.courierText()).isEqualTo("Andrii Kovalenko");
+    }
+
+    @Test
+    void showsNotAssignedWhenDispatchConfirmsNoAssignment() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(15L, false, null));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).courierText())
+                .isEqualTo("Not assigned");
+    }
+
+    @Test
+    void showsNotAvailableWhenAssignedCourierHasNoName() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(15L, true, "  "));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).courierText())
+                .isEqualTo("Not available");
+    }
+
+    @Test
+    void keepsTrackingAvailableWhenDispatchIsUnavailable() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of(location(1, "50.4501", "30.5234")));
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.courierText()).isEqualTo("Not available");
+        assertThat(result.locations()).hasSize(1);
+    }
+
+    @Test
+    void keepsCardAvailableWhenShipmentDetailsCannotBeRead() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(shipmentClient.getShipmentDetails(15L))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.destinationText()).isEqualTo("Not available");
+        assertThat(result.courierText()).isEqualTo("Not available");
+    }
 
     @Test
     void readsLocationHistoryPageByPageUsingLastLocationId() {
@@ -115,8 +203,37 @@ class TrackingViewServiceTest {
                 .isEqualTo("LOCATION DATA TEMPORARILY UNAVAILABLE");
     }
 
+    @Test
+    void marksDeliveredAndCancelledShipmentsAsTerminal() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "DELIVERED"));
+        when(shipmentClient.getShipmentById(16L))
+                .thenReturn(new TrackingShipmentResponse(16L, null, "cancelled"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+        when(locationClient.getShipmentLocations(16, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).terminal()).isTrue();
+        assertThat(service().getLiveTracking(16).terminal()).isTrue();
+    }
+
+    @Test
+    void keepsActiveShipmentNonTerminal() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).terminal()).isFalse();
+    }
+
     private TrackingViewService service() {
-        return new TrackingViewService(shipmentClient, locationClient);
+        return new TrackingViewService(
+                shipmentClient,
+                locationClient,
+                courierClient
+        );
     }
 
     private List<TrackingLocationResponse> locations(long firstId, long lastId) {

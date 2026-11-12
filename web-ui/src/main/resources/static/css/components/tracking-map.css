@@ -55,6 +55,12 @@
     box-shadow: 0 0 0 4px #9a6d2d20;
 }
 
+.tracking-map-panel__pill--stream[data-state="reconnecting"]
+.tracking-map-panel__dot {
+    background: #9a6d2d;
+    box-shadow: 0 0 0 4px #9a6d2d20;
+}
+
 .tracking-map-panel__pill {
     display: flex;
     align-items: center;

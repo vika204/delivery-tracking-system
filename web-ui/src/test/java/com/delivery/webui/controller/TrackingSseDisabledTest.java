@@ -27,4 +27,30 @@ class TrackingSseDisabledTest {
                 .andExpect(status().isNotFound())
                 .andExpect(request().asyncNotStarted());
     }
+
+    @Test
+    void statusEndpointIsUnavailableWhenFeatureFlagIsDisabled() throws Exception {
+        mockMvc.perform(get("/api/tracking/shipments/15/status")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isNotFound())
+                .andExpect(request().asyncNotStarted());
+    }
+
+    @Test
+    void locationBackfillEndpointIsUnavailableWhenFeatureFlagIsDisabled()
+            throws Exception {
+        mockMvc.perform(get("/api/tracking/shipments/15/locations")
+                        .param("afterLocationId", "10")
+                        .param("limit", "100")
+                        .with(request -> {
+                            request.setRemoteAddr("127.0.0.1");
+                            return request;
+                        }))
+                .andExpect(status().isNotFound())
+                .andExpect(request().asyncNotStarted());
+    }
+
 }

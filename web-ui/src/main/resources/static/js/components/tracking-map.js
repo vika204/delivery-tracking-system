@@ -27,7 +27,8 @@ let mapLoaded = false;
 let courierMarker = null;
 let followingCourier = false;
 let is3d = true;
-let hasCurrentPosition = trackingData.locationHistoryComplete &&
+let locationHistoryComplete = trackingData.locationHistoryComplete;
+let hasCurrentPosition = locationHistoryComplete &&
     locationStore.size() > 0;
 const markerAnimator = new TrackingMarkerAnimator({
     requestFrame: callback => window.requestAnimationFrame(callback),
@@ -260,6 +261,49 @@ function updateControlAvailability() {
     }
 }
 
+function updateLocationStatus() {
+    if (!locationStatusElement) {
+        return;
+    }
+
+    if (!locationHistoryComplete) {
+        locationStatusElement.textContent = "LOCATION HISTORY INCOMPLETE";
+    } else if (locationStore.size() === 0) {
+        locationStatusElement.textContent = "WAITING FOR COURIER LOCATION";
+    } else {
+        locationStatusElement.textContent = "COURIER LOCATION AVAILABLE";
+    }
+}
+
+function renderAppendedLocations(lastLocation, updateCurrentPosition) {
+    if (updateCurrentPosition && lastLocation) {
+        hasCurrentPosition = true;
+    }
+
+    updateLocationStatus();
+
+    if (!mapLoaded || !mapInstance) {
+        return;
+    }
+
+    updateRoute(mapInstance, locationStore.coordinates());
+
+    if (updateCurrentPosition && lastLocation) {
+        moveCourierMarker(mapInstance, lastLocation.coordinate);
+
+        if (followingCourier) {
+            mapInstance.easeTo({
+                center: lastLocation.coordinate,
+                duration: prefersReducedMotion()
+                    ? 0
+                    : MARKER_ANIMATION_DURATION_MS
+            });
+        }
+    }
+
+    updateControlAvailability();
+}
+
 function configureControls(map) {
     followButton.addEventListener("click", () => {
         setFollowingCourier(!followingCourier);
@@ -308,31 +352,60 @@ export function appendLocation(location) {
         return false;
     }
 
-    hasCurrentPosition = true;
-
-    if (trackingData.locationHistoryComplete && locationStatusElement) {
-        locationStatusElement.textContent = "COURIER LOCATION AVAILABLE";
-    }
-
-    if (!mapLoaded || !mapInstance) {
-        return true;
-    }
-
-    const coordinates = locationStore.coordinates();
-    updateRoute(mapInstance, coordinates);
-    moveCourierMarker(mapInstance, appended.coordinate);
-    updateControlAvailability();
-
-    if (followingCourier) {
-        mapInstance.easeTo({
-            center: appended.coordinate,
-            duration: prefersReducedMotion()
-                ? 0
-                : MARKER_ANIMATION_DURATION_MS
-        });
-    }
+    renderAppendedLocations(appended, true);
 
     return true;
+}
+
+export function appendLocations(
+    locations,
+    {updateCurrentPosition = true} = {}
+) {
+    if (!Array.isArray(locations)) {
+        return 0;
+    }
+
+    const appended = [];
+
+    for (const location of locations) {
+        const normalized = locationStore.append(location);
+
+        if (normalized) {
+            appended.push(normalized);
+        }
+    }
+
+    if (appended.length > 0) {
+        renderAppendedLocations(
+            appended.at(-1),
+            updateCurrentPosition
+        );
+    }
+
+    return appended.length;
+}
+
+export function getLastLocationId() {
+    return locationStore.lastLocation()?.locationId ?? 0;
+}
+
+export function setLocationHistoryComplete(complete) {
+    locationHistoryComplete = complete === true;
+
+    if (locationHistoryComplete && locationStore.size() > 0) {
+        const lastLocation = locationStore.lastLocation();
+        hasCurrentPosition = true;
+
+        if (mapLoaded && mapInstance && lastLocation) {
+            moveCourierMarker(mapInstance, lastLocation.coordinate);
+        }
+    }
+
+    updateLocationStatus();
+
+    if (mapLoaded && mapInstance) {
+        updateControlAvailability();
+    }
 }
 
 async function initializeTrackingMap() {
@@ -427,7 +500,12 @@ async function initializeTrackingMap() {
 }
 
 if (typeof window !== "undefined") {
-    window.webExpressTrackingMap = Object.freeze({appendLocation});
+    window.webExpressTrackingMap = Object.freeze({
+        appendLocation,
+        appendLocations,
+        getLastLocationId,
+        setLocationHistoryComplete
+    });
 }
 
 initializeTrackingMap();

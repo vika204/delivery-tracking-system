@@ -110,7 +110,7 @@
                         </span>
                     </span>
 
-                    <span th:if="${trackingStreamEnabled}"
+                    <span th:if="${trackingStreamEnabled and !tracking.terminal}"
                           id="tracking-stream-status"
                           class="tracking-map-panel__pill tracking-map-panel__pill--stream"
                           data-state="connecting"
@@ -179,7 +179,8 @@
         locations: /*[[${tracking.locations}]]*/ [],
         locationDataAvailable: /*[[${tracking.locationDataAvailable}]]*/ false,
         locationHistoryComplete: /*[[${tracking.locationHistoryComplete}]]*/ false,
-        streamEnabled: /*[[${trackingStreamEnabled}]]*/ false
+        streamEnabled: /*[[${trackingStreamEnabled}]]*/ false,
+        terminal: /*[[${tracking.terminal}]]*/ false
     });
 </script>
 
@@ -190,7 +191,7 @@
 </script>
 
 <!-- Live GPS stream -->
-<script th:if="${tracking != null and trackingStreamEnabled}"
+<script th:if="${tracking != null and trackingStreamEnabled and !tracking.terminal}"
         type="module"
         th:src="@{/js/components/tracking-live.js}">
 </script>

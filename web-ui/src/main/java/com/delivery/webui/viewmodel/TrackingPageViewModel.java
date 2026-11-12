@@ -8,11 +8,14 @@ public record TrackingPageViewModel(
         boolean shipmentLoaded,
         String trackingNumber,
         String statusText,
+        String destinationText,
+        String courierText,
         List<TrackingTimelineStepViewModel> timeline,
         List<TrackingLocationResponse> locations,
         boolean locationDataAvailable,
         boolean locationHistoryComplete,
         String locationMessage,
-        String locationDescription
+        String locationDescription,
+        boolean terminal
 ) {
 }
