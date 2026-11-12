@@ -18,6 +18,9 @@ public class Courier {
     @Column(name = "user_id")
     private Long userId;
 
+    @Column(name = "display_name", length = 100)
+    private String displayName;
+
     @Column(name = "work_zone", nullable = false)
     private String workZone;
 

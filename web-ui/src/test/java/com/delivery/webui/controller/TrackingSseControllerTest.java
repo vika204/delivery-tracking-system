@@ -1,5 +1,6 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
@@ -47,6 +48,9 @@ class TrackingSseControllerTest {
 
     @MockitoBean
     private TrackingLocationClient locationClient;
+
+    @MockitoBean
+    private DispatchCourierClient courierClient;
 
     @Test
     void returnsEmitterWithoutBlockingHttpRequestThread() throws Exception {
@@ -172,6 +176,7 @@ class TrackingSseControllerTest {
                         }))
                 .andExpect(status().isForbidden());
     }
+
 
     @Test
     void terminalShipmentShowsHistoryWithoutOpeningLiveStream() throws Exception {

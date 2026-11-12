@@ -1,7 +1,9 @@
 package com.delivery.webui.service;
 
+import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
+import com.delivery.webui.client.dto.DispatchCourierResponse;
 import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
@@ -31,8 +33,11 @@ class TrackingViewServiceTest {
     @Mock
     private TrackingLocationClient locationClient;
 
+    @Mock
+    private DispatchCourierClient courierClient;
+
     @Test
-    void displaysRealDestinationAndUsesNeutralCourierFallback() {
+    void displaysRealDestinationAndCourierName() {
         when(shipmentClient.getShipmentById(15L))
                 .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
         when(shipmentClient.getShipmentDetails(15L))
@@ -42,12 +47,59 @@ class TrackingViewServiceTest {
                 ));
         when(locationClient.getShipmentLocations(15, 0, 100))
                 .thenReturn(List.of());
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(
+                        15L,
+                        true,
+                        "  Andrii Kovalenko  "
+                ));
 
         TrackingPageViewModel result = service().getLiveTracking(15);
 
         assertThat(result.destinationText())
                 .isEqualTo("Kyiv, Delivery Street 2");
+        assertThat(result.courierText()).isEqualTo("Andrii Kovalenko");
+    }
+
+    @Test
+    void showsNotAssignedWhenDispatchConfirmsNoAssignment() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(15L, false, null));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).courierText())
+                .isEqualTo("Not assigned");
+    }
+
+    @Test
+    void showsNotAvailableWhenAssignedCourierHasNoName() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenReturn(new DispatchCourierResponse(15L, true, "  "));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).courierText())
+                .isEqualTo("Not available");
+    }
+
+    @Test
+    void keepsTrackingAvailableWhenDispatchIsUnavailable() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(courierClient.getShipmentCourier(15L))
+                .thenThrow(new ResourceAccessException("Connection refused"));
+        when(locationClient.getShipmentLocations(15, 0, 100))
+                .thenReturn(List.of(location(1, "50.4501", "30.5234")));
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
         assertThat(result.courierText()).isEqualTo("Not available");
+        assertThat(result.locations()).hasSize(1);
     }
 
     @Test
@@ -177,7 +229,11 @@ class TrackingViewServiceTest {
     }
 
     private TrackingViewService service() {
-        return new TrackingViewService(shipmentClient, locationClient);
+        return new TrackingViewService(
+                shipmentClient,
+                locationClient,
+                courierClient
+        );
     }
 
     private List<TrackingLocationResponse> locations(long firstId, long lastId) {

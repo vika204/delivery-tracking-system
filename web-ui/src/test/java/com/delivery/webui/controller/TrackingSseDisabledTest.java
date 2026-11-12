@@ -52,4 +52,5 @@ class TrackingSseDisabledTest {
                 .andExpect(status().isNotFound())
                 .andExpect(request().asyncNotStarted());
     }
+
 }
