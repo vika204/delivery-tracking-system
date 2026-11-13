@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap');
-
 :root {
     --paper: #e7d6c2;
     --ink: #16110e;
@@ -15,7 +13,7 @@ body {
     overflow-x: hidden;
     background: var(--paper);
     color: var(--ink);
-    font-family: 'DM Sans', Arial, sans-serif;
+    font-family: var(--font-body);
 }
 
 body::after {
@@ -73,7 +71,7 @@ a:focus-visible,
     border-radius: 99px;
     background: #0f0c0a;
     color: #e9ddcd;
-    font: 700 14px 'Barlow Condensed', sans-serif;
+    font: 700 14px var(--font-condensed);
 }
 
 .nav a { text-decoration: none; }
@@ -100,48 +98,16 @@ a:focus-visible,
     z-index: 1;
     width: min(450px, 100%);
     margin: 0 auto;
-    padding: 112px 29px 30px;
+    padding: 35px 29px 30px;
     border: 1.5px solid #39261b;
     border-radius: 8px;
     background: rgba(246, 230, 207, .22);
     box-shadow: 4px 5px 0 rgba(42, 24, 18, .13);
 }
-
-.frame-web {
-    position: absolute;
-    top: 0;
-    display: block;
-    width: 125px;
-    height: 100px;
-    clip-path: inset(0 round 7px 0 0 0);
-    color: #574534;
-    opacity: .72;
-    pointer-events: none;
-}
-
-.frame-web-left { left: 0; }
-
-.frame-web-right {
-    right: 0;
-    width: 109px;
-    height: 84px;
-    transform: scaleX(-1);
-}
-
-.frame-web-bottom {
-    top: auto;
-    right: 0;
-    bottom: 0;
-    width: 72px;
-    height: 65px;
-    opacity: .55;
-    transform: rotate(180deg);
-}
-
 h1 {
     margin: 0;
     text-align: center;
-    font: 400 44px/1.06 'Anton', Impact, sans-serif;
+    font: 400 44px/1.06 var(--font-display);
     text-transform: uppercase;
 }
 
@@ -153,6 +119,49 @@ h1 span {
 
 .title-frame {
     margin: 0 0 27px;
+}
+
+.registration-tabs {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
+    gap: 7px;
+    margin: 0 0 25px;
+    border-bottom: 2px solid #39261b;
+}
+
+.registration-tab {
+    min-height: 43px;
+    margin-bottom: -2px;
+    padding: 9px 15px 8px;
+    border: 1.5px solid #6f5748;
+    border-bottom: 2px solid #39261b;
+    border-radius: 9px 9px 0 0;
+    background: rgba(231, 214, 194, .66);
+    color: #77513d;
+    font: 900 17px/1 var(--font-condensed);
+    letter-spacing: .04em;
+    cursor: pointer;
+}
+
+.registration-tab:hover {
+    color: var(--red);
+}
+
+.registration-tab.active {
+    min-height: 48px;
+    border-color: #39261b;
+    border-bottom-color: var(--cream);
+    background: var(--cream);
+    color: var(--red);
+    box-shadow: inset 0 4px var(--red);
+}
+
+.registration-tab:focus-visible {
+    position: relative;
+    z-index: 3;
 }
 
 .intro {
@@ -207,7 +216,7 @@ h1 span {
     width: 240px;
     margin: 0;
     text-align: center;
-    font: 700 11px/1.7 'Barlow Condensed', sans-serif;
+    font: 700 11px/1.7 var(--font-condensed);
     letter-spacing: .12em;
 }
 
@@ -229,7 +238,7 @@ form {
 
 label {
     display: block;
-    font: 700 13px 'Barlow Condensed', sans-serif;
+    font: 800 13px var(--font-condensed);
     letter-spacing: .07em;
 }
 
@@ -241,7 +250,7 @@ input {
     border-radius: 7px;
     background: rgba(255, 246, 229, .35);
     color: var(--ink);
-    font: 14px 'DM Sans', Arial, sans-serif;
+    font: 600 14px var(--font-body);
     margin-top: 6px;
 }
 
@@ -265,13 +274,30 @@ input:focus {
     background: transparent;
     color: #754235;
     cursor: pointer;
-    font: 700 12px 'Barlow Condensed', sans-serif;
+    font: 800 12px var(--font-condensed);
 }
 
 .hint {
     margin: 5px 0 0;
     color: #6b5847;
     font-size: 11px;
+}
+
+.weight-field {
+    position: relative;
+}
+
+.weight-field input {
+    padding-right: 52px;
+}
+
+.weight-field span {
+    position: absolute;
+    right: 14px;
+    bottom: 13px;
+    color: #754235;
+    font: 800 13px var(--font-condensed);
+    pointer-events: none;
 }
 
 /* Red button and hover cobwebs */
@@ -288,7 +314,7 @@ input:focus {
     color: #fff0db;
     box-shadow: 3px 4px #2a1812;
     cursor: pointer;
-    font: 700 18px 'Barlow Condensed', sans-serif;
+    font: 900 18px var(--font-condensed);
     transition: transform .15s, box-shadow .15s;
 }
 
@@ -377,12 +403,12 @@ input:focus {
 
 @media (max-width: 760px) {
     .registration-page {
-        padding: 135px 24px 35px;
+        padding: 95px 21px 28px;
     }
 
     .form-area {
         width: min(430px, 100%);
-        padding: 95px 21px 28px;
+        padding: 30px 21px 28px;
     }
 
     h1 { font-size: 37px; }
@@ -393,16 +419,6 @@ input:focus {
         left: calc(50% + 95px);
         top: -91px;
         width: 96px;
-    }
-
-    .frame-web-left {
-        width: 105px;
-        height: 85px;
-    }
-
-    .frame-web-right {
-        width: 92px;
-        height: 73px;
     }
 
     .nav {

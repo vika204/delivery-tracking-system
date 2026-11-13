@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Welcome back — WEB EXPRESS</title>
     <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/pages/register.css}">
-    <script th:src="@{/js/pages/register.js}" defer></script>
+    <script type="module" th:src="@{/js/pages/register.js}"></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
@@ -15,16 +16,6 @@
 <!-- Decorative SVG shared visually with the registration page. -->
 <svg xmlns="http://www.w3.org/2000/svg" class="svg-definitions" aria-hidden="true">
     <defs>
-        <symbol id="corner-web" viewBox="0 0 120 100" preserveAspectRatio="none">
-            <g fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round">
-                <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
-                <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24
-                         M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49
-                         M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75
-                         M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99
-                         M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
-            </g>
-        </symbol>
         <symbol id="button-web" viewBox="0 0 94 56" preserveAspectRatio="none">
             <g fill="none" stroke="currentColor" stroke-width="0.65" stroke-linecap="round">
                 <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
@@ -57,10 +48,6 @@
     </aside>
 
     <section class="form-area" aria-labelledby="login-title">
-        <svg class="frame-web frame-web-left" aria-hidden="true"><use href="#corner-web"/></svg>
-        <svg class="frame-web frame-web-right" aria-hidden="true"><use href="#corner-web"/></svg>
-        <svg class="frame-web frame-web-bottom" aria-hidden="true"><use href="#corner-web"/></svg>
-
         <div class="title-frame">
             <h1 id="login-title"><span>WELCOME</span> <span>BACK.</span></h1>
         </div>

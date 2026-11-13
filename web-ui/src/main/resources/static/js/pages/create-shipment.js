@@ -1,8 +1,20 @@
-(() => {
+import {createKatottgAutocomplete} from '../components/katottg-autocomplete.js';
+
+export function buildFullAddress(settlementName, streetAddress) {
+    const settlement = String(settlementName ?? '').trim();
+    const street = String(streetAddress ?? '').trim();
+    return settlement && street ? `${settlement}, ${street}` : '';
+}
+
+function startCreateShipment() {
     const form = document.getElementById('shipment-form');
     const modal = document.getElementById('confirmation');
     const closeModalButton = document.getElementById('close-modal');
+    if (!form || !modal || !closeModalButton) return;
+
     const submitButton = form.querySelector('button[type="submit"]');
+    const pickupAddress = document.getElementById('pickup-address');
+    const deliveryAddress = document.getElementById('delivery-address');
 
     const value = id => document.getElementById(id).value.trim();
 
@@ -12,9 +24,23 @@
         target.classList.toggle('placeholder', !text);
     }
 
+    let pickupAutocomplete;
+    let deliveryAutocomplete;
+
     function updateSummary() {
-        display('summary-from', value('pickup'));
-        display('summary-to', value('destination'));
+        const pickupFullAddress = buildFullAddress(
+            pickupAutocomplete?.getSelection()?.name,
+            value('pickup-street')
+        );
+        const deliveryFullAddress = buildFullAddress(
+            deliveryAutocomplete?.getSelection()?.name,
+            value('delivery-street')
+        );
+
+        pickupAddress.value = pickupFullAddress;
+        deliveryAddress.value = deliveryFullAddress;
+        display('summary-from', pickupFullAddress);
+        display('summary-to', deliveryFullAddress);
         display(
             'summary-weight',
             value('weight') ? `${value('weight')} kg` : null
@@ -27,6 +53,22 @@
         );
     }
 
+    pickupAutocomplete = createKatottgAutocomplete({
+        input: document.getElementById('pickup-city'),
+        codeInput: document.getElementById('pickup-city-code'),
+        suggestions: document.getElementById('pickup-city-suggestions'),
+        help: document.getElementById('pickup-city-help'),
+        onChange: updateSummary
+    });
+
+    deliveryAutocomplete = createKatottgAutocomplete({
+        input: document.getElementById('delivery-city'),
+        codeInput: document.getElementById('delivery-city-code'),
+        suggestions: document.getElementById('delivery-city-suggestions'),
+        help: document.getElementById('delivery-city-help'),
+        onChange: updateSummary
+    });
+
     function dismissModal() {
         modal.hidden = true;
         submitButton.focus();
@@ -37,6 +79,9 @@
 
     form.addEventListener('submit', event => {
         event.preventDefault();
+        pickupAutocomplete.validate();
+        deliveryAutocomplete.validate();
+        updateSummary();
         if (!form.reportValidity()) return;
 
         modal.hidden = false;
@@ -52,4 +97,8 @@
     });
 
     updateSummary();
-})();
+}
+
+if (typeof document !== 'undefined') {
+    startCreateShipment();
+}

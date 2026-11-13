@@ -1,0 +1,57 @@
+.courier-profile-page {
+    margin-top: 54px;
+}
+
+.courier-profile-page .profile-layout {
+    align-items: start;
+}
+
+.courier-profile-page .profile-art {
+    margin-top: 8px;
+}
+
+.courier-profile-page .profile-art img {
+    transform: scale(1.1);
+}
+
+.courier-profile-page .profile-data + .profile-data {
+    margin-top: 14px;
+    padding-top: 16px;
+}
+
+.courier-profile-page .profile-name {
+    font-size: 33px;
+}
+
+.courier-profile-fields {
+    grid-template-columns: 1fr;
+}
+
+.weight-input {
+    position: relative;
+}
+
+.weight-input input {
+    padding-right: 50px;
+}
+
+.weight-input span {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    color: #77513d;
+    font: 800 15px var(--font-condensed);
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+@media (max-width: 580px) {
+    .courier-profile-page {
+        margin-top: 30px;
+    }
+
+    .courier-profile-page .profile-art {
+        margin-top: 0;
+    }
+
+}

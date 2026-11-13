@@ -1,7 +1,77 @@
+import {createKatottgAutocomplete} from '../components/katottg-autocomplete.js';
+
 // Shared visual prototype for registration and login.
 // Inputs intentionally have no names, so credentials cannot be submitted.
-const form = document.querySelector('[data-auth-form]');
-const message = form.querySelector('.status');
+const forms = [...document.querySelectorAll('[data-auth-form]')];
+const registrationTabs = [...document.querySelectorAll('[data-registration-tab]')];
+const registrationPanels = [...document.querySelectorAll('[data-registration-panel]')];
+const registrationFormArea = document.getElementById('registration-form-area');
+const titleFirst = document.getElementById('register-title-first');
+const titleSecond = document.getElementById('register-title-second');
+
+let courierWorkZone = null;
+const courierWorkZoneInput = document.getElementById('courier-work-zone');
+if (courierWorkZoneInput) {
+    courierWorkZone = createKatottgAutocomplete({
+        input: courierWorkZoneInput,
+        codeInput: document.getElementById('courier-work-zone-code'),
+        suggestions: document.getElementById('courier-work-zone-suggestions'),
+        help: document.getElementById('courier-work-zone-help')
+    });
+}
+
+function activateRegistration(role, focusTab = false) {
+    registrationTabs.forEach(tab => {
+        const active = tab.dataset.registrationTab === role;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focusTab) tab.focus();
+    });
+
+    registrationPanels.forEach(panel => {
+        panel.hidden = panel.dataset.registrationPanel !== role;
+    });
+
+    registrationFormArea?.classList.toggle('courier-active', role === 'courier');
+    if (titleFirst && titleSecond) {
+        titleFirst.textContent = role === 'courier' ? 'JOIN AS' : 'CREATE';
+        titleSecond.textContent = role === 'courier' ? 'COURIER.' : 'ACCOUNT.';
+    }
+
+    if (role === 'courier') courierWorkZone?.load().catch(() => {});
+}
+
+registrationTabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => {
+        const role = tab.dataset.registrationTab;
+        activateRegistration(role);
+
+        const url = new URL(location.href);
+        if (role === 'courier') url.searchParams.set('type', 'courier');
+        else url.searchParams.delete('type');
+        history.replaceState(null, '', url);
+    });
+
+    tab.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+
+        let nextIndex = index;
+        if (event.key === 'ArrowLeft') nextIndex = (index - 1 + registrationTabs.length) % registrationTabs.length;
+        if (event.key === 'ArrowRight') nextIndex = (index + 1) % registrationTabs.length;
+        if (event.key === 'Home') nextIndex = 0;
+        if (event.key === 'End') nextIndex = registrationTabs.length - 1;
+
+        const nextTab = registrationTabs[nextIndex];
+        activateRegistration(nextTab.dataset.registrationTab, true);
+    });
+});
+
+if (registrationTabs.length > 0) {
+    const requestedRole = new URLSearchParams(location.search).get('type');
+    activateRegistration(requestedRole === 'courier' ? 'courier' : 'client');
+}
 
 document.querySelectorAll('.show').forEach(toggle => {
     const password = toggle.closest('.password').querySelector('input');
@@ -18,11 +88,31 @@ document.querySelectorAll('.show').forEach(toggle => {
     });
 });
 
-form.addEventListener('submit', event => {
-    event.preventDefault();
-    if (!form.reportValidity()) return;
+forms.forEach(form => {
+    const password = form.querySelector('[data-password]');
+    const confirmation = form.querySelector('[data-confirm-password]');
 
-    message.textContent = form.dataset.prototypeMessage;
+    confirmation?.addEventListener('input', () => {
+        confirmation.setCustomValidity('');
+    });
+
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+
+        if (form.dataset.registrationRole === 'courier') {
+            courierWorkZone?.validate();
+        }
+        if (password && confirmation) {
+            confirmation.setCustomValidity(
+                password.value === confirmation.value
+                    ? ''
+                    : 'Passwords must match.'
+            );
+        }
+        if (!form.reportValidity()) return;
+
+        form.querySelector('.status').textContent = form.dataset.prototypeMessage;
+    });
 });
 
 // Courier descends on a web, then gently swings.

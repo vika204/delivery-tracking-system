@@ -175,6 +175,16 @@ a {
     position: relative;
 }
 
+.route-column {
+    display: grid;
+    min-width: 0;
+    gap: 17px;
+}
+
+.route-fields .katottg-field {
+    z-index: 2;
+}
+
 .route-fields::before {
     content: '';
     position: absolute;

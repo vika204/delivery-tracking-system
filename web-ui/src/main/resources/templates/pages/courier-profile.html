@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">Courier Profile — WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/profile.css}">
+    <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/courier-profile.css}">
+
+    <script type="module" th:src="@{/js/pages/courier-profile.js}"></script>
+</head>
+<body>
+<main class="profile-page courier-profile-page">
+    <article class="profile-card">
+        <div class="profile-card__content">
+            <div class="profile-card__heading">
+                <h1>MY PROFILE</h1>
+            </div>
+
+            <hr class="profile-rule">
+
+            <div class="profile-layout">
+                <figure class="profile-art">
+                    <img class="profile-photo"
+                         th:src="@{/images/courier-dashboard-portrait.webp}"
+                         src="/images/courier-dashboard-portrait.webp"
+                         alt="WEB EXPRESS courier portrait"
+                         width="1024"
+                         height="1024"
+                         draggable="false">
+                </figure>
+
+                <div class="profile-information">
+                    <section id="profile-view" aria-label="Courier profile information">
+                        <div class="profile-data">
+                            <span class="profile-label">FULL NAME</span>
+                            <span class="profile-name" id="display-full-name">Andrii Kovalenko</span>
+                        </div>
+                        <div class="profile-data">
+                            <span class="profile-label">EMAIL ADDRESS</span>
+                            <span class="profile-value" id="display-email">andrii@gmail.com</span>
+                        </div>
+                        <div class="profile-data">
+                            <span class="profile-label">PHONE NUMBER</span>
+                            <span class="profile-value" id="display-phone">+380 67 123 45 67</span>
+                        </div>
+                        <div class="profile-data">
+                            <span class="profile-label">WORK ZONE</span>
+                            <span class="profile-value" id="display-work-zone">Kyiv</span>
+                        </div>
+                        <div class="profile-data">
+                            <span class="profile-label">MAX PACKAGE WEIGHT</span>
+                            <span class="profile-value" id="display-max-weight">20 kg</span>
+                        </div>
+
+                        <div class="profile-actions">
+                            <button type="button" class="profile-button profile-button--red" id="edit-button">
+                                <svg class="profile-button__web profile-button__web--left"
+                                     viewBox="0 0 94 56" preserveAspectRatio="none" aria-hidden="true">
+                                    <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                                        <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                        <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                                    </g>
+                                </svg>
+                                <svg class="profile-button__web profile-button__web--right"
+                                     viewBox="0 0 94 56" preserveAspectRatio="none" aria-hidden="true">
+                                    <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round"
+                                       transform="translate(94 56) rotate(180)">
+                                        <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                        <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                                    </g>
+                                </svg>
+                                <span class="profile-button__label">EDIT PROFILE</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <form id="profile-form" hidden aria-label="Edit courier profile" autocomplete="on" novalidate>
+                        <div class="profile-fields courier-profile-fields">
+                            <div class="profile-field profile-field--wide">
+                                <label for="full-name">FULL NAME</label>
+                                <input id="full-name" name="fullName" type="text"
+                                       required maxlength="140" autocomplete="name">
+                            </div>
+                            <div class="profile-field profile-field--wide">
+                                <label for="email">EMAIL ADDRESS</label>
+                                <input id="email" name="email" type="email"
+                                       required maxlength="254" autocomplete="email">
+                            </div>
+                            <div class="profile-field profile-field--wide">
+                                <label for="phone">PHONE NUMBER</label>
+                                <input id="phone" name="phone" type="tel"
+                                       required maxlength="25" pattern="[+0-9() .-]{7,25}"
+                                       title="Use digits, spaces, +, parentheses or dashes" autocomplete="tel">
+                            </div>
+                            <div class="profile-field profile-field--wide katottg-field">
+                                <label for="work-zone">WORK ZONE</label>
+                                <input id="work-zone" name="workZone" type="text"
+                                       required maxlength="100" autocomplete="off"
+                                       placeholder="Enter city or village..."
+                                       aria-autocomplete="list" aria-controls="work-zone-suggestions"
+                                       aria-expanded="false">
+                                <input id="work-zone-code" name="workZoneCode" type="hidden">
+                                <div id="work-zone-suggestions"
+                                     class="katottg-suggestions"
+                                     role="listbox"
+                                     aria-label="Settlements"
+                                     hidden></div>
+                                <p id="work-zone-help" class="katottg-help">
+                                    Choose a settlement from the official KATOTTG list.
+                                </p>
+                            </div>
+                            <div class="profile-field profile-field--wide">
+                                <label for="max-weight">MAX PACKAGE WEIGHT</label>
+                                <div class="weight-input">
+                                    <input id="max-weight" name="maxWeight" type="number"
+                                           required min="1" max="1000" step="1" inputmode="numeric">
+                                    <span aria-hidden="true">kg</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions profile-edit-actions">
+                            <button type="button" class="profile-button profile-button--outline" id="cancel-button">
+                                <span class="profile-button__label">CANCEL</span>
+                            </button>
+                            <button type="submit" class="profile-button profile-button--red">
+                                <svg class="profile-button__web profile-button__web--left"
+                                     viewBox="0 0 94 56" preserveAspectRatio="none" aria-hidden="true">
+                                    <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                                        <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                        <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                                    </g>
+                                </svg>
+                                <svg class="profile-button__web profile-button__web--right"
+                                     viewBox="0 0 94 56" preserveAspectRatio="none" aria-hidden="true">
+                                    <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round"
+                                       transform="translate(94 56) rotate(180)">
+                                        <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                        <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                                    </g>
+                                </svg>
+                                <span class="profile-button__label">SAVE CHANGES</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <p id="profile-message" class="profile-notice" role="status" aria-live="polite" hidden></p>
+</main>
+</body>
+</html>
