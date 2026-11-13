@@ -16,11 +16,13 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/create-shipment.css}">
 
     <script defer th:src="@{/js/components/header.js}"></script>
     <script defer th:src="@{/js/components/cursor-webs.js}"></script>
+    <script defer th:src="@{/js/components/modal.js}"></script>
     <script type="module" th:src="@{/js/pages/create-shipment.js}"></script>
 </head>
 <body>
@@ -275,5 +277,7 @@
         </button>
     </div>
 </div>
+
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

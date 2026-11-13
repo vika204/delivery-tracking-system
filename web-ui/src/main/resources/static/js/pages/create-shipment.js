@@ -6,6 +6,27 @@ export function buildFullAddress(settlementName, streetAddress) {
     return settlement && street ? `${settlement}, ${street}` : '';
 }
 
+export function shipmentCreationErrorMessage() {
+    return 'We could not create your shipment. Check your connection and try again. Your form data is still here.';
+}
+
+async function showShipmentCreationError(error) {
+    console.error('Could not create shipment', error);
+
+    const options = {
+        title: 'SHIPMENT NOT CREATED',
+        message: shipmentCreationErrorMessage(),
+        buttonLabel: 'BACK TO FORM'
+    };
+
+    if (window.WebExpressModal?.alert) {
+        await window.WebExpressModal.alert(options);
+        return;
+    }
+
+    window.alert(options.message);
+}
+
 function startCreateShipment() {
     const form = document.getElementById('shipment-form');
     const modal = document.getElementById('confirmation');
@@ -77,15 +98,20 @@ function startCreateShipment() {
     form.addEventListener('input', updateSummary);
     form.addEventListener('reset', () => requestAnimationFrame(updateSummary));
 
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
         event.preventDefault();
-        pickupAutocomplete.validate();
-        deliveryAutocomplete.validate();
-        updateSummary();
-        if (!form.reportValidity()) return;
 
-        modal.hidden = false;
-        closeModalButton.focus();
+        try {
+            pickupAutocomplete.validate();
+            deliveryAutocomplete.validate();
+            updateSummary();
+            if (!form.reportValidity()) return;
+
+            modal.hidden = false;
+            closeModalButton.focus();
+        } catch (error) {
+            await showShipmentCreationError(error);
+        }
     });
 
     closeModalButton.addEventListener('click', dismissModal);
