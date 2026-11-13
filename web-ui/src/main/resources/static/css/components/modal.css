@@ -34,13 +34,15 @@
 
 .we-modal button {
     margin-top: 12px;
-    border: none;
+    border: 2px solid #281710;
     border-radius: 30px;
     padding: 11px 26px;
     background: var(--red);
     color: white;
+    box-shadow: 3px 4px 0 #281710;
     cursor: pointer;
     font-weight: 700;
+    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
 
 .we-modal .we-modal-cancel {
@@ -55,6 +57,16 @@
 
 .we-modal .we-modal-cancel:hover:not(:disabled) {
     background: #ead5b8;
+}
+
+.we-modal button:hover:not(:disabled) {
+    box-shadow: 3px 6px 0 #281710;
+    transform: translateY(-2px);
+}
+
+.we-modal button:active:not(:disabled) {
+    box-shadow: 2px 3px 0 #281710;
+    transform: translateY(1px);
 }
 
 .we-modal button:focus-visible {

@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Join the web — WEB EXPRESS</title>
     <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/register.css}">
-    <script th:src="@{/js/pages/register.js}" defer></script>
+    <script type="module" th:src="@{/js/pages/register.js}"></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
@@ -15,16 +17,6 @@
 <!-- Decorative SVG used by the form frame and the CTA button. -->
 <svg xmlns="http://www.w3.org/2000/svg" class="svg-definitions" aria-hidden="true">
     <defs>
-        <symbol id="corner-web" viewBox="0 0 120 100" preserveAspectRatio="none">
-            <g fill="none" stroke="currentColor" stroke-width="0.7" stroke-linecap="round">
-                <path d="M1 1H119M1 1V99M1 1L111 25M1 1L82 48M1 1L49 73M1 1L19 97"/>
-                <path d="M21 1Q16 4 20 5Q14 8 15 9Q8 11 9 14Q3 16 4 21Q1 22 1 24
-                         M43 1Q34 7 40 10Q28 14 30 18Q17 22 19 29Q8 33 9 44Q3 47 1 49
-                         M66 1Q52 12 61 15Q43 23 46 27Q27 34 29 43Q13 51 13 66Q5 72 1 75
-                         M91 1Q72 17 83 20Q59 31 63 37Q37 47 39 58Q19 69 18 90Q8 95 1 99
-                         M119 1Q94 22 111 25Q77 41 82 48Q49 61 49 73Q26 85 19 97"/>
-            </g>
-        </symbol>
         <symbol id="button-web" viewBox="0 0 94 56" preserveAspectRatio="none">
             <g fill="none" stroke="currentColor" stroke-width="0.65" stroke-linecap="round">
                 <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
@@ -56,60 +48,185 @@
         <p class="visual-note">YOUR FRIENDLY NEIGHBORHOOD DELIVERY.</p>
     </aside>
 
-    <section class="form-area" aria-labelledby="register-title">
-        <svg class="frame-web frame-web-left" aria-hidden="true"><use href="#corner-web"/></svg>
-        <svg class="frame-web frame-web-right" aria-hidden="true"><use href="#corner-web"/></svg>
-        <svg class="frame-web frame-web-bottom" aria-hidden="true"><use href="#corner-web"/></svg>
-
-        <div class="title-frame">
-            <h1 id="register-title"><span>CREATE</span> <span>ACCOUNT.</span></h1>
+    <section class="form-area" id="registration-form-area" aria-labelledby="register-title">
+        <div class="registration-tabs" role="tablist" aria-label="Choose account type">
+            <button class="registration-tab active"
+                    id="client-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="client-registration"
+                    data-registration-tab="client">
+                CLIENT
+            </button>
+            <button class="registration-tab"
+                    id="courier-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="courier-registration"
+                    tabindex="-1"
+                    data-registration-tab="courier">
+                COURIER
+            </button>
         </div>
 
-        <!-- Design preview only: Keycloak will handle real registration. -->
-        <form id="register"
-              action="#"
-              data-auth-form
-              data-prototype-message="This is a design preview. Registration will be available after Keycloak integration.">
-            <div class="field">
-                <label for="email">EMAIL ADDRESS</label>
-                <input id="email" type="email" autocomplete="email"
-                       placeholder="you@example.com" required>
-            </div>
+        <div class="title-frame">
+            <h1 id="register-title">
+                <span id="register-title-first">CREATE</span>
+                <span id="register-title-second">ACCOUNT.</span>
+            </h1>
+        </div>
 
-            <div class="field">
-                <label for="password">PASSWORD</label>
-                <div class="password">
-                    <input id="password" type="password"
-                           autocomplete="new-password" minlength="8"
-                           placeholder="Create a password" required>
-                    <button class="show" type="button" aria-label="Show password"
-                            aria-pressed="false">SHOW</button>
+        <div id="client-registration"
+             role="tabpanel"
+             aria-labelledby="client-tab"
+             data-registration-panel="client">
+            <!-- Design preview only: Keycloak will handle real registration. -->
+            <form id="client-register"
+                  action="#"
+                  data-auth-form
+                  data-registration-role="client"
+                  data-prototype-message="This is a design preview. Client registration will be available after Keycloak integration.">
+                <div class="field">
+                    <label for="client-email">EMAIL ADDRESS</label>
+                    <input id="client-email" type="email" autocomplete="email"
+                           placeholder="you@example.com" required>
                 </div>
-                <p class="hint">At least 8 characters.</p>
-            </div>
 
-            <div class="field">
-                <label for="confirm-password">CONFIRM PASSWORD</label>
-                <div class="password">
-                    <input id="confirm-password" type="password"
-                           autocomplete="new-password" minlength="8"
-                           placeholder="Confirm your password" required>
-                    <button class="show" type="button" aria-label="Show confirmed password"
-                            aria-pressed="false">SHOW</button>
+                <div class="field">
+                    <label for="client-password">PASSWORD</label>
+                    <div class="password">
+                        <input id="client-password" type="password"
+                               autocomplete="new-password" minlength="8"
+                               placeholder="Create a password" required
+                               data-password>
+                        <button class="show" type="button" aria-label="Show password"
+                                aria-pressed="false">SHOW</button>
+                    </div>
+                    <p class="hint">At least 8 characters.</p>
                 </div>
-            </div>
 
-            <button class="cta" type="submit">
-                <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
-                <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
-                <span>CREATE ACCOUNT</span>
-            </button>
+                <div class="field">
+                    <label for="client-confirm-password">CONFIRM PASSWORD</label>
+                    <div class="password">
+                        <input id="client-confirm-password" type="password"
+                               autocomplete="new-password" minlength="8"
+                               placeholder="Confirm your password" required
+                               data-confirm-password>
+                        <button class="show" type="button" aria-label="Show confirmed password"
+                                aria-pressed="false">SHOW</button>
+                    </div>
+                </div>
 
-            <p class="footer-note">Already have an account?
-                <a th:href="@{/login}">Log in</a>
-            </p>
-            <p class="status" role="status" aria-live="polite"></p>
-        </form>
+                <button class="cta" type="submit">
+                    <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
+                    <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
+                    <span>CREATE CLIENT ACCOUNT</span>
+                </button>
+
+                <p class="footer-note">Already have an account?
+                    <a th:href="@{/login}">Log in</a>
+                </p>
+                <p class="status" role="status" aria-live="polite"></p>
+            </form>
+        </div>
+
+        <div id="courier-registration"
+             role="tabpanel"
+             aria-labelledby="courier-tab"
+             data-registration-panel="courier"
+             hidden>
+            <!-- Design preview only: Keycloak will handle real registration. -->
+            <form id="courier-register"
+                  action="#"
+                  data-auth-form
+                  data-registration-role="courier"
+                  data-prototype-message="This is a design preview. Courier registration will be available after Keycloak integration.">
+                <div class="field">
+                    <label for="courier-full-name">FULL NAME</label>
+                    <input id="courier-full-name" type="text" autocomplete="name"
+                           placeholder="e.g. Andrii Kovalenko" maxlength="140" required>
+                </div>
+
+                <div class="field">
+                    <label for="courier-email">EMAIL ADDRESS</label>
+                    <input id="courier-email" type="email" autocomplete="email"
+                           placeholder="you@example.com" required>
+                </div>
+
+                <div class="field">
+                    <label for="courier-phone">PHONE NUMBER</label>
+                    <input id="courier-phone" type="tel" autocomplete="tel"
+                           placeholder="+380 XX XXX XX XX" maxlength="25"
+                           pattern="[+0-9() .-]{7,25}" required>
+                </div>
+
+                <div class="field katottg-field">
+                    <label for="courier-work-zone">WORK ZONE</label>
+                    <input id="courier-work-zone" type="text" autocomplete="off"
+                           placeholder="Enter city or village..." maxlength="100"
+                           aria-autocomplete="list"
+                           aria-controls="courier-work-zone-suggestions"
+                           aria-expanded="false" required>
+                    <input id="courier-work-zone-code" type="hidden">
+                    <div id="courier-work-zone-suggestions"
+                         class="katottg-suggestions"
+                         role="listbox"
+                         aria-label="Courier work zone settlements"
+                         hidden></div>
+                    <p id="courier-work-zone-help" class="katottg-help">
+                        Choose a settlement from the official KATOTTG list.
+                    </p>
+                </div>
+
+                <div class="field">
+                    <label for="courier-max-weight">MAX PACKAGE WEIGHT</label>
+                    <div class="weight-field">
+                        <input id="courier-max-weight" type="number"
+                               min="1" max="1000" step="1" inputmode="numeric"
+                               placeholder="20" required>
+                        <span aria-hidden="true">KG</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="courier-password">PASSWORD</label>
+                    <div class="password">
+                        <input id="courier-password" type="password"
+                               autocomplete="new-password" minlength="8"
+                               placeholder="Create a password" required
+                               data-password>
+                        <button class="show" type="button" aria-label="Show password"
+                                aria-pressed="false">SHOW</button>
+                    </div>
+                    <p class="hint">At least 8 characters.</p>
+                </div>
+
+                <div class="field">
+                    <label for="courier-confirm-password">CONFIRM PASSWORD</label>
+                    <div class="password">
+                        <input id="courier-confirm-password" type="password"
+                               autocomplete="new-password" minlength="8"
+                               placeholder="Confirm your password" required
+                               data-confirm-password>
+                        <button class="show" type="button" aria-label="Show confirmed password"
+                                aria-pressed="false">SHOW</button>
+                    </div>
+                </div>
+
+                <button class="cta" type="submit">
+                    <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
+                    <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
+                    <span>CREATE COURIER ACCOUNT</span>
+                </button>
+
+                <p class="footer-note">Already have an account?
+                    <a th:href="@{/login}">Log in</a>
+                </p>
+                <p class="status" role="status" aria-live="polite"></p>
+            </form>
+        </div>
     </section>
 </main>
 </body>

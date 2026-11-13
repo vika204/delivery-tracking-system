@@ -32,9 +32,16 @@ class CreateShipmentPageControllerTest {
                 .andExpect(content().string(containsString("RECIPIENT DETAILS")))
                 .andExpect(content().string(containsString("PACKAGE DETAILS")))
                 .andExpect(content().string(containsString("ORDER SUMMARY")))
+                .andExpect(content().string(containsString("PICKUP CITY / VILLAGE")))
+                .andExpect(content().string(containsString("DELIVERY CITY / VILLAGE")))
+                .andExpect(content().string(containsString("pickup-city-suggestions")))
+                .andExpect(content().string(containsString("delivery-city-suggestions")))
+                .andExpect(content().string(containsString("katottg-autocomplete.css")))
                 .andExpect(content().string(containsString("href=\"/ship\"")))
                 .andExpect(content().string(containsString(
                         "src=\"/js/pages/create-shipment.js\""
-                )));
+                )))
+                .andExpect(content().string(containsString("name=\"pickupAddress\"")))
+                .andExpect(content().string(containsString("name=\"deliveryAddress\"")));
     }
 }

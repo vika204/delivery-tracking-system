@@ -14,10 +14,11 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/create-shipment.css}">
 
     <script defer th:src="@{/js/components/header.js}"></script>
-    <script defer th:src="@{/js/pages/create-shipment.js}"></script>
+    <script type="module" th:src="@{/js/pages/create-shipment.js}"></script>
 </head>
 <body>
 <header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
@@ -38,30 +39,84 @@
                 </div>
 
                 <div class="field-grid route-fields">
-                    <div class="field">
-                        <label for="pickup">PICKUP ADDRESS</label>
-                        <div class="input-box">
-                            <input required
-                                   type="text"
-                                   name="pickupAddress"
-                                   id="pickup"
-                                   placeholder="e.g. Kharkiv, Sumska St, 10"
-                                   autocomplete="street-address"
-                                   maxlength="250">
+                    <div class="route-column">
+                        <div class="field katottg-field">
+                            <label for="pickup-city">PICKUP CITY / VILLAGE</label>
+                            <div class="input-box">
+                                <input required
+                                       type="text"
+                                       id="pickup-city"
+                                       placeholder="Enter city or village..."
+                                       autocomplete="off"
+                                       maxlength="100"
+                                       aria-autocomplete="list"
+                                       aria-controls="pickup-city-suggestions"
+                                       aria-expanded="false">
+                                <input type="hidden" id="pickup-city-code">
+                            </div>
+                            <div id="pickup-city-suggestions"
+                                 class="katottg-suggestions"
+                                 role="listbox"
+                                 aria-label="Pickup settlements"
+                                 hidden></div>
+                            <p id="pickup-city-help" class="katottg-help">
+                                Choose a settlement from the official KATOTTG list.
+                            </p>
+                        </div>
+
+                        <div class="field">
+                            <label for="pickup-street">STREET &amp; HOUSE NUMBER</label>
+                            <div class="input-box">
+                                <input required
+                                       type="text"
+                                       id="pickup-street"
+                                       placeholder="e.g. Khreshchatyk St, 1"
+                                       autocomplete="street-address"
+                                       maxlength="150">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="field">
-                        <label for="destination">DELIVERY ADDRESS</label>
-                        <div class="input-box">
-                            <input required
-                                   type="text"
-                                   name="deliveryAddress"
-                                   id="destination"
-                                   placeholder="e.g. Kyiv, Khreshchatyk St, 12"
-                                   maxlength="250">
+                    <div class="route-column">
+                        <div class="field katottg-field">
+                            <label for="delivery-city">DELIVERY CITY / VILLAGE</label>
+                            <div class="input-box">
+                                <input required
+                                       type="text"
+                                       id="delivery-city"
+                                       placeholder="Enter city or village..."
+                                       autocomplete="off"
+                                       maxlength="100"
+                                       aria-autocomplete="list"
+                                       aria-controls="delivery-city-suggestions"
+                                       aria-expanded="false">
+                                <input type="hidden" id="delivery-city-code">
+                            </div>
+                            <div id="delivery-city-suggestions"
+                                 class="katottg-suggestions"
+                                 role="listbox"
+                                 aria-label="Delivery settlements"
+                                 hidden></div>
+                            <p id="delivery-city-help" class="katottg-help">
+                                Choose a settlement from the official KATOTTG list.
+                            </p>
+                        </div>
+
+                        <div class="field">
+                            <label for="delivery-street">STREET &amp; HOUSE NUMBER</label>
+                            <div class="input-box">
+                                <input required
+                                       type="text"
+                                       id="delivery-street"
+                                       placeholder="e.g. Svobody Ave, 10"
+                                       autocomplete="street-address"
+                                       maxlength="150">
+                            </div>
                         </div>
                     </div>
+
+                    <input type="hidden" name="pickupAddress" id="pickup-address">
+                    <input type="hidden" name="deliveryAddress" id="delivery-address">
                 </div>
             </section>
 

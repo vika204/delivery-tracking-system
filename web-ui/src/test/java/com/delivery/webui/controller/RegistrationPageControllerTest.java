@@ -25,12 +25,21 @@ class RegistrationPageControllerTest {
         mockMvc.perform(get("/register"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/register"))
-                .andExpect(content().string(containsString("CREATE ACCOUNT")))
+                .andExpect(content().string(containsString("CREATE CLIENT ACCOUNT")))
+                .andExpect(content().string(containsString("CREATE COURIER ACCOUNT")))
+                .andExpect(content().string(containsString("data-registration-tab=\"client\"")))
+                .andExpect(content().string(containsString("data-registration-tab=\"courier\"")))
                 .andExpect(content().string(containsString("EMAIL ADDRESS")))
                 .andExpect(content().string(containsString("CONFIRM PASSWORD")))
+                .andExpect(content().string(containsString("FULL NAME")))
+                .andExpect(content().string(containsString("PHONE NUMBER")))
+                .andExpect(content().string(containsString("WORK ZONE")))
+                .andExpect(content().string(containsString("MAX PACKAGE WEIGHT")))
+                .andExpect(content().string(containsString("courier-work-zone-suggestions")))
+                .andExpect(content().string(containsString("katottg-autocomplete.css")))
                 .andExpect(content().string(containsString("href=\"/login\"")))
                 .andExpect(content().string(containsString("Log in")))
-                .andExpect(content().string(not(containsString("FULL NAME"))));
+                .andExpect(content().string(not(containsString("name=\"password\""))));
     }
 
     @Test

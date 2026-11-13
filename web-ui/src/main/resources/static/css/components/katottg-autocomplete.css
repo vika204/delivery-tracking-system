@@ -1,0 +1,64 @@
+.katottg-field {
+    position: relative;
+}
+
+.katottg-suggestions {
+    position: absolute;
+    top: calc(100% - 18px);
+    right: 0;
+    left: 0;
+    z-index: 20;
+    max-height: 290px;
+    padding: 6px;
+    overflow-y: auto;
+    border: 1.5px solid #39261b;
+    border-radius: 8px;
+    background: #fff3df;
+    box-shadow: 4px 5px 0 rgba(42, 24, 18, .2);
+}
+
+.katottg-option {
+    display: block;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #211611;
+    text-align: left;
+}
+
+.katottg-option:hover,
+.katottg-option:focus-visible {
+    outline: none;
+    background: rgba(188, 44, 29, .12);
+}
+
+.katottg-option__name {
+    display: block;
+    font: 800 17px/1.2 var(--font-condensed);
+}
+
+.katottg-option__context {
+    display: block;
+    margin-top: 2px;
+    color: #77513d;
+    font: 600 12px/1.35 var(--font-body);
+}
+
+.katottg-help {
+    min-height: 17px;
+    margin: 6px 0 0;
+    color: #77513d;
+    font: 600 11px/1.4 var(--font-body);
+}
+
+.katottg-help--error {
+    color: #a51f15;
+}
+
+@media (max-width: 580px) {
+    .katottg-suggestions {
+        max-height: 235px;
+    }
+}
