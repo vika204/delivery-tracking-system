@@ -37,6 +37,9 @@ class CreateShipmentPageControllerTest {
                 .andExpect(content().string(containsString("pickup-city-suggestions")))
                 .andExpect(content().string(containsString("delivery-city-suggestions")))
                 .andExpect(content().string(containsString("katottg-autocomplete.css")))
+                .andExpect(content().string(containsString("/css/components/modal.css")))
+                .andExpect(content().string(containsString("/js/components/modal.js")))
+                .andExpect(content().string(containsString("id=\"we-modal\"")))
                 .andExpect(content().string(containsString("href=\"/ship\"")))
                 .andExpect(content().string(containsString(
                         "src=\"/js/pages/create-shipment.js\""
