@@ -40,12 +40,15 @@
         render();
     });
 
-    cancel.addEventListener('click', () => {
+    cancel.addEventListener('click', async () => {
         if (stage !== 'TO_PICKUP') return;
 
-        const approved = window.confirm(
-            'Withdraw from this delivery? The shipment itself will remain active.'
-        );
+        const approved = await window.WebExpressModal.confirm({
+            title: 'WITHDRAW FROM DELIVERY?',
+            message: 'Withdraw from this delivery? The shipment itself will remain active.',
+            confirmLabel: 'WITHDRAW',
+            cancelLabel: 'KEEP DELIVERY'
+        });
         if (!approved) return;
 
         stage = 'WITHDRAWN';

@@ -31,6 +31,9 @@ class CourierDeliveryDetailsPageControllerTest {
                 .andExpect(content().string(containsString("DELIVERY")))
                 .andExpect(content().string(containsString("PACKAGE")))
                 .andExpect(content().string(containsString("CONFIRM PICKUP")))
+                .andExpect(content().string(containsString("id=\"we-modal\"")))
+                .andExpect(content().string(containsString("/css/components/modal.css")))
+                .andExpect(content().string(containsString("/js/components/modal.js")))
                 .andExpect(content().string(containsString(
                         "src=\"/js/pages/courier-delivery-details.js\""
                 )));

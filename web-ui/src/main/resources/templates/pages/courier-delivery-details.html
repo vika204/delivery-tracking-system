@@ -10,7 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
           rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/courier-delivery-details.css}">
+    <script defer th:src="@{/js/components/modal.js}"></script>
     <script defer th:src="@{/js/pages/courier-delivery-details.js}"></script>
 </head>
 <body>
@@ -129,5 +131,7 @@
 
     <p class="delivery-notice" id="preview-notice" role="status" aria-live="polite"></p>
 </main>
+
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>
