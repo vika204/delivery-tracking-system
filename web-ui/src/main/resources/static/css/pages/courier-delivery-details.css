@@ -1,0 +1,332 @@
+:root {
+    --paper: #e7d6c2;
+    --cream: #f6e6cf;
+    --ink: #16110e;
+    --red: #bc2c1d;
+    --font-condensed: 'Barlow Condensed', Impact, sans-serif;
+    --font-body: 'DM Sans', Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 500 15px/1.5 var(--font-body);
+}
+
+a {
+    color: inherit;
+}
+
+button {
+    font: inherit;
+}
+
+.svg-definitions {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.delivery-details-page {
+    width: min(874px, 100%);
+    margin: 48px auto 0;
+    padding: 0 17px 55px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 25px;
+    color: #211611;
+    text-decoration: none;
+    font: 900 20px var(--font-condensed);
+    letter-spacing: .01em;
+    transition: color .15s ease;
+}
+
+.back-link:hover {
+    color: var(--red);
+}
+
+.back-link svg {
+    display: block;
+    flex: none;
+    width: 30px;
+    height: 30px;
+}
+
+.delivery-details-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1.5px solid #39261b;
+    border-radius: 10px;
+    background: var(--cream);
+    box-shadow: 4px 5px 0 rgba(42, 24, 18, .12);
+}
+
+.delivery-details-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 11px;
+    border-right: 1px solid #b69b85;
+    background: repeating-linear-gradient(-45deg, #bc2c1d 0 8px, #fff3df 8px 16px);
+}
+
+.delivery-details-card__inner {
+    padding: 26px 28px 28px 38px;
+}
+
+.delivery-details-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.shipment-number {
+    margin: 0;
+    color: var(--ink);
+    font: 900 36px/1.06 var(--font-condensed);
+    letter-spacing: .01em;
+}
+
+.delivery-status {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 13px;
+    background: #c97468;
+    color: #fff9f2;
+    white-space: nowrap;
+    font: 900 18px/1.1 var(--font-condensed);
+    letter-spacing: .035em;
+}
+
+.delivery-status.in-transit {
+    background: var(--red);
+}
+
+.delivery-status.delivered {
+    background: #356e4c;
+}
+
+.delivery-status.withdrawn {
+    background: #776c63;
+}
+
+.dashed-rule {
+    margin: 23px 0;
+    border: 0;
+    border-top: 2px dashed var(--ink);
+}
+
+.section-title {
+    margin: 0 0 21px;
+    color: var(--ink);
+    font: 900 27px/1.1 var(--font-condensed);
+    letter-spacing: .01em;
+}
+
+.details-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 32px;
+}
+
+.detail-field {
+    min-width: 0;
+}
+
+.detail-field__label {
+    display: block;
+    margin-bottom: 8px;
+    color: #77513d;
+    font: 800 17px/1.12 var(--font-condensed);
+    letter-spacing: .045em;
+}
+
+.detail-field__value {
+    display: block;
+    overflow-wrap: anywhere;
+    color: #241710;
+    font: 600 16px/1.45 var(--font-body);
+}
+
+.detail-field__value a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.detail-field__value a:hover {
+    color: var(--red);
+}
+
+.delivery-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.delivery-button {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 10px 25px;
+    overflow: hidden;
+    border: 2px solid #29120e;
+    border-radius: 99px;
+    box-shadow: 3px 4px #2a1812;
+    text-decoration: none;
+    font: 800 18px var(--font-condensed);
+    letter-spacing: .025em;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.delivery-button:hover {
+    box-shadow: 3px 6px #2a1812;
+    transform: translateY(-2px);
+}
+
+.delivery-button:active {
+    box-shadow: 2px 3px #2a1812;
+    transform: translateY(1px);
+}
+
+.delivery-button:focus-visible,
+.back-link:focus-visible,
+.detail-field__value a:focus-visible {
+    outline: 3px solid #87523e;
+    outline-offset: 4px;
+}
+
+.delivery-button--outline {
+    background: var(--cream);
+    color: #211611;
+}
+
+.delivery-button--red {
+    background: var(--red);
+    color: #fff0db;
+}
+
+.delivery-button__label {
+    position: relative;
+    z-index: 2;
+}
+
+.delivery-button__web {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    width: 51px;
+    height: 100%;
+    color: #fff4df;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(.12);
+    transition: transform .65s cubic-bezier(.2, .65, .3, 1), opacity .3s ease;
+}
+
+.delivery-button__web--left {
+    left: 0;
+    transform-origin: 0 0;
+}
+
+.delivery-button__web--right {
+    right: 0;
+    transform-origin: 100% 100%;
+    transition-delay: .08s;
+}
+
+.delivery-button:hover .delivery-button__web,
+.delivery-button:focus-visible .delivery-button__web {
+    opacity: .55;
+    transform: scale(1);
+}
+
+.delivery-notice {
+    margin: 18px 0 0;
+    color: #77513d;
+    text-align: right;
+    font: 600 13px/1.5 var(--font-body);
+}
+
+.delivery-notice:empty {
+    display: none;
+}
+
+@media (max-width: 650px) {
+    .delivery-details-page {
+        margin-top: 29px;
+        padding: 0 10px 40px;
+    }
+
+    .delivery-details-card__inner {
+        padding: 22px 16px 23px 29px;
+    }
+
+    .shipment-number {
+        font-size: 28px;
+    }
+
+    .delivery-status {
+        font-size: 15px;
+    }
+
+    .section-title {
+        font-size: 25px;
+    }
+
+    .details-fields {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .detail-field__label {
+        font-size: 16px;
+    }
+
+    .detail-field__value {
+        font-size: 15px;
+    }
+
+    .delivery-actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .delivery-actions .delivery-button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .delivery-button,
+    .delivery-button__web,
+    .back-link {
+        transition: none;
+    }
+}

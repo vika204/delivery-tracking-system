@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">Delivery Details — WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/pages/courier-delivery-details.css}">
+    <script defer th:src="@{/js/pages/courier-delivery-details.js}"></script>
+</head>
+<body>
+<svg class="svg-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="button-web-art" viewBox="0 0 94 56">
+        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+        </g>
+    </symbol>
+</svg>
+
+<main class="delivery-details-page">
+    <a th:href="@{/courier/dashboard}" href="/courier/dashboard" class="back-link">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none"
+             xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12.0009 1.33452C12.0012 1.05646 11.9145 0.785269 11.753 0.558912C11.5915 0.332554 11.3632 0.162356 11.1002 0.0721339C10.8372 -0.018088 10.5525 -0.0238181 10.2861 0.0557453C10.0196 0.135309 9.78474 0.296184 9.61426 0.515858L0.280925 12.5159C0.0988525 12.7499 0 13.038 0 13.3345C0 13.6311 0.0988525 13.9191 0.280925 14.1532L9.61426 26.1532C9.78474 26.3729 10.0196 26.5337 10.2861 26.6133C10.5525 26.6929 10.8372 26.6871 11.1002 26.5969C11.3632 26.5067 11.5915 26.3365 11.753 26.1101C11.9145 25.8838 12.0012 25.6126 12.0009 25.3345V20.0145C19.1729 20.1639 22.6183 21.5252 24.3489 23.0052C25.9943 24.4119 26.2956 26.0661 26.6089 27.7999L26.6903 28.2465C26.7501 28.5661 26.9247 28.8529 27.1811 29.0528C27.4376 29.2527 27.7582 29.352 28.0828 29.332C28.4073 29.312 28.7134 29.1741 28.9434 28.9442C29.1734 28.7144 29.3114 28.4084 29.3316 28.0839C29.5596 24.4199 29.2169 19.1105 26.6289 14.6692C24.1169 10.3585 19.5943 7.04386 12.0009 6.69719V1.33452Z"
+                  fill-rule="evenodd"
+                  clip-rule="evenodd"
+                  fill="#D41404"></path>
+        </svg>
+        BACK TO DASHBOARD
+    </a>
+
+    <article class="delivery-details-card">
+        <div class="delivery-details-card__inner">
+            <header class="delivery-details-card__top">
+                <h1 class="shipment-number" th:text="|SHIPMENT #${shipmentId}|">SHIPMENT #2154</h1>
+                <span id="shipment-status" class="delivery-status" role="status" aria-live="polite">
+                    TO PICK UP
+                </span>
+            </header>
+
+            <hr class="dashed-rule">
+
+            <section aria-labelledby="delivery-title">
+                <h2 class="section-title" id="delivery-title">DELIVERY</h2>
+                <div class="details-fields">
+                    <div class="detail-field">
+                        <span class="detail-field__label">PICKUP ADDRESS</span>
+                        <span class="detail-field__value">Kyiv, Volodymyrska St, 12</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">DELIVERY ADDRESS</span>
+                        <span class="detail-field__value">Kyiv, Khreshchatyk St, 27</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">RECIPIENT</span>
+                        <span class="detail-field__value">Olena Kovalenko</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">RECIPIENT PHONE</span>
+                        <span class="detail-field__value">
+                            <a href="tel:+380501234567">+380 50 123 45 67</a>
+                        </span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">DISTANCE</span>
+                        <span class="detail-field__value">7.3 km</span>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="dashed-rule">
+
+            <section aria-labelledby="package-title">
+                <h2 class="section-title" id="package-title">PACKAGE</h2>
+                <div class="details-fields">
+                    <div class="detail-field">
+                        <span class="detail-field__label">WEIGHT</span>
+                        <span class="detail-field__value">2.40 kg</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">LENGTH</span>
+                        <span class="detail-field__value">40 cm</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">WIDTH</span>
+                        <span class="detail-field__value">30 cm</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">HEIGHT</span>
+                        <span class="detail-field__value">20 cm</span>
+                    </div>
+                    <div class="detail-field">
+                        <span class="detail-field__label">DELIVERY PRICE</span>
+                        <span class="detail-field__value">250 UAH</span>
+                    </div>
+                </div>
+            </section>
+
+            <hr class="dashed-rule">
+
+            <div class="delivery-actions" id="delivery-actions">
+                <button type="button" class="delivery-button delivery-button--outline" id="cancel-delivery">
+                    <span class="delivery-button__label">CANCEL DELIVERY</span>
+                </button>
+                <button type="button" class="delivery-button delivery-button--red" id="advance-delivery">
+                    <svg class="delivery-button__web delivery-button__web--left"
+                         viewBox="0 0 94 56"
+                         preserveAspectRatio="none"
+                         aria-hidden="true">
+                        <use href="#button-web-art"></use>
+                    </svg>
+                    <svg class="delivery-button__web delivery-button__web--right"
+                         viewBox="0 0 94 56"
+                         preserveAspectRatio="none"
+                         aria-hidden="true">
+                        <use href="#button-web-art" transform="translate(94 56) rotate(180)"></use>
+                    </svg>
+                    <span class="delivery-button__label" id="advance-label">CONFIRM PICKUP</span>
+                </button>
+            </div>
+        </div>
+    </article>
+
+    <p class="delivery-notice" id="preview-notice" role="status" aria-live="polite"></p>
+</main>
+</body>
+</html>
