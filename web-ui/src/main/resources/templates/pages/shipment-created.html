@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">Shipment Created — WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/shipment-created.css}">
+
+    <script defer th:src="@{/js/components/header.js}"></script>
+</head>
+<body>
+<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+
+<main class="shipment-created-page">
+    <article class="shipment-envelope" aria-labelledby="created-title">
+        <div class="shipment-envelope__paper">
+            <img class="shipment-stamp shipment-stamp--primary"
+                 th:src="@{/images/shipment-stamp-ukraine-cat.png}"
+                 src="/images/shipment-stamp-ukraine-cat.png"
+                 alt="Ukrainian postage stamp featuring a cat"
+                 draggable="false">
+            <img class="shipment-stamp shipment-stamp--secondary"
+                 th:src="@{/images/shipment-stamp-japan-kitten.png}"
+                 src="/images/shipment-stamp-japan-kitten.png"
+                 alt="Japanese postage stamp featuring a sleepy kitten"
+                 draggable="false">
+            <img class="shipment-stamp shipment-stamp--third"
+                 th:src="@{/images/shipment-stamp-guinea-kitten.png}"
+                 src="/images/shipment-stamp-guinea-kitten.png"
+                 alt="Equatorial Guinea postage stamp with a kitten"
+                 draggable="false">
+
+            <div class="shipment-envelope__content">
+                <div class="shipment-created-message">
+                    <span class="shipment-created-number">
+                        SHIPMENT
+                        <strong th:text="|#${shipmentId}|">#18</strong>
+                    </span>
+                    <h1 id="created-title">CREATED!</h1>
+                </div>
+
+                <div class="shipment-created-actions">
+                    <a class="shipment-created-button shipment-created-button--outline"
+                       th:href="@{/my-parcels}">
+                        <span class="shipment-created-button__label">VIEW MY PARCELS</span>
+                    </a>
+
+                    <a class="shipment-created-button shipment-created-button--red"
+                       th:href="@{/tracking(shipmentId=${shipmentId})}">
+                        <svg class="shipment-created-button__web shipment-created-button__web--left"
+                             viewBox="0 0 94 56"
+                             preserveAspectRatio="none"
+                             aria-hidden="true">
+                            <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
+                                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                            </g>
+                        </svg>
+                        <span class="shipment-created-button__label">TRACK PACKAGE</span>
+                        <svg class="shipment-created-button__web shipment-created-button__web--right"
+                             viewBox="0 0 94 56"
+                             preserveAspectRatio="none"
+                             aria-hidden="true">
+                            <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round"
+                               transform="translate(94 56) rotate(180)">
+                                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
+                                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
+                            </g>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </article>
+</main>
+</body>
+</html>
