@@ -76,15 +76,29 @@ body {
 .profile-art {
     align-self: center;
     margin: 0;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+
+    border: 5px solid #BC2C1D;
+    border-radius: 50%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .profile-art img {
     display: block;
     width: 100%;
-    height: auto;
-    border: 1.5px solid var(--border-color);
-    border-radius: 7px;
-    box-shadow: 4px 5px 0 rgba(42, 24, 18, .13);
+    height: 100%;
+
+    object-fit: cover;
+    object-position: center;
+
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+
+    transform: scale(1.08);
 }
 
 .profile-information {
