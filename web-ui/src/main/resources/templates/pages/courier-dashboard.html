@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#e7d6c2">
+    <title th:text="${pageTitle}">Courier Dashboard — WEB EXPRESS</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/pages/courier-dashboard.css}">
+    <script defer th:src="@{/js/pages/courier-dashboard.js}"></script>
+</head>
+<body>
+<main class="dashboard">
+    <article class="dashboard-card">
+        <div class="card-inner">
+            <div class="columns">
+                <aside class="courier-aside" aria-label="Courier status and work settings">
+                    <figure class="portrait">
+                        <img th:src="@{/images/courier-dashboard-portrait.webp}"
+                             src="/images/courier-dashboard-portrait.webp"
+                             alt="Courier portrait"
+                             draggable="false">
+                    </figure>
+                    <p class="courier-name">Olena Kovalenko</p>
+                    <p class="courier-role">COURIER</p>
+
+                    <div class="aside-overview">
+                        <div>
+                            <hr class="aside-rule">
+                            <span class="aside-label">MY STATUS</span>
+                            <div class="status-line">
+                                <button id="availability-switch"
+                                        class="status-toggle"
+                                        type="button"
+                                        role="switch"
+                                        aria-checked="true"
+                                        aria-label="Courier availability"></button>
+                                <span id="availability-text" class="status-label">AVAILABLE</span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="content-column">
+                    <section aria-labelledby="offers-title">
+                        <div class="block-heading offer-heading">
+                            <h2 id="offers-title">DELIVERY OFFER</h2>
+                        </div>
+
+                        <div id="offer-card" class="offer-card">
+                            <div class="offer-info">
+                                <h3 class="shipment-id">SHIPMENT #2187</h3>
+                                <p class="address">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
+                                    </svg>
+                                    <span><strong>Pickup:</strong> Kyiv, Lva Tolstoho St, 15</span>
+                                </p>
+                                <p class="address">
+                                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
+                                    </svg>
+                                    <span><strong>Delivery:</strong> Kyiv, Lypova St, 8</span>
+                                </p>
+                                <div class="offer-meta">
+                                    <span><strong>Weight:</strong> 4.2 kg</span>
+                                    <span><strong>Distance:</strong> 7.3 km</span>
+                                    <span><strong>Price:</strong> ₴142</span>
+                                </div>
+                            </div>
+
+                            <div class="offer-buttons">
+                                <button class="btn btn-red" type="button" id="accept-offer">ACCEPT</button>
+                                <button class="btn btn-plain" type="button" id="decline-offer">DECLINE</button>
+                            </div>
+                        </div>
+
+                        <div id="no-offer" class="no-offer" hidden>
+                            No active delivery offers right now.
+                        </div>
+                    </section>
+
+                    <section aria-labelledby="deliveries-title">
+                        <div class="block-heading deliveries-heading">
+                            <h2 id="deliveries-title">ACTIVE DELIVERIES</h2>
+                        </div>
+
+                        <div id="deliveries-list">
+                            <article class="delivery-card">
+                                <div>
+                                    <h3 class="shipment-id">SHIPMENT #2154</h3>
+                                    <p class="address">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
+                                        </svg>
+                                        <span><strong>From:</strong> Kyiv, Volodymyrska St, 12</span>
+                                    </p>
+                                    <p class="address">
+                                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                            <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
+                                        </svg>
+                                        <span><strong>To:</strong> Kyiv, Khreshchatyk St, 27</span>
+                                    </p>
+                                </div>
+
+                                <div class="delivery-action">
+                                    <span class="status-chip">TO PICK UP</span>
+                                    <a href="/courier/deliveries/2154"
+                                       class="details-link"
+                                       aria-label="Open shipment 2154 details">
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             stroke-linecap="round"
+                                             stroke-linejoin="round"
+                                             aria-hidden="true">
+                                            <path d="m9 4 8 8-8 8"></path>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <p id="action-notice" class="action-notice" role="status" aria-live="polite"></p>
+                </div>
+            </div>
+        </div>
+    </article>
+</main>
+</body>
+</html>
