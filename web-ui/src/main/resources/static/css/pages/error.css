@@ -65,90 +65,6 @@ html {
     color: var(--red);
 }
 
-.error-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 16px;
-}
-
-.error-button {
-    position: relative;
-    isolation: isolate;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 176px;
-    min-height: 47px;
-    padding: 12px 25px;
-    overflow: hidden;
-    border: 2px solid #29120e;
-    border-radius: 99px;
-    color: inherit;
-    box-shadow: 3px 4px #2a1812;
-    font: 800 18px var(--font-condensed);
-    letter-spacing: .015em;
-    text-decoration: none;
-    cursor: pointer;
-    transition: transform .15s, box-shadow .15s;
-}
-
-.error-button:hover {
-    box-shadow: 3px 6px #2a1812;
-    transform: translateY(-2px);
-}
-
-.error-button:focus-visible {
-    outline: 3px solid #87523e;
-    outline-offset: 4px;
-}
-
-.error-button-primary {
-    background: var(--red);
-    color: #fff0db;
-}
-
-.error-button-outline {
-    background: var(--cream);
-    color: #211611;
-}
-
-.error-button-label {
-    position: relative;
-    z-index: 2;
-}
-
-.error-button-web {
-    position: absolute;
-    top: 0;
-    z-index: 1;
-    width: 51px;
-    height: 100%;
-    color: #fff4df;
-    pointer-events: none;
-    opacity: 0;
-    transform: scale(.12);
-    transition: transform .65s cubic-bezier(.2, .65, .3, 1), opacity .3s ease;
-}
-
-.error-button-web-left {
-    left: 0;
-    transform-origin: 0 0;
-}
-
-.error-button-web-right {
-    right: 0;
-    transform-origin: 100% 100%;
-    transition-delay: .08s;
-}
-
-.error-button:hover .error-button-web,
-.error-button:focus-visible .error-button-web {
-    opacity: .55;
-    transform: scale(1);
-}
-
 @media (max-width: 630px) {
     .error-main {
         width: calc(100% - 22px);
@@ -172,15 +88,6 @@ html {
         font-size: clamp(29px, 4.5svh, 36px);
     }
 
-    .error-actions {
-        gap: 13px;
-    }
-
-    .error-button {
-        flex: 1;
-        min-width: min(100%, 190px);
-        padding-inline: 18px;
-    }
 }
 
 @media (max-width: 390px) {
@@ -189,9 +96,3 @@ html {
     }
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .error-button,
-    .error-button-web {
-        transition: none;
-    }
-}

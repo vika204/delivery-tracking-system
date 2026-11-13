@@ -11,7 +11,7 @@ public class LandingPageController {
     public String landingPage(Model model) {
         model.addAttribute("pageTitle", "WEB EXPRESS — Great Speed. Great Delivery.");
         model.addAttribute("activePage", "home");
-        model.addAttribute("authenticated", false);
+        model.addAttribute("headerState", "GUEST");
         return "pages/landing";
     }
 }

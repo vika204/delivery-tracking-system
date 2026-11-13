@@ -7,6 +7,7 @@
           content="width=device-width, initial-scale=1.0">
 
     <title th:text="${pageTitle}">WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
     <!-- Fonts -->
     <link rel="stylesheet"
@@ -21,6 +22,7 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/components/modal.css}">
 
     <!-- Tracking page styles -->
@@ -29,11 +31,12 @@
     <link rel="stylesheet" th:href="@{/css/components/tracking-card.css}">
     <link rel="stylesheet" th:href="@{/css/components/tracking-controls.css}">
     <script th:src="@{/js/components/header.js}" defer></script>
+    <script th:src="@{/js/components/cursor-webs.js}" defer></script>
 </head>
 
 <body>
-
-<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="tracking-page" id="tracking">
 
@@ -56,10 +59,10 @@
               th:action="@{/tracking}"
               method="get">
 
-            <input th:if="${authenticated}"
+            <input th:if="${headerState == 'CLIENT'}"
                    type="hidden"
-                   name="authenticated"
-                   value="true">
+                   name="previewRole"
+                   value="CLIENT">
 
             <input type="text"
                    name="shipmentId"
@@ -68,8 +71,9 @@
                    th:value="${trackingInput}"
                    required>
 
-            <button type="submit">
-                TRACK PACKAGE
+            <button type="submit" class="web-button">
+                <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                <span class="web-button__label">TRACK PACKAGE</span>
             </button>
 
         </form>

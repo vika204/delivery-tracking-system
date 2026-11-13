@@ -67,8 +67,8 @@ class TrackingPageControllerTest {
     }
 
     @Test
-    void showsAuthenticatedHeaderPreview() throws Exception {
-        mockMvc.perform(get("/tracking").param("authenticated", "true"))
+    void showsClientHeaderPreview() throws Exception {
+        mockMvc.perform(get("/tracking").param("previewRole", "CLIENT"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("SHIP")))
                 .andExpect(content().string(containsString("MY PARCELS")))

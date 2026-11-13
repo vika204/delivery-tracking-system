@@ -1,51 +1,56 @@
 <header class="site-header"
-        th:fragment="siteHeader(authenticated)"
+        th:fragment="siteHeader(headerState)"
+        th:with="state=${headerState == null ? 'GUEST' : headerState},
+                 currentPage=${activePage == null ? '' : activePage}"
         xmlns:th="http://www.thymeleaf.org">
 
     <nav class="site-header__nav" aria-label="Main navigation">
-        <a class="site-header__brand" th:href="@{/tracking}">
+        <a class="site-header__brand" th:href="@{/}">
             WEB EXPRESS
         </a>
 
         <span class="site-header__divider" aria-hidden="true"></span>
 
-        <th:block th:unless="${authenticated}">
+        <th:block th:if="${state == 'GUEST'}">
             <a th:href="@{/tracking}"
-               th:classappend="${activePage == 'tracking'} ? 'active' : ''">
+               th:classappend="${currentPage == 'tracking'} ? 'active' : ''">
                 TRACK
             </a>
             <a th:href="@{/login}">LOG IN</a>
             <a class="site-header__signup" th:href="@{/register}">SIGN UP</a>
         </th:block>
 
-        <th:block th:if="${authenticated}">
+        <th:block th:if="${state == 'CLIENT'}">
             <a class="site-header__desktop-only"
                th:href="@{/ship}"
-               th:classappend="${activePage == 'ship'} ? 'active' : ''">
+               th:classappend="${currentPage == 'ship'} ? 'active' : ''">
                 SHIP
             </a>
             <a class="site-header__desktop-only"
                th:href="@{/my-parcels}"
-               th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
+               th:classappend="${currentPage == 'my-parcels'} ? 'active' : ''">
                 MY PARCELS
             </a>
-            <a th:href="@{/tracking}"
-               th:classappend="${activePage == 'tracking'} ? 'active' : ''">
+            <a th:href="@{/tracking(previewRole='CLIENT')}"
+               th:classappend="${currentPage == 'tracking'} ? 'active' : ''">
                 TRACK
             </a>
 
             <div class="site-header__profile" data-profile-menu>
                 <button class="site-header__profile-button"
-                        th:classappend="${activePage == 'profile'} ? 'active' : ''"
+                        th:classappend="${currentPage == 'profile'} ? 'active' : ''"
                         type="button"
                         aria-label="Open profile menu"
                         aria-expanded="false"
                         aria-controls="profile-menu"
                         data-profile-menu-button>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="12" cy="8" r="3.5"></circle>
-                        <path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>
-                    </svg>
+                    <img class="site-header__profile-icon"
+                         th:src="@{/images/spider-icon.svg}"
+                         src="/images/spider-icon.svg"
+                         width="18"
+                         height="18"
+                         alt=""
+                         aria-hidden="true">
                     <span class="site-header__profile-label">PROFILE</span>
                 </button>
 
@@ -57,18 +62,64 @@
                     <a class="site-header__mobile-only"
                        role="menuitem"
                        th:href="@{/ship}"
-                       th:classappend="${activePage == 'ship'} ? 'active' : ''">
+                       th:classappend="${currentPage == 'ship'} ? 'active' : ''">
                         SHIP
                     </a>
                     <a class="site-header__mobile-only"
                        role="menuitem"
                        th:href="@{/my-parcels}"
-                       th:classappend="${activePage == 'my-parcels'} ? 'active' : ''">
+                       th:classappend="${currentPage == 'my-parcels'} ? 'active' : ''">
                         MY PARCELS
                     </a>
                     <a role="menuitem"
                        th:href="@{/profile}"
-                       th:classappend="${activePage == 'profile'} ? 'active' : ''">
+                       th:classappend="${currentPage == 'profile'} ? 'active' : ''">
+                        MY PROFILE
+                    </a>
+                    <button type="button" role="menuitem">LOG OUT</button>
+                </div>
+            </div>
+        </th:block>
+
+        <th:block th:if="${state == 'COURIER'}">
+            <a class="site-header__desktop-only"
+               th:href="@{/courier/dashboard}"
+               th:classappend="${currentPage == 'courier-dashboard'} ? 'active' : ''">
+                DASHBOARD
+            </a>
+
+            <div class="site-header__profile" data-profile-menu>
+                <button class="site-header__profile-button"
+                        th:classappend="${currentPage == 'courier-profile'} ? 'active' : ''"
+                        type="button"
+                        aria-label="Open profile menu"
+                        aria-expanded="false"
+                        aria-controls="courier-profile-menu"
+                        data-profile-menu-button>
+                    <img class="site-header__profile-icon"
+                         th:src="@{/images/spider-icon.svg}"
+                         src="/images/spider-icon.svg"
+                         width="18"
+                         height="18"
+                         alt=""
+                         aria-hidden="true">
+                    <span class="site-header__profile-label">PROFILE</span>
+                </button>
+
+                <div class="site-header__menu"
+                     id="courier-profile-menu"
+                     role="menu"
+                     data-profile-menu-panel
+                     hidden>
+                    <a class="site-header__mobile-only"
+                       role="menuitem"
+                       th:href="@{/courier/dashboard}"
+                       th:classappend="${currentPage == 'courier-dashboard'} ? 'active' : ''">
+                        DASHBOARD
+                    </a>
+                    <a role="menuitem"
+                       th:href="@{/courier/profile}"
+                       th:classappend="${currentPage == 'courier-profile'} ? 'active' : ''">
                         MY PROFILE
                     </a>
                     <button type="button" role="menuitem">LOG OUT</button>

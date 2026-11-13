@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#e7d6c2">
     <title>404 — Page Not Found | WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,10 +15,14 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/pages/error.css}">
+    <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/components/cursor-webs.js}"></script>
 </head>
 <body class="error-page">
-<header th:replace="~{fragments/header :: siteHeader(authenticated=${false})}"></header>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<header th:replace="~{fragments/header :: siteHeader(headerState='GUEST')}"></header>
 
 <main class="error-main">
     <section class="error-panel" aria-labelledby="error-title">

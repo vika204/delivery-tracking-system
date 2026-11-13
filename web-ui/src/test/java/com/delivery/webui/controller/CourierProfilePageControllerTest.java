@@ -32,7 +32,9 @@ class CourierProfilePageControllerTest {
                 .andExpect(content().string(containsString("MAX PACKAGE WEIGHT")))
                 .andExpect(content().string(containsString("courier-dashboard-portrait.webp")))
                 .andExpect(content().string(containsString("courier-profile.js")))
-                .andExpect(content().string(not(containsString("site-header"))));
+                .andExpect(content().string(containsString("site-header")))
+                .andExpect(content().string(containsString("href=\"/courier/dashboard\"")))
+                .andExpect(content().string(containsString("href=\"/courier/profile\"")));
     }
 
     @Test

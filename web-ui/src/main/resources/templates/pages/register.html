@@ -4,39 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Join the web — WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
     <link rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/buttons.css}">
     <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/register.css}">
+    <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/components/cursor-webs.js}"></script>
     <script type="module" th:src="@{/js/pages/register.js}"></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
 
-<!-- Decorative SVG used by the form frame and the CTA button. -->
-<svg xmlns="http://www.w3.org/2000/svg" class="svg-definitions" aria-hidden="true">
-    <defs>
-        <symbol id="button-web" viewBox="0 0 94 56" preserveAspectRatio="none">
-            <g fill="none" stroke="currentColor" stroke-width="0.65" stroke-linecap="round">
-                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
-                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14
-                         M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28
-                         M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42
-                         M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"/>
-            </g>
-        </symbol>
-    </defs>
-</svg>
-
-<header class="site-header">
-    <nav class="nav" aria-label="Main navigation">
-        <a class="brand" th:href="@{/tracking}">WEB EXPRESS</a>
-        <span class="divider" aria-hidden="true"></span>
-        <a th:href="@{/tracking}">HOME</a>
-        <span class="nav-current">JOIN THE WEB</span>
-    </nav>
-</header>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="registration-page">
     <aside class="visual" aria-label="Web Express courier illustration">
@@ -119,10 +103,9 @@
                     </div>
                 </div>
 
-                <button class="cta" type="submit">
-                    <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
-                    <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
-                    <span>CREATE CLIENT ACCOUNT</span>
+                <button class="cta web-button" type="submit">
+                    <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                    <span class="web-button__label">CREATE CLIENT ACCOUNT</span>
                 </button>
 
                 <p class="footer-note">Already have an account?
@@ -215,10 +198,9 @@
                     </div>
                 </div>
 
-                <button class="cta" type="submit">
-                    <svg class="button-web button-web-left" aria-hidden="true"><use href="#button-web"/></svg>
-                    <svg class="button-web button-web-right" aria-hidden="true"><use href="#button-web"/></svg>
-                    <span>CREATE COURIER ACCOUNT</span>
+                <button class="cta web-button" type="submit">
+                    <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                    <span class="web-button__label">CREATE COURIER ACCOUNT</span>
                 </button>
 
                 <p class="footer-note">Already have an account?

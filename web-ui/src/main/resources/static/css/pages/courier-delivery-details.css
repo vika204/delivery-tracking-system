@@ -35,13 +35,6 @@ button {
     font: inherit;
 }
 
-.svg-definitions {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-}
-
 .delivery-details-page {
     width: min(874px, 100%);
     margin: 48px auto 0;
@@ -238,47 +231,6 @@ button {
     z-index: 2;
 }
 
-.delivery-button__web {
-    position: absolute;
-    top: 0;
-    z-index: 1;
-    width: 51px;
-    height: 100%;
-    color: #fff4df;
-    pointer-events: none;
-    opacity: 0;
-    transform: scale(.12);
-    transition: transform .65s cubic-bezier(.2, .65, .3, 1), opacity .3s ease;
-}
-
-.delivery-button__web--left {
-    left: 0;
-    transform-origin: 0 0;
-}
-
-.delivery-button__web--right {
-    right: 0;
-    transform-origin: 100% 100%;
-    transition-delay: .08s;
-}
-
-.delivery-button:hover .delivery-button__web,
-.delivery-button:focus-visible .delivery-button__web {
-    opacity: .55;
-    transform: scale(1);
-}
-
-.delivery-notice {
-    margin: 18px 0 0;
-    color: #77513d;
-    text-align: right;
-    font: 600 13px/1.5 var(--font-body);
-}
-
-.delivery-notice:empty {
-    display: none;
-}
-
 @media (max-width: 650px) {
     .delivery-details-page {
         margin-top: 29px;
@@ -326,7 +278,6 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
     .delivery-button,
-    .delivery-button__web,
     .back-link {
         transition: none;
     }

@@ -37,9 +37,11 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(containsString("href=\"/my-parcels/15\"")))
                 .andExpect(content().string(containsString("href=\"/my-parcels/16\"")))
                 .andExpect(content().string(containsString("href=\"/my-parcels/17\"")))
-                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=15\"")))
-                .andExpect(content().string(containsString("button-web-left")))
-                .andExpect(content().string(containsString("button-web-right")))
+                .andExpect(content().string(containsString(
+                        "href=\"/tracking?shipmentId=15&amp;previewRole=CLIENT\""
+                )))
+                .andExpect(content().string(containsString("web-button__web--left")))
+                .andExpect(content().string(containsString("web-button__web--right")))
                 .andExpect(content().string(containsString("data-profile-menu")))
                 .andExpect(content().string(containsString("href=\"/my-parcels\"")));
     }
@@ -61,7 +63,9 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(containsString("DELIVERY PRICE")))
                 .andExpect(content().string(containsString("COURIER PHONE")))
                 .andExpect(content().string(containsString("Not available")))
-                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=15\"")))
+                .andExpect(content().string(containsString(
+                        "href=\"/tracking?shipmentId=15&amp;previewRole=CLIENT\""
+                )))
                 .andExpect(content().string(not(containsString("SHIPMENT DETAILS"))));
     }
 
