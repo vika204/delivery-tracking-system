@@ -1,0 +1,51 @@
+.web-button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.web-button__label {
+    position: relative;
+    z-index: 2;
+}
+
+.web-button__web {
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    width: min(30%, 84px);
+    height: 100%;
+    opacity: 0;
+    color: #fff3df;
+    pointer-events: none;
+    transition: opacity .22s ease, transform .28s ease;
+}
+
+.web-button__web--left {
+    left: 0;
+    transform: translate(-12%, 10%) scale(.88);
+    transform-origin: left top;
+}
+
+.web-button__web--right {
+    right: 0;
+    transform: translate(12%, -10%) scale(.88);
+    transform-origin: right bottom;
+}
+
+.web-button:hover .web-button__web,
+.web-button:focus-visible .web-button__web {
+    opacity: .72;
+    transform: translate(0, 0) scale(1);
+}
+
+.web-button:disabled .web-button__web,
+.web-button[aria-disabled="true"] .web-button__web {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .web-button__web {
+        transition: none;
+    }
+}

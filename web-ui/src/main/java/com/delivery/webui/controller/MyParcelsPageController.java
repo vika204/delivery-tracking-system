@@ -112,8 +112,8 @@ public class MyParcelsPageController {
     private void addSharedPageAttributes(Model model, String pageTitle) {
         model.addAttribute("pageTitle", pageTitle);
         model.addAttribute("activePage", "my-parcels");
-        // Display-only preview; this is not an authorization check.
-        model.addAttribute("authenticated", true);
+        // Display-only navigation state; access control will be provided by Keycloak.
+        model.addAttribute("headerState", "CLIENT");
     }
 
     public record ParcelPreview(

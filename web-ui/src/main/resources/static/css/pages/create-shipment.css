@@ -303,36 +303,6 @@ a {
     z-index: 2;
 }
 
-.button-web {
-    position: absolute;
-    top: 0;
-    z-index: 1;
-    width: 51px;
-    height: 100%;
-    color: #fff4df;
-    pointer-events: none;
-    opacity: 0;
-    transform: scale(.12);
-    transition: transform .65s cubic-bezier(.2, .65, .3, 1), opacity .3s ease;
-}
-
-.button-web-left {
-    left: 0;
-    transform-origin: 0 0;
-}
-
-.button-web-right {
-    right: 0;
-    transform-origin: 100% 100%;
-    transition-delay: .08s;
-}
-
-.btn:hover .button-web,
-.btn:focus-visible .button-web {
-    opacity: .55;
-    transform: scale(1);
-}
-
 .modal[hidden] {
     display: none !important;
 }
@@ -460,7 +430,6 @@ a {
     }
 
     .btn,
-    .button-web,
     .field input {
         transition: none;
     }

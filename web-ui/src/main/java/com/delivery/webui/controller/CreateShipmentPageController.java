@@ -11,7 +11,7 @@ public class CreateShipmentPageController {
     public String createShipmentPage(Model model) {
         model.addAttribute("pageTitle", "Create Shipment — WEB EXPRESS");
         model.addAttribute("activePage", "ship");
-        model.addAttribute("authenticated", true);
+        model.addAttribute("headerState", "CLIENT");
         return "pages/create-shipment";
     }
 }

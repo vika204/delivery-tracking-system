@@ -25,7 +25,7 @@ class CreateShipmentPageControllerTest {
         mockMvc.perform(get("/ship"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/create-shipment"))
-                .andExpect(model().attribute("authenticated", true))
+                .andExpect(model().attribute("headerState", "CLIENT"))
                 .andExpect(model().attribute("activePage", "ship"))
                 .andExpect(content().string(containsString("CREATE SHIPMENT")))
                 .andExpect(content().string(containsString("DELIVERY ROUTE")))

@@ -4,9 +4,8 @@
     const advance = document.getElementById('advance-delivery');
     const advanceLabel = document.getElementById('advance-label');
     const cancel = document.getElementById('cancel-delivery');
-    const notice = document.getElementById('preview-notice');
 
-    if (!badge || !actions || !advance || !advanceLabel || !cancel || !notice) return;
+    if (!badge || !actions || !advance || !advanceLabel || !cancel) return;
 
     let stage = 'TO_PICKUP';
 
@@ -32,10 +31,8 @@
     advance.addEventListener('click', () => {
         if (stage === 'TO_PICKUP') {
             stage = 'IN_TRANSIT';
-            notice.textContent = 'Pickup confirmed — preview only. No data was saved.';
         } else if (stage === 'IN_TRANSIT') {
             stage = 'DELIVERED';
-            notice.textContent = 'Delivery completed — preview only. No data was saved.';
         }
         render();
     });
@@ -52,7 +49,6 @@
         if (!approved) return;
 
         stage = 'WITHDRAWN';
-        notice.textContent = 'Courier withdrew — preview only. No data was saved.';
         render();
     });
 

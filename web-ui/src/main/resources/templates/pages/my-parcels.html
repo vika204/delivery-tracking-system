@@ -4,31 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${pageTitle}">My parcels — WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
     <link rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
     <script th:src="@{/js/components/header.js}" defer></script>
+    <script th:src="@{/js/components/cursor-webs.js}" defer></script>
 </head>
 <body>
-<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
-
-<svg class="parcel-svg-definitions" aria-hidden="true">
-    <defs>
-        <symbol id="parcel-button-web" viewBox="0 0 94 56">
-            <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
-                <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"/>
-                <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14
-                         M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28
-                         M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42
-                         M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"/>
-            </g>
-        </symbol>
-    </defs>
-</svg>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="parcels-page">
     <section aria-label="My parcels">
@@ -86,29 +76,12 @@
                         <div class="parcel-actions">
                             <a class="btn btn-outline"
                                th:href="@{/my-parcels/{id}(id=${parcel.shipmentId()})}">
-                                <svg class="button-web button-web-left" viewBox="0 0 94 56"
-                                     preserveAspectRatio="none" aria-hidden="true">
-                                    <use href="#parcel-button-web"/>
-                                </svg>
-                                <svg class="button-web button-web-right" viewBox="0 0 94 56"
-                                     preserveAspectRatio="none" aria-hidden="true">
-                                    <use href="#parcel-button-web"
-                                         transform="translate(94 56) rotate(180)"/>
-                                </svg>
                                 <span class="btn-label">DETAILS</span>
                             </a>
-                            <a class="btn btn-red"
-                               th:href="@{/tracking(shipmentId=${parcel.shipmentId()})}">
-                                <svg class="button-web button-web-left" viewBox="0 0 94 56"
-                                     preserveAspectRatio="none" aria-hidden="true">
-                                    <use href="#parcel-button-web"/>
-                                </svg>
-                                <svg class="button-web button-web-right" viewBox="0 0 94 56"
-                                     preserveAspectRatio="none" aria-hidden="true">
-                                    <use href="#parcel-button-web"
-                                         transform="translate(94 56) rotate(180)"/>
-                                </svg>
-                                <span class="btn-label">TRACK PACKAGE</span>
+                            <a class="btn btn-red web-button"
+                               th:href="@{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')}">
+                                <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                                <span class="btn-label web-button__label">TRACK PACKAGE</span>
                             </a>
                         </div>
                     </div>
@@ -119,17 +92,9 @@
                     <div class="parcel-inner">
                         <h2>YOU HAVE NO PARCELS YET.</h2>
                         <p>Your deliveries will appear here.</p>
-                        <button type="button" class="btn btn-red" disabled>
-                            <svg class="button-web button-web-left" viewBox="0 0 94 56"
-                                 preserveAspectRatio="none" aria-hidden="true">
-                                <use href="#parcel-button-web"/>
-                            </svg>
-                            <svg class="button-web button-web-right" viewBox="0 0 94 56"
-                                 preserveAspectRatio="none" aria-hidden="true">
-                                <use href="#parcel-button-web"
-                                     transform="translate(94 56) rotate(180)"/>
-                            </svg>
-                            <span class="btn-label">CREATE A SHIPMENT</span>
+                        <button type="button" class="btn btn-red web-button" disabled>
+                            <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                            <span class="btn-label web-button__label">CREATE A SHIPMENT</span>
                         </button>
                     </div>
                 </article>

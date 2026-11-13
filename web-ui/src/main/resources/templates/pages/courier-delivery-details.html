@@ -5,26 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#e7d6c2">
     <title th:text="${pageTitle}">Delivery Details — WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@500;600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap"
           rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/courier-delivery-details.css}">
+    <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/components/cursor-webs.js}"></script>
     <script defer th:src="@{/js/components/modal.js}"></script>
     <script defer th:src="@{/js/pages/courier-delivery-details.js}"></script>
 </head>
 <body>
-<svg class="svg-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <symbol id="button-web-art" viewBox="0 0 94 56">
-        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
-            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
-            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
-        </g>
-    </symbol>
-</svg>
-
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 <main class="delivery-details-page">
     <a th:href="@{/courier/dashboard}" href="/courier/dashboard" class="back-link">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none"
@@ -110,26 +110,14 @@
                 <button type="button" class="delivery-button delivery-button--outline" id="cancel-delivery">
                     <span class="delivery-button__label">CANCEL DELIVERY</span>
                 </button>
-                <button type="button" class="delivery-button delivery-button--red" id="advance-delivery">
-                    <svg class="delivery-button__web delivery-button__web--left"
-                         viewBox="0 0 94 56"
-                         preserveAspectRatio="none"
-                         aria-hidden="true">
-                        <use href="#button-web-art"></use>
-                    </svg>
-                    <svg class="delivery-button__web delivery-button__web--right"
-                         viewBox="0 0 94 56"
-                         preserveAspectRatio="none"
-                         aria-hidden="true">
-                        <use href="#button-web-art" transform="translate(94 56) rotate(180)"></use>
-                    </svg>
-                    <span class="delivery-button__label" id="advance-label">CONFIRM PICKUP</span>
+                <button type="button" class="delivery-button delivery-button--red web-button" id="advance-delivery">
+                    <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                    <span class="delivery-button__label web-button__label" id="advance-label">CONFIRM PICKUP</span>
                 </button>
             </div>
         </div>
     </article>
 
-    <p class="delivery-notice" id="preview-notice" role="status" aria-live="polite"></p>
 </main>
 
 <div th:replace="~{fragments/ui/modal :: modal}"></div>

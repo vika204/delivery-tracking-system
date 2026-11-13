@@ -11,7 +11,7 @@ public class ProfilePageController {
     public String profilePage(Model model) {
         model.addAttribute("pageTitle", "My Profile — WEB EXPRESS");
         model.addAttribute("activePage", "profile");
-        model.addAttribute("authenticated", true);
+        model.addAttribute("headerState", "CLIENT");
         return "pages/profile";
     }
 }

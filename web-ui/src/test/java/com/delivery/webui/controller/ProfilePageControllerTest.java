@@ -25,7 +25,7 @@ class ProfilePageControllerTest {
         mockMvc.perform(get("/profile"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/profile"))
-                .andExpect(model().attribute("authenticated", true))
+                .andExpect(model().attribute("headerState", "CLIENT"))
                 .andExpect(model().attribute("activePage", "profile"))
                 .andExpect(content().string(containsString("MY PROFILE")))
                 .andExpect(content().string(containsString("Olena Kovalenko")))

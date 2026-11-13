@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#e7d6c2">
     <title th:text="${pageTitle}">Create Shipment — WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,14 +15,17 @@
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/create-shipment.css}">
 
     <script defer th:src="@{/js/components/header.js}"></script>
+    <script defer th:src="@{/js/components/cursor-webs.js}"></script>
     <script type="module" th:src="@{/js/pages/create-shipment.js}"></script>
 </head>
 <body>
-<header th:replace="~{fragments/header :: siteHeader(authenticated=${authenticated})}"></header>
+<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="create-shipment-page">
     <article class="create-card" id="create-form">
@@ -59,9 +63,7 @@
                                  role="listbox"
                                  aria-label="Pickup settlements"
                                  hidden></div>
-                            <p id="pickup-city-help" class="katottg-help">
-                                Choose a settlement from the official KATOTTG list.
-                            </p>
+                            <p id="pickup-city-help" class="katottg-help" hidden></p>
                         </div>
 
                         <div class="field">
@@ -97,9 +99,7 @@
                                  role="listbox"
                                  aria-label="Delivery settlements"
                                  hidden></div>
-                            <p id="delivery-city-help" class="katottg-help">
-                                Choose a settlement from the official KATOTTG list.
-                            </p>
+                            <p id="delivery-city-help" class="katottg-help" hidden></p>
                         </div>
 
                         <div class="field">
@@ -249,27 +249,9 @@
             </section>
 
             <div class="actions">
-                <button class="btn btn-primary" type="submit">
-                    <svg class="button-web button-web-left"
-                         viewBox="0 0 94 56"
-                         preserveAspectRatio="none"
-                         aria-hidden="true">
-                        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round">
-                            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
-                            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
-                        </g>
-                    </svg>
-                    <svg class="button-web button-web-right"
-                         viewBox="0 0 94 56"
-                         preserveAspectRatio="none"
-                         aria-hidden="true">
-                        <g fill="none" stroke="currentColor" stroke-width=".65" stroke-linecap="round"
-                           transform="translate(94 56) rotate(180)">
-                            <path d="M0 0L92 13M0 0L76 35M0 0L48 56M0 0L18 56"></path>
-                            <path d="M19 3Q15 6 16 8Q11 10 10 12Q5 13 4 14M37 5Q29 11 31 14Q22 17 20 23Q11 24 8 28M56 8Q44 16 46 21Q32 26 30 35Q16 36 12 42M75 11Q59 22 61 28Q44 34 40 47Q22 48 16 55"></path>
-                        </g>
-                    </svg>
-                    <span class="btn-label">CREATE SHIPMENT</span>
+                <button class="btn btn-primary web-button" type="submit">
+                    <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                    <span class="btn-label web-button__label">CREATE SHIPMENT</span>
                 </button>
             </div>
         </form>
@@ -287,8 +269,9 @@
             Your form is complete. This standalone HTML is a design preview: no shipment has been created.
             Connect the form to <strong>shipment-service</strong> to save it.
         </p>
-        <button class="btn btn-primary" type="button" id="close-modal">
-            <span class="btn-label">BACK TO FORM</span>
+        <button class="btn btn-primary web-button" type="button" id="close-modal">
+            <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+            <span class="btn-label web-button__label">BACK TO FORM</span>
         </button>
     </div>
 </div>

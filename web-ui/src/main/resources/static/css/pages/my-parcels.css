@@ -6,13 +6,6 @@ body::after {
     display: none;
 }
 
-.parcel-svg-definitions {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-}
-
 .parcels-page {
     width: min(874px, 100%);
     margin: 48px auto 0;
@@ -186,43 +179,6 @@ body::after {
     z-index: 2;
 }
 
-.button-web {
-    position: absolute;
-    z-index: 1;
-    top: 0;
-    width: 51px;
-    height: 100%;
-    color: #fff4df;
-    opacity: 0;
-    pointer-events: none;
-    transform: scale(.12);
-    transition:
-            transform .65s cubic-bezier(.2, .65, .3, 1),
-            opacity .3s ease;
-}
-
-.btn-outline .button-web {
-    width: 39px;
-    color: #bc2c1d;
-}
-
-.button-web-left {
-    left: 0;
-    transform-origin: 0 0;
-}
-
-.button-web-right {
-    right: 0;
-    transform-origin: 100% 100%;
-    transition-delay: .08s;
-}
-
-.btn:hover .button-web,
-.btn:focus-visible .button-web {
-    opacity: .55;
-    transform: scale(1);
-}
-
 .back {
     display: inline-flex;
     align-items: center;
@@ -326,8 +282,7 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .btn,
-    .button-web {
+    .btn {
         transition: none;
     }
 }
@@ -351,7 +306,3 @@ body::after {
     }
 }
 
-/* Прибираємо павутинку тільки з кнопки DETAILS */
-.btn-outline .button-web {
-    display: none;
-}

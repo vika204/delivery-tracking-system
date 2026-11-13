@@ -10,6 +10,8 @@ public class CourierDashboardPageController {
     @GetMapping("/courier/dashboard")
     public String courierDashboard(Model model) {
         model.addAttribute("pageTitle", "Courier Dashboard — WEB EXPRESS");
+        model.addAttribute("activePage", "courier-dashboard");
+        model.addAttribute("headerState", "COURIER");
         return "pages/courier-dashboard";
     }
 }
