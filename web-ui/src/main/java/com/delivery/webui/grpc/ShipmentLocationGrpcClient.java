@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 @ConditionalOnProperty(
@@ -21,94 +20,29 @@ public class ShipmentLocationGrpcClient {
 
     private final ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub;
 
-    public ShipmentLocationGrpcClient(
-            ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub
-    ) {
+    public ShipmentLocationGrpcClient(ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub) {
         this.stub = stub;
     }
 
-    public Subscription subscribe(long shipmentId, Listener listener) {
+    public Context.CancellableContext subscribe(long shipmentId, StreamObserver<ShipmentLocationUpdate> observer) {
         if (shipmentId <= 0) {
             throw new IllegalArgumentException("shipmentId must be positive");
         }
 
-        Objects.requireNonNull(listener, "listener must not be null");
+        Objects.requireNonNull(observer, "observer must not be null");
 
-        SubscribeToShipmentLocationsRequest request =
-                SubscribeToShipmentLocationsRequest.newBuilder()
-                        .setShipmentId(shipmentId)
-                        .build();
-        Context.CancellableContext context =
-                Context.current().withCancellation();
-        ContextSubscription subscription = new ContextSubscription(context);
+        SubscribeToShipmentLocationsRequest request = SubscribeToShipmentLocationsRequest.newBuilder()
+                .setShipmentId(shipmentId)
+                .build();
+        Context.CancellableContext context = Context.current().withCancellation();
 
         try {
-            context.run(() -> stub.subscribeToShipmentLocations(
-                    request,
-                    new StreamObserver<>() {
-                        @Override
-                        public void onNext(ShipmentLocationUpdate update) {
-                            if (!subscription.isCancelled()) {
-                                listener.onNext(update);
-                            }
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            if (!subscription.isCancelled()) {
-                                listener.onError(error);
-                            }
-                        }
-
-                        @Override
-                        public void onCompleted() {
-                            if (!subscription.isCancelled()) {
-                                listener.onCompleted();
-                            }
-                        }
-                    }
-            ));
+            context.run(() -> stub.subscribeToShipmentLocations(request, observer));
         } catch (RuntimeException ex) {
-            subscription.cancel();
+            context.cancel(ex);
             throw ex;
         }
 
-        return subscription;
-    }
-
-    public interface Listener {
-
-        void onNext(ShipmentLocationUpdate update);
-
-        void onError(Throwable error);
-
-        void onCompleted();
-    }
-
-    @FunctionalInterface
-    public interface Subscription {
-
-        void cancel();
-    }
-
-    private static final class ContextSubscription implements Subscription {
-
-        private final Context.CancellableContext context;
-        private final AtomicBoolean cancelled = new AtomicBoolean();
-
-        private ContextSubscription(Context.CancellableContext context) {
-            this.context = context;
-        }
-
-        @Override
-        public void cancel() {
-            if (cancelled.compareAndSet(false, true)) {
-                context.cancel(null);
-            }
-        }
-
-        private boolean isCancelled() {
-            return cancelled.get();
-        }
+        return context;
     }
 }

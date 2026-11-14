@@ -17,15 +17,8 @@ import java.time.ZoneOffset;
 )
 public class TrackingLocationEventMapper {
 
-    public TrackingLocationEvent toEvent(
-            long expectedShipmentId,
-            ShipmentLocationUpdate update
-    ) {
-        if (update == null
-                || update.getLocationId() <= 0
-                || update.getShipmentId() != expectedShipmentId
-                || !isValidLatitude(update.getLatitude())
-                || !isValidLongitude(update.getLongitude())) {
+    public TrackingLocationEvent toEvent(long expectedShipmentId, ShipmentLocationUpdate update) {
+        if (update == null || update.getLocationId() <= 0 || update.getShipmentId() != expectedShipmentId || !isValidLatitude(update.getLatitude()) || !isValidLongitude(update.getLongitude())) {
             throw new IllegalArgumentException("Invalid shipment location update");
         }
 

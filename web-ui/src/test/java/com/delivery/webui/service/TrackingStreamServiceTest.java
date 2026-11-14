@@ -4,11 +4,15 @@ import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.webui.grpc.ShipmentLocationGrpcClient;
 import com.delivery.webui.grpc.TrackingLocationEventMapper;
 import com.delivery.webui.grpc.dto.TrackingLocationEvent;
+import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -16,6 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.function.Consumer;
@@ -23,12 +29,13 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,46 +51,56 @@ class TrackingStreamServiceTest {
     private TrackingLocationEventMapper eventMapper;
 
     @Mock
-    private TrackingSseEmitterFactory emitterFactory;
-
-    @Mock
     private TaskScheduler taskScheduler;
-
-    @Mock
-    private SseEmitter emitter;
-
-    @Mock
-    private ShipmentLocationGrpcClient.Subscription subscription;
 
     @Mock
     private ScheduledFuture<Object> heartbeatTask;
 
-    private final CallbackCapture callbacks = new CallbackCapture();
-    private ShipmentLocationGrpcClient.Listener grpcListener;
+    private final List<CallbackCapture> emitterCallbacks = new ArrayList<>();
+    private final List<StreamObserver<ShipmentLocationUpdate>> grpcObservers =
+            new ArrayList<>();
+    private final List<Context.CancellableContext> grpcContexts =
+            new ArrayList<>();
+    private MockedConstruction<SseEmitter> emitterConstruction;
     private TrackingStreamService service;
 
     @BeforeEach
     void setUp() {
-        captureEmitterCallbacks(emitter, callbacks);
-        when(emitterFactory.create(Duration.ofMinutes(5)))
-                .thenReturn(emitter);
+        emitterConstruction = mockConstruction(
+                SseEmitter.class,
+                (emitter, context) -> {
+                    CallbackCapture callbacks = new CallbackCapture();
+                    captureEmitterCallbacks(emitter, callbacks);
+                    emitterCallbacks.add(callbacks);
+                }
+        );
+
         lenient().when(grpcClient.subscribe(eq(15L), any()))
                 .thenAnswer(invocation -> {
-                    grpcListener = invocation.getArgument(1);
-                    return subscription;
+                    grpcObservers.add(invocation.getArgument(1));
+                    Context.CancellableContext context =
+                            Context.current().withCancellation();
+                    grpcContexts.add(context);
+                    return context;
                 });
         lenient().doReturn(heartbeatTask).when(taskScheduler).scheduleAtFixedRate(
                 any(),
                 eq(Duration.ofSeconds(15))
         );
+
         service = new TrackingStreamService(
                 grpcClient,
                 eventMapper,
-                emitterFactory,
                 taskScheduler,
                 Duration.ofMinutes(5),
                 Duration.ofSeconds(15)
         );
+    }
+
+    @AfterEach
+    void tearDown() {
+        grpcContexts.forEach(context -> context.cancel(null));
+        emitterConstruction.close();
     }
 
     @Test
@@ -102,19 +119,22 @@ class TrackingStreamServiceTest {
         when(eventMapper.toEvent(15, update)).thenReturn(event);
 
         service.subscribe(15);
-        grpcListener.onNext(update);
+        grpcObserver(0).onNext(update);
 
-        SseEmitter.SseEventBuilder sent = captureSentEvent(emitter);
-        assertEvent(sent, "location", event);
+        assertEvent(
+                captureSentEvent(emitter(0)),
+                "location",
+                event
+        );
     }
 
     @Test
     void cancelsGrpcWhenBrowserDisconnects() {
         service.subscribe(15);
 
-        callbacks.completion.run();
+        callbacks(0).completion.run();
 
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
     }
 
@@ -122,68 +142,80 @@ class TrackingStreamServiceTest {
     void cancelsGrpcAndCompletesEmitterOnTimeout() {
         service.subscribe(15);
 
-        callbacks.timeout.run();
+        callbacks(0).timeout.run();
 
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
-        verify(emitter).complete();
+        verify(emitter(0)).complete();
     }
 
     @Test
     void sendsCompletionEventAndClosesSse() throws Exception {
         service.subscribe(15);
 
-        grpcListener.onCompleted();
+        grpcObserver(0).onCompleted();
 
         assertEvent(
-                captureSentEvent(emitter),
+                captureSentEvent(emitter(0)),
                 "complete",
                 "Location stream completed"
         );
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
-        verify(emitter).complete();
+        verify(emitter(0)).complete();
     }
 
     @Test
     void sendsErrorEventAndClosesSse() throws Exception {
         service.subscribe(15);
 
-        grpcListener.onError(new RuntimeException("gRPC unavailable"));
+        grpcObserver(0).onError(new RuntimeException("gRPC unavailable"));
 
         assertEvent(
-                captureSentEvent(emitter),
+                captureSentEvent(emitter(0)),
                 "stream-error",
                 "Location stream unavailable"
         );
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
-        verify(emitter).complete();
+        verify(emitter(0)).complete();
+    }
+
+    @Test
+    void ignoresRepeatedCloseCallbacks() {
+        service.subscribe(15);
+
+        grpcObserver(0).onCompleted();
+        grpcObserver(0).onError(new RuntimeException("late error"));
+        callbacks(0).timeout.run();
+        callbacks(0).completion.run();
+
+        assertThat(grpcContext(0).isCancelled()).isTrue();
+        verify(heartbeatTask, times(1)).cancel(false);
+        verify(emitter(0), times(1)).complete();
+        verify(emitter(0), never()).completeWithError(any());
     }
 
     @Test
     void keepsMultipleBrowserConnectionsIndependent() {
-        SseEmitter secondEmitter = org.mockito.Mockito.mock(SseEmitter.class);
-        ShipmentLocationGrpcClient.Subscription secondSubscription =
-                org.mockito.Mockito.mock(
-                        ShipmentLocationGrpcClient.Subscription.class
-                );
-        CallbackCapture secondCallbacks = new CallbackCapture();
-        captureEmitterCallbacks(secondEmitter, secondCallbacks);
-        when(emitterFactory.create(Duration.ofMinutes(5)))
-                .thenReturn(emitter, secondEmitter);
-        when(grpcClient.subscribe(eq(15L), any()))
-                .thenReturn(subscription, secondSubscription);
+        ScheduledFuture<?> secondHeartbeatTask = mock(ScheduledFuture.class);
+        doReturn(heartbeatTask, secondHeartbeatTask)
+                .when(taskScheduler)
+                .scheduleAtFixedRate(any(), eq(Duration.ofSeconds(15)));
 
         service.subscribe(15);
         service.subscribe(15);
-        callbacks.completion.run();
+        callbacks(0).completion.run();
 
-        verify(subscription).cancel();
-        verify(secondSubscription, never()).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
+        assertThat(grpcContext(1).isCancelled()).isFalse();
+        verify(heartbeatTask).cancel(false);
+        verify(secondHeartbeatTask, never()).cancel(false);
 
-        secondCallbacks.completion.run();
-        verify(secondSubscription).cancel();
+        callbacks(1).completion.run();
+
+        assertThat(grpcContext(1).isCancelled()).isTrue();
+        verify(secondHeartbeatTask).cancel(false);
         verify(grpcClient, times(2)).subscribe(eq(15L), any());
     }
 
@@ -191,11 +223,11 @@ class TrackingStreamServiceTest {
     void cancelsGrpcWhenBrowserConnectionReportsError() {
         service.subscribe(15);
 
-        callbacks.error.accept(new IOExceptionForTest());
+        callbacks(0).error.accept(new IOExceptionForTest());
 
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
-        verify(emitter, never()).completeWithError(any());
+        verify(emitter(0), never()).completeWithError(any());
     }
 
     @Test
@@ -207,17 +239,32 @@ class TrackingStreamServiceTest {
                 heartbeatCaptor.capture(),
                 eq(Duration.ofSeconds(15))
         );
-        doNothing()
-                .doThrow(new IOException("browser disconnected"))
-                .when(emitter)
-                .send(any(SseEmitter.SseEventBuilder.class));
 
         service.subscribe(15);
+        doThrow(new IOException("browser disconnected"))
+                .when(emitter(0))
+                .send(any(SseEmitter.SseEventBuilder.class));
         heartbeatCaptor.getValue().run();
 
-        verify(subscription).cancel();
+        assertThat(grpcContext(0).isCancelled()).isTrue();
         verify(heartbeatTask).cancel(false);
-        verify(emitter).completeWithError(any(IOException.class));
+        verify(emitter(0)).completeWithError(any(IOException.class));
+    }
+
+    private SseEmitter emitter(int index) {
+        return emitterConstruction.constructed().get(index);
+    }
+
+    private CallbackCapture callbacks(int index) {
+        return emitterCallbacks.get(index);
+    }
+
+    private StreamObserver<ShipmentLocationUpdate> grpcObserver(int index) {
+        return grpcObservers.get(index);
+    }
+
+    private Context.CancellableContext grpcContext(int index) {
+        return grpcContexts.get(index);
     }
 
     private void captureEmitterCallbacks(

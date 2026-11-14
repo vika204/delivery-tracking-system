@@ -3,6 +3,7 @@ package com.delivery.webui.grpc;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpc.SubscribeToShipmentLocationsRequest;
+import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
@@ -12,9 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,102 +26,58 @@ class ShipmentLocationGrpcClientTest {
     private ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub;
 
     @Mock
-    private ShipmentLocationGrpcClient.Listener listener;
+    private StreamObserver<ShipmentLocationUpdate> observer;
 
     @Test
-    void subscribesUsingRequestedShipmentIdAndForwardsUpdates() {
+    void subscribesUsingRequestedShipmentIdAndProvidedObserver() {
         ArgumentCaptor<SubscribeToShipmentLocationsRequest> requestCaptor =
                 ArgumentCaptor.forClass(SubscribeToShipmentLocationsRequest.class);
-        ArgumentCaptor<StreamObserver<ShipmentLocationUpdate>> observerCaptor =
-                streamObserverCaptor();
         ShipmentLocationGrpcClient client =
                 new ShipmentLocationGrpcClient(stub);
-        ShipmentLocationUpdate update = ShipmentLocationUpdate.newBuilder()
-                .setLocationId(11)
-                .setShipmentId(15)
-                .setLatitude(50.455)
-                .setLongitude(30.53)
-                .build();
 
-        client.subscribe(15, listener);
+        client.subscribe(15, observer);
 
         verify(stub).subscribeToShipmentLocations(
                 requestCaptor.capture(),
-                observerCaptor.capture()
+                same(observer)
         );
         assertThat(requestCaptor.getValue().getShipmentId()).isEqualTo(15);
-
-        observerCaptor.getValue().onNext(update);
-
-        verify(listener).onNext(update);
     }
 
     @Test
-    void forwardsGrpcCompletionAndError() {
-        ArgumentCaptor<StreamObserver<ShipmentLocationUpdate>> observerCaptor =
-                streamObserverCaptor();
+    void returnsGrpcContextThatCancelsTheStream() {
+        Context[] callContext = new Context[1];
+        doAnswer(invocation -> {
+            callContext[0] = Context.current();
+            return null;
+        }).when(stub).subscribeToShipmentLocations(any(), any());
         ShipmentLocationGrpcClient client =
                 new ShipmentLocationGrpcClient(stub);
 
-        client.subscribe(15, listener);
-        verify(stub).subscribeToShipmentLocations(
-                any(),
-                observerCaptor.capture()
-        );
+        Context.CancellableContext context = client.subscribe(15, observer);
 
-        RuntimeException error = Status.UNAVAILABLE.asRuntimeException();
-        observerCaptor.getValue().onError(error);
-        observerCaptor.getValue().onCompleted();
+        assertThat(callContext[0]).isNotNull();
+        assertThat(context.isCancelled()).isFalse();
+        assertThat(callContext[0].isCancelled()).isFalse();
 
-        verify(listener).onError(error);
-        verify(listener).onCompleted();
-    }
+        context.cancel(null);
 
-    @Test
-    void cancellationStopsFurtherCallbacks() {
-        ArgumentCaptor<StreamObserver<ShipmentLocationUpdate>> observerCaptor =
-                streamObserverCaptor();
-        ShipmentLocationGrpcClient client =
-                new ShipmentLocationGrpcClient(stub);
-
-        ShipmentLocationGrpcClient.Subscription subscription =
-                client.subscribe(15, listener);
-        verify(stub).subscribeToShipmentLocations(
-                any(),
-                observerCaptor.capture()
-        );
-
-        subscription.cancel();
-        observerCaptor.getValue().onNext(
-                ShipmentLocationUpdate.getDefaultInstance()
-        );
-        observerCaptor.getValue().onError(
-                Status.CANCELLED.asRuntimeException()
-        );
-        observerCaptor.getValue().onCompleted();
-
-        verify(listener, never()).onNext(any());
-        verify(listener, never()).onError(any());
-        verify(listener, never()).onCompleted();
+        assertThat(context.isCancelled()).isTrue();
+        assertThat(callContext[0].isCancelled()).isTrue();
     }
 
     @Test
     void cancelsContextIfStubThrowsWhileOpeningStream() {
+        Context[] callContext = new Context[1];
         doAnswer(invocation -> {
+            callContext[0] = Context.current();
             throw Status.UNAVAILABLE.asRuntimeException();
         }).when(stub).subscribeToShipmentLocations(any(), any());
         ShipmentLocationGrpcClient client =
                 new ShipmentLocationGrpcClient(stub);
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> client.subscribe(15, listener)
-                )
+        assertThatThrownBy(() -> client.subscribe(15, observer))
                 .isInstanceOf(RuntimeException.class);
-    }
-
-    @SuppressWarnings("unchecked")
-    private ArgumentCaptor<StreamObserver<ShipmentLocationUpdate>>
-    streamObserverCaptor() {
-        return ArgumentCaptor.forClass(StreamObserver.class);
+        assertThat(callContext[0].isCancelled()).isTrue();
     }
 }

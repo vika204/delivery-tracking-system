@@ -62,18 +62,8 @@ public class TrackingLocationBackfillController {
         }
 
         try {
-            List<TrackingLocationResponse> locations = locationClient
-                    .getShipmentLocations(
-                            shipmentId,
-                            afterLocationId,
-                            limit
-                    );
-            validateResponse(
-                    locations,
-                    shipmentId,
-                    afterLocationId,
-                    limit
-            );
+            List<TrackingLocationResponse> locations = locationClient.getShipmentLocations(shipmentId, afterLocationId, limit);
+            validateResponse(locations, shipmentId, afterLocationId, limit);
             return locations;
         } catch (RestClientException ex) {
             throw new ResponseStatusException(
@@ -84,11 +74,7 @@ public class TrackingLocationBackfillController {
         }
     }
 
-    private void validateQuery(
-            long shipmentId,
-            long afterLocationId,
-            int limit
-    ) {
+    private void validateQuery(long shipmentId, long afterLocationId, int limit) {
         if (shipmentId <= 0) {
             throw badRequest("shipmentId must be positive");
         }
@@ -102,12 +88,7 @@ public class TrackingLocationBackfillController {
         }
     }
 
-    private void validateResponse(
-            List<TrackingLocationResponse> locations,
-            long shipmentId,
-            long afterLocationId,
-            int limit
-    ) {
+    private void validateResponse(List<TrackingLocationResponse> locations, long shipmentId, long afterLocationId, int limit) {
         if (locations == null || locations.size() > limit) {
             throw invalidResponse();
         }
@@ -115,13 +96,7 @@ public class TrackingLocationBackfillController {
         long previousLocationId = afterLocationId;
 
         for (TrackingLocationResponse location : locations) {
-            if (location == null
-                    || location.locationId() == null
-                    || location.shipmentId() == null
-                    || location.shipmentId() != shipmentId
-                    || location.locationId() <= previousLocationId
-                    || !within(location.latitude(), MIN_LATITUDE, MAX_LATITUDE)
-                    || !within(location.longitude(), MIN_LONGITUDE, MAX_LONGITUDE)) {
+            if (location == null || location.locationId() == null || location.shipmentId() == null || location.shipmentId() != shipmentId || location.locationId() <= previousLocationId || !within(location.latitude(), MIN_LATITUDE, MAX_LATITUDE) || !within(location.longitude(), MIN_LONGITUDE, MAX_LONGITUDE)) {
                 throw invalidResponse();
             }
 
@@ -129,11 +104,7 @@ public class TrackingLocationBackfillController {
         }
     }
 
-    private boolean within(
-            BigDecimal value,
-            BigDecimal minimum,
-            BigDecimal maximum
-    ) {
+    private boolean within(BigDecimal value, BigDecimal minimum, BigDecimal maximum) {
         return value != null
                 && value.compareTo(minimum) >= 0
                 && value.compareTo(maximum) <= 0;
@@ -144,16 +115,12 @@ public class TrackingLocationBackfillController {
     }
 
     private ResponseStatusException invalidResponse() {
-        return new ResponseStatusException(
-                HttpStatus.SERVICE_UNAVAILABLE,
-                "GPS history returned an invalid response"
-        );
+        return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GPS history returned an invalid response");
     }
 
     private boolean isLoopback(String remoteAddress) {
         try {
-            return remoteAddress != null
-                    && InetAddress.getByName(remoteAddress).isLoopbackAddress();
+            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
         } catch (UnknownHostException ex) {
             return false;
         }
