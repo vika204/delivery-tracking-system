@@ -39,18 +39,10 @@ public class TrackingViewService {
     }
 
     public TrackingPageViewModel getLiveTracking(long shipmentId) {
-        TrackingShipmentResponse shipment =
-                shipmentClient.getShipmentById(shipmentId);
+        TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
 
-        if (shipment == null
-                || shipment.shipmentId() == null
-                || !shipment.shipmentId().equals(shipmentId)
-                || shipment.status() == null
-                || shipment.status().isBlank()
-                || "UNAVAILABLE".equalsIgnoreCase(shipment.status())) {
-            throw new IllegalStateException(
-                    "Shipment data is temporarily unavailable"
-            );
+        if (shipment == null || shipment.shipmentId() == null || !shipment.shipmentId().equals(shipmentId) || shipment.status() == null || shipment.status().isBlank() || "UNAVAILABLE".equalsIgnoreCase(shipment.status())) {
+            throw new IllegalStateException("Shipment data is temporarily unavailable");
         }
 
         String statusText = formatStatus(shipment.status());
@@ -72,14 +64,9 @@ public class TrackingViewService {
 
     private String loadDestination(long shipmentId) {
         try {
-            ShipmentDetailsResponse details =
-                    shipmentClient.getShipmentDetails(shipmentId);
+            ShipmentDetailsResponse details = shipmentClient.getShipmentDetails(shipmentId);
 
-            if (details == null
-                    || details.shipmentId() == null
-                    || details.shipmentId() != shipmentId
-                    || details.deliveryAddress() == null
-                    || details.deliveryAddress().isBlank()) {
+            if (details == null || details.shipmentId() == null || details.shipmentId() != shipmentId || details.deliveryAddress() == null || details.deliveryAddress().isBlank()) {
                 return NOT_AVAILABLE;
             }
 
@@ -94,9 +81,7 @@ public class TrackingViewService {
             DispatchCourierResponse response =
                     courierClient.getShipmentCourier(shipmentId);
 
-            if (response == null
-                    || response.shipmentId() == null
-                    || response.shipmentId() != shipmentId) {
+            if (response == null || response.shipmentId() == null || response.shipmentId() != shipmentId) {
                 return NOT_AVAILABLE;
             }
 
@@ -104,8 +89,7 @@ public class TrackingViewService {
                 return NOT_ASSIGNED;
             }
 
-            if (response.courierName() == null
-                    || response.courierName().isBlank()) {
+            if (response.courierName() == null || response.courierName().isBlank()) {
                 return NOT_AVAILABLE;
             }
 
@@ -168,12 +152,7 @@ public class TrackingViewService {
         }
     }
 
-    private long validatePage(
-            long shipmentId,
-            long afterLocationId,
-            int requestedLimit,
-            List<TrackingLocationResponse> page
-    ) {
+    private long validatePage(long shipmentId, long afterLocationId, int requestedLimit, List<TrackingLocationResponse> page) {
         if (page.size() > requestedLimit) {
             throw new InvalidLocationHistoryException();
         }
@@ -181,11 +160,7 @@ public class TrackingViewService {
         long previousLocationId = afterLocationId;
 
         for (TrackingLocationResponse location : page) {
-            if (location == null
-                    || location.locationId() == null
-                    || location.shipmentId() == null
-                    || location.shipmentId() != shipmentId
-                    || location.locationId() <= previousLocationId) {
+            if (location == null || location.locationId() == null || location.shipmentId() == null || location.shipmentId() != shipmentId || location.locationId() <= previousLocationId) {
                 throw new InvalidLocationHistoryException();
             }
 
@@ -196,14 +171,11 @@ public class TrackingViewService {
     }
 
     private boolean hasValidCoordinates(TrackingLocationResponse location) {
-        return isWithin(location.latitude(), "-90", "90")
-                && isWithin(location.longitude(), "-180", "180");
+        return isWithin(location.latitude(), "-90", "90") && isWithin(location.longitude(), "-180", "180");
     }
 
     private boolean isWithin(BigDecimal value, String minimum, String maximum) {
-        return value != null
-                && value.compareTo(new BigDecimal(minimum)) >= 0
-                && value.compareTo(new BigDecimal(maximum)) <= 0;
+        return value != null && value.compareTo(new BigDecimal(minimum)) >= 0 && value.compareTo(new BigDecimal(maximum)) <= 0;
     }
 
     private String locationMessage(LocationHistory locationHistory) {
@@ -235,8 +207,7 @@ public class TrackingViewService {
     }
 
     private boolean isTerminalStatus(String status) {
-        return "DELIVERED".equalsIgnoreCase(status)
-                || "CANCELLED".equalsIgnoreCase(status);
+        return "DELIVERED".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status);
     }
 
     private record LocationHistory(
@@ -262,7 +233,6 @@ public class TrackingViewService {
         }
     }
 
-    private static final class InvalidLocationHistoryException
-            extends RuntimeException {
+    private static final class InvalidLocationHistoryException extends RuntimeException {
     }
 }

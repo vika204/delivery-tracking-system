@@ -29,7 +29,6 @@ import java.util.Locale;
 public class TrackingStatusController {
 
     private final TrackingShipmentClient shipmentClient;
-
     public TrackingStatusController(TrackingShipmentClient shipmentClient) {
         this.shipmentClient = shipmentClient;
     }
@@ -43,29 +42,17 @@ public class TrackingStatusController {
             HttpServletRequest request
     ) {
         if (shipmentId <= 0) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "shipmentId must be positive"
-            );
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
 
         if (!isLoopback(request.getRemoteAddr())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Shipment status is restricted to local development"
-            );
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Shipment status is restricted to local development");
         }
 
         try {
-            TrackingShipmentResponse shipment =
-                    shipmentClient.getShipmentById(shipmentId);
+            TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
 
-            if (shipment == null
-                    || shipment.shipmentId() == null
-                    || shipment.shipmentId() != shipmentId
-                    || shipment.status() == null
-                    || shipment.status().isBlank()
-                    || "UNAVAILABLE".equalsIgnoreCase(shipment.status())) {
+            if (shipment == null || shipment.shipmentId() == null || shipment.shipmentId() != shipmentId || shipment.status() == null || shipment.status().isBlank() || "UNAVAILABLE".equalsIgnoreCase(shipment.status())) {
                 throw new ResponseStatusException(
                         HttpStatus.SERVICE_UNAVAILABLE,
                         "Shipment status is temporarily unavailable"
@@ -93,8 +80,7 @@ public class TrackingStatusController {
 
     private boolean isLoopback(String remoteAddress) {
         try {
-            return remoteAddress != null
-                    && InetAddress.getByName(remoteAddress).isLoopbackAddress();
+            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
         } catch (UnknownHostException ex) {
             return false;
         }

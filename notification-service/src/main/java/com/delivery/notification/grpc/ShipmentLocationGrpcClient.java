@@ -76,8 +76,7 @@ public class ShipmentLocationGrpcClient {
             retryAttempt = subscription.retryAttempt;
         }
 
-        SubscribeToShipmentLocationsRequest request =
-                SubscribeToShipmentLocationsRequest.newBuilder()
+        SubscribeToShipmentLocationsRequest request = SubscribeToShipmentLocationsRequest.newBuilder()
                         .setShipmentId(subscription.shipmentId)
                         .build();
 
