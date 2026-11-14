@@ -4,6 +4,8 @@ import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.webui.grpc.ShipmentLocationGrpcClient;
 import com.delivery.webui.grpc.TrackingLocationEventMapper;
 import com.delivery.webui.grpc.dto.TrackingLocationEvent;
+import io.grpc.Context;
+import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.TaskScheduler;
@@ -13,8 +15,6 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @ConditionalOnProperty(
@@ -26,7 +26,6 @@ public class TrackingStreamService {
 
     private final ShipmentLocationGrpcClient grpcClient;
     private final TrackingLocationEventMapper eventMapper;
-    private final TrackingSseEmitterFactory emitterFactory;
     private final TaskScheduler taskScheduler;
     private final Duration timeout;
     private final Duration heartbeat;
@@ -34,27 +33,24 @@ public class TrackingStreamService {
     public TrackingStreamService(
             ShipmentLocationGrpcClient grpcClient,
             TrackingLocationEventMapper eventMapper,
-            TrackingSseEmitterFactory emitterFactory,
             TaskScheduler taskScheduler,
             @Value("${tracking.stream.timeout}") Duration timeout,
             @Value("${tracking.stream.heartbeat}") Duration heartbeat
     ) {
         this.grpcClient = grpcClient;
         this.eventMapper = eventMapper;
-        this.emitterFactory = emitterFactory;
         this.taskScheduler = taskScheduler;
         this.timeout = timeout;
         this.heartbeat = heartbeat;
     }
 
     public SseEmitter subscribe(long shipmentId) {
-        SseEmitter emitter = emitterFactory.create(timeout);
-        StreamConnection connection =
-                new StreamConnection(shipmentId, emitter);
+        SseEmitter emitter = new SseEmitter(timeout.toMillis());
+        StreamConnection connection = new StreamConnection(shipmentId, emitter);
 
-        emitter.onCompletion(connection::browserDisconnected);
-        emitter.onTimeout(connection::timedOut);
-        emitter.onError(connection::browserError);
+        emitter.onCompletion(connection::close);
+        emitter.onTimeout(connection::timeout);
+        emitter.onError(error -> connection.close());
 
         try {
             connection.startHeartbeat();
@@ -63,38 +59,40 @@ public class TrackingStreamService {
                 return emitter;
             }
 
-            connection.attach(grpcClient.subscribe(shipmentId, connection));
+            Context.CancellableContext grpcContext =
+                    grpcClient.subscribe(shipmentId, connection);
+            connection.attach(grpcContext);
         } catch (RuntimeException ex) {
-            connection.grpcError(ex);
+            connection.closeWithEvent(
+                    "stream-error",
+                    "Location stream unavailable"
+            );
         }
 
         return emitter;
     }
 
     private final class StreamConnection
-            implements ShipmentLocationGrpcClient.Listener {
+            implements StreamObserver<ShipmentLocationUpdate> {
 
         private final long shipmentId;
         private final SseEmitter emitter;
-        private final AtomicBoolean closed = new AtomicBoolean();
-        private final AtomicReference<ShipmentLocationGrpcClient.Subscription>
-                subscription = new AtomicReference<>();
-        private final AtomicReference<ScheduledFuture<?>> heartbeatTask =
-                new AtomicReference<>();
+        private boolean closed;
+        private Context.CancellableContext grpcContext;
+        private ScheduledFuture<?> heartbeatTask;
 
         private StreamConnection(long shipmentId, SseEmitter emitter) {
             this.shipmentId = shipmentId;
             this.emitter = emitter;
         }
 
-        private boolean isClosed() {
-            return closed.get();
+        private synchronized boolean isClosed() {
+            return closed;
         }
 
         private void startHeartbeat() {
             sendHeartbeat();
-
-            if (closed.get()) {
+            if (isClosed()) {
                 return;
             }
 
@@ -103,18 +101,18 @@ public class TrackingStreamService {
                     heartbeat
             );
 
-            if (!heartbeatTask.compareAndSet(null, scheduled)) {
-                scheduled.cancel(false);
-                throw new IllegalStateException("SSE heartbeat already scheduled");
+            synchronized (this) {
+                if (!closed) {
+                    heartbeatTask = scheduled;
+                    return;
+                }
             }
 
-            if (closed.get()) {
-                cancelHeartbeat();
-            }
+            scheduled.cancel(false);
         }
 
         private void sendHeartbeat() {
-            if (closed.get()) {
+            if (isClosed()) {
                 return;
             }
 
@@ -125,28 +123,25 @@ public class TrackingStreamService {
             }
         }
 
-        private void attach(
-                ShipmentLocationGrpcClient.Subscription grpcSubscription
-        ) {
-            if (!subscription.compareAndSet(null, grpcSubscription)) {
-                grpcSubscription.cancel();
-                throw new IllegalStateException("gRPC subscription already attached");
+        private void attach(Context.CancellableContext context) {
+            synchronized (this) {
+                if (!closed) {
+                    grpcContext = context;
+                    return;
+                }
             }
 
-            if (closed.get()) {
-                cancelGrpcSubscription();
-            }
+            context.cancel(null);
         }
 
         @Override
         public void onNext(ShipmentLocationUpdate update) {
-            if (closed.get()) {
+            if (isClosed()) {
                 return;
             }
 
             try {
-                TrackingLocationEvent event =
-                        eventMapper.toEvent(shipmentId, update);
+                TrackingLocationEvent event = eventMapper.toEvent(shipmentId, update);
                 emitter.send(SseEmitter.event()
                         .name("location")
                         .data(event));
@@ -157,7 +152,7 @@ public class TrackingStreamService {
 
         @Override
         public void onError(Throwable error) {
-            grpcError(error);
+            closeWithEvent("stream-error", "Location stream unavailable");
         }
 
         @Override
@@ -165,28 +160,14 @@ public class TrackingStreamService {
             closeWithEvent("complete", "Location stream completed");
         }
 
-        private void grpcError(Throwable error) {
-            closeWithEvent("stream-error", "Location stream unavailable");
-        }
-
-        private void browserDisconnected() {
-            closeWithoutCompletingEmitter();
-        }
-
-        private void browserError(Throwable error) {
-            closeWithoutCompletingEmitter();
-        }
-
-        private void timedOut() {
-            if (closed.compareAndSet(false, true)) {
-                cancelHeartbeat();
-                cancelGrpcSubscription();
+        private void timeout() {
+            if (close()) {
                 emitter.complete();
             }
         }
 
         private void closeWithEvent(String eventName, String message) {
-            if (!closed.compareAndSet(false, true)) {
+            if (!close()) {
                 return;
             }
 
@@ -197,42 +178,41 @@ public class TrackingStreamService {
             } catch (IOException ignored) {
                 // The connection may already be gone; cleanup still continues.
             } finally {
-                cancelHeartbeat();
-                cancelGrpcSubscription();
                 emitter.complete();
             }
         }
 
         private void fail(Throwable error) {
-            if (closed.compareAndSet(false, true)) {
-                cancelHeartbeat();
-                cancelGrpcSubscription();
+            if (close()) {
                 emitter.completeWithError(error);
             }
         }
 
-        private void closeWithoutCompletingEmitter() {
-            if (closed.compareAndSet(false, true)) {
-                cancelHeartbeat();
-                cancelGrpcSubscription();
+        private boolean close() {
+            ScheduledFuture<?> heartbeatToCancel;
+            Context.CancellableContext grpcToCancel;
+
+            synchronized (this) {
+                if (closed) {
+                    return false;
+                }
+
+                closed = true;
+                heartbeatToCancel = heartbeatTask;
+                heartbeatTask = null;
+                grpcToCancel = grpcContext;
+                grpcContext = null;
             }
-        }
 
-        private void cancelHeartbeat() {
-            ScheduledFuture<?> current = heartbeatTask.getAndSet(null);
-
-            if (current != null) {
-                current.cancel(false);
+            if (heartbeatToCancel != null) {
+                heartbeatToCancel.cancel(false);
             }
-        }
 
-        private void cancelGrpcSubscription() {
-            ShipmentLocationGrpcClient.Subscription current =
-                    subscription.getAndSet(null);
-
-            if (current != null) {
-                current.cancel();
+            if (grpcToCancel != null) {
+                grpcToCancel.cancel(null);
             }
+
+            return true;
         }
     }
 }
