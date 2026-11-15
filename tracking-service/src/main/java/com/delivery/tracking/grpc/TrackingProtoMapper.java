@@ -2,6 +2,7 @@ package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.event.LocationSavedEvent;
+import com.delivery.tracking.live.LiveLocationDecisionResult;
 import com.delivery.tracking.route.RoutePoint;
 import com.delivery.tracking.route.RouteUploadResult;
 import com.google.protobuf.Timestamp;
@@ -64,6 +65,36 @@ public class TrackingProtoMapper {
                 .setRejectedCount(result.rejectedCount())
                 .setFirstLocationId(result.firstLocationId() == null ? 0 : result.firstLocationId())
                 .setLastLocationId(result.lastLocationId() == null ? 0 : result.lastLocationId())
+                .setDuplicate(result.duplicate())
+                .build();
+    }
+
+    public RoutePoint toRoutePoint(CourierLocationReport report) {
+        Instant instant = Instant.ofEpochSecond(report.getRecordedAt().getSeconds(), report.getRecordedAt().getNanos());
+
+        return new RoutePoint(
+                BigDecimal.valueOf(report.getLatitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(report.getLongitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                LocalDateTime.ofInstant(instant, recordedAtZone)
+        );
+    }
+
+    public CourierLocationDecision toProto(LiveLocationDecisionResult result) {
+        CourierLocationStatus status = switch (result.type()) {
+            case ACCEPTED -> CourierLocationStatus.COURIER_LOCATION_STATUS_ACCEPTED;
+            case REJECTED -> CourierLocationStatus.COURIER_LOCATION_STATUS_REJECTED;
+            case SUSPICIOUS_JUMP -> CourierLocationStatus.COURIER_LOCATION_STATUS_SUSPICIOUS_JUMP;
+        };
+
+        return CourierLocationDecision.newBuilder()
+                .setPointId(result.pointId() == null ? "" : result.pointId())
+                .setShipmentId(result.shipmentId())
+                .setStatus(status)
+                .setSaved(result.saved())
+                .setLocationId(result.locationId() == null ? 0 : result.locationId())
+                .setReason(result.reason() == null ? "" : result.reason())
+                .setDistanceMeters(result.distanceMeters())
+                .setSpeedKmh(result.speedKmh())
                 .setDuplicate(result.duplicate())
                 .build();
     }
