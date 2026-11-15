@@ -3,10 +3,12 @@ package com.delivery.dispatch.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
+/** Призначення кур'єра на доставку (CourierAssignment). */
 @Entity
-@Table(name = "assignments")
+@Table(name = "assignments", indexes = @Index(name = "idx_assignment_shipment", columnList = "shipment_id"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,6 +32,15 @@ public class Assignment {
     @Column(name = "status", nullable = false)
     private AssignmentStatus status;
 
+    @Column(name = "assigned_at")
+    private Instant assignedAt;
+
+    @Column(name = "picked_up_at")
+    private Instant pickedUpAt;
+
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
+
+    @Column(name = "end_reason", length = 500)
+    private String endReason;
 }
