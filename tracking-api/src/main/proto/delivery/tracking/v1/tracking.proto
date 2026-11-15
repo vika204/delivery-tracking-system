@@ -10,8 +10,18 @@ option java_outer_classname = "TrackingProto";
 
 service ShipmentTrackingService {
 
+  // Server streaming: нові GPS-координати посилки в реальному часі.
   rpc SubscribeToShipmentLocations(SubscribeToShipmentLocationsRequest)
       returns (stream ShipmentLocationUpdate);
+
+  // Unary: поточний статус доставки (із shipment-service) та остання GPS-координата.
+  rpc GetShipmentDeliveryInfo(GetShipmentDeliveryInfoRequest)
+      returns (ShipmentDeliveryInfo);
+
+  // Client streaming: історія GPS-координат, накопичена застосунком кур'єра офлайн.
+  // Після завершення потоку сервер повертає кількість отриманих і збережених координат.
+  rpc RecordShipmentRoute(stream ShipmentRoutePoint)
+      returns (ShipmentRouteSummary);
 
 }
 
@@ -25,4 +35,45 @@ message ShipmentLocationUpdate {
   double latitude = 3;
   double longitude = 4;
   google.protobuf.Timestamp recorded_at = 5;
+}
+
+message GetShipmentDeliveryInfoRequest {
+  int64 shipment_id = 1;
+}
+
+message ShipmentDeliveryInfo {
+  int64 shipment_id = 1;
+  // Статус із shipment-service: WAITING_FOR_COURIER, ASSIGNED, TO_PICKUP, IN_TRANSIT, DELIVERED, CANCELLED.
+  string status = 2;
+  // false, якщо для посилки ще немає жодної координати; тоді latitude/longitude/recorded_at не заповнені.
+  bool has_location = 3;
+  double latitude = 4;
+  double longitude = 5;
+  google.protobuf.Timestamp recorded_at = 6;
+}
+
+message ShipmentRoutePoint {
+  // Ключ ідемпотентності вивантаження; однаковий для всіх точок одного потоку.
+  // Потрібен, щоб повтор потоку (gRPC retry) не створював дублікатів.
+  string upload_id = 1;
+  int64 shipment_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  google.protobuf.Timestamp recorded_at = 5;
+}
+
+message ShipmentRouteSummary {
+  string upload_id = 1;
+  int64 shipment_id = 2;
+  // Скільки координат отримано в потоці.
+  int32 received_count = 3;
+  // Скільки з них збережено в locations.
+  int32 saved_count = 4;
+  // Скільки відхилено як некоректні (received_count = saved_count + rejected_count).
+  int32 rejected_count = 5;
+  // ID першої та останньої збереженої координати; 0, якщо нічого не збережено.
+  int64 first_location_id = 6;
+  int64 last_location_id = 7;
+  // true, якщо це вивантаження вже було збережено раніше (повторна спроба).
+  bool duplicate = 8;
 }
