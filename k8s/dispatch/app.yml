@@ -82,6 +82,11 @@ spec:
                 configMapKeyRef:
                   name: dispatch-config
                   key: TRACKING_GRPC_TARGET
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: dispatch-config
+                  key: SPRING_KAFKA_BOOTSTRAP_SERVERS
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
