@@ -8,7 +8,10 @@ import org.springframework.grpc.client.ImportGrpcClients;
 @SpringBootApplication
 @ImportGrpcClients(
         target = "tracking",
-        types = ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub.class
+        types = {
+                ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub.class,
+                ShipmentTrackingServiceGrpc.ShipmentTrackingServiceBlockingStub.class
+        }
 )
 public class NotificationServiceApplication {
 
