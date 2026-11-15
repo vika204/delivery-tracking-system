@@ -2,6 +2,7 @@ package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
+import com.delivery.tracking.live.CourierLiveLocationService;
 import com.delivery.tracking.route.ShipmentRouteService;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
@@ -10,6 +11,7 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.grpc.server.service.GrpcService;
 import org.springframework.web.client.HttpClientErrorException;
 
@@ -27,6 +29,7 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
     private final TrackingService trackingService;
     private final LocationService locationService;
     private final ShipmentRouteService routeService;
+    private final CourierLiveLocationService liveLocationService;
     private final TrackingProtoMapper mapper;
     private final Clock clock;
 
@@ -37,10 +40,23 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
             ShipmentRouteService routeService,
             TrackingProtoMapper mapper
     ) {
+        this(publisher, trackingService, locationService, routeService, null, mapper);
+    }
+
+    @Autowired
+    public ShipmentTrackingGrpcService(
+            LocationStreamPublisher publisher,
+            TrackingService trackingService,
+            LocationService locationService,
+            ShipmentRouteService routeService,
+            CourierLiveLocationService liveLocationService,
+            TrackingProtoMapper mapper
+    ) {
         this.publisher = publisher;
         this.trackingService = trackingService;
         this.locationService = locationService;
         this.routeService = routeService;
+        this.liveLocationService = liveLocationService;
         this.mapper = mapper;
         this.clock = Clock.systemUTC();
     }
@@ -123,5 +139,11 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
     @Override
     public StreamObserver<ShipmentRoutePoint> recordShipmentRoute(StreamObserver<ShipmentRouteSummary> responseObserver) {
         return new RouteUploadObserver(responseObserver, routeService, mapper, clock);
+    }
+
+    // Bidirectional streaming
+    @Override
+    public StreamObserver<CourierLocationReport> streamCourierLocations(StreamObserver<CourierLocationDecision> responseObserver) {
+        return new CourierLocationStreamObserver(responseObserver, liveLocationService, mapper, clock);
     }
 }
