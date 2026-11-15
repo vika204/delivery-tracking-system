@@ -1,0 +1,90 @@
+{
+  "consumer": {
+    "name": "tracking-service"
+  },
+  "interactions": [
+    {
+      "description": "GET request for shipment details by ID 1",
+      "key": "shipment-get-by-id-1",
+      "pending": false,
+      "providerStates": [
+        {
+          "name": "shipment 1 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/shipments/1"
+      },
+      "response": {
+        "body": {
+          "content": {
+            "recipientName": "Marta Shevchenko",
+            "shipmentId": 1,
+            "status": "WAITING_FOR_COURIER"
+          },
+          "contentType": "application/json",
+          "encoded": false
+        },
+        "headers": {
+          "Content-Type": [
+            "application/json"
+          ]
+        },
+        "matchingRules": {
+          "body": {
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "number"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          },
+          "header": {
+            "Content-Type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "application/json(;\\s?charset=[\\w\\-]+)?"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      },
+      "transport": "http",
+      "type": "Synchronous/HTTP"
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "4.0"
+    }
+  },
+  "provider": {
+    "name": "shipment-service"
+  }
+}
