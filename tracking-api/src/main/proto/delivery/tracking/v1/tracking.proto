@@ -23,6 +23,11 @@ service ShipmentTrackingService {
   rpc RecordShipmentRoute(stream ShipmentRoutePoint)
       returns (ShipmentRouteSummary);
 
+  // Bidirectional streaming: передавання GPS-координат кур'єром у реальному часі
+  // з паралельною перевіркою кожної точки сервером (прийнято / відхилено / підозрілий стрибок).
+  rpc StreamCourierLocations(stream CourierLocationReport)
+      returns (stream CourierLocationDecision);
+
 }
 
 message SubscribeToShipmentLocationsRequest {
@@ -76,4 +81,35 @@ message ShipmentRouteSummary {
   int64 last_location_id = 7;
   // true, якщо це вивантаження вже було збережено раніше (повторна спроба).
   bool duplicate = 8;
+}
+
+enum CourierLocationStatus {
+  COURIER_LOCATION_STATUS_UNSPECIFIED = 0;
+  COURIER_LOCATION_STATUS_ACCEPTED = 1;
+  COURIER_LOCATION_STATUS_REJECTED = 2;
+  COURIER_LOCATION_STATUS_SUSPICIOUS_JUMP = 3;
+}
+
+message CourierLocationReport {
+  // Ключ ідемпотентності точки (запобігає дублюванню при перепідключенні або retry).
+  string point_id = 1;
+  int64 shipment_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  google.protobuf.Timestamp recorded_at = 5;
+}
+
+message CourierLocationDecision {
+  string point_id = 1;
+  int64 shipment_id = 2;
+  CourierLocationStatus status = 3;
+  bool saved = 4;
+  // ID збереженої координати в locations; 0, якщо точку не збережено.
+  int64 location_id = 5;
+  string reason = 6;
+  // Відстань від попередньої прийнятої точки цієї доставки (м) та розрахункова швидкість (км/год).
+  double distance_meters = 7;
+  double speed_kmh = 8;
+  // true, якщо ця точка з таким самим point_id вже була прийнята раніше.
+  bool duplicate = 9;
 }
