@@ -27,6 +27,7 @@ public interface ShipmentClient {
     @PostExchange
     ShipmentDto createShipment(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestBody CreateShipmentRequest request
     );
 }

@@ -64,13 +64,14 @@ public class TrackingController {
     @PostMapping("/shipments")
     public ShipmentDto createShipment(
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
+            @RequestHeader("X-User-Id") Long userId,
             @RequestBody CreateShipmentRequest request) {
         String key = (idempotencyKey == null || idempotencyKey.isBlank())
                 ? UUID.randomUUID().toString()
                 : idempotencyKey;
-        log.info("Tracking shipment registration for user {} with idempotencyKey {}", request.userId(), key);
+        log.info("Tracking shipment registration for user {} with idempotencyKey {}", userId, key);
 
-        return trackingService.createShipment(key, request);
+        return trackingService.createShipment(key, userId, request);
     }
 
 }

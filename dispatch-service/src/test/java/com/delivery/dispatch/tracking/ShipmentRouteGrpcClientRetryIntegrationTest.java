@@ -64,6 +64,12 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         registry.add("spring.datasource.username", () -> "sa");
         registry.add("spring.datasource.password", () -> "");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        // Kafka у цьому тесті не потрібна: не підключаємось до брокера й не створюємо топіки
+        registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9999");
+        registry.add("spring.kafka.listener.auto-startup", () -> "false");
+        registry.add("spring.kafka.admin.auto-create", () -> "false");
+        registry.add("outbox.relay.enabled", () -> "false");
+        registry.add("dispatch.scheduling.enabled", () -> "false");
         registry.add("TRACKING_GRPC_TARGET", () -> "dns:///127.0.0.1:" + server.port());
         registry.add("TRACKING_GRPC_RETRY_MAX_ATTEMPTS", () -> String.valueOf(MAX_ATTEMPTS));
         registry.add("TRACKING_GRPC_RETRY_INITIAL_BACKOFF", () -> "50ms");

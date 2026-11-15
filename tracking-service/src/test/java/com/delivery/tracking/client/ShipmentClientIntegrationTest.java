@@ -142,11 +142,11 @@ class ShipmentClientIntegrationTest {
 
         wireMock.stubFor(post(urlEqualTo("/shipments")).willReturn(aResponse().withStatus(500)));
 
-        CreateShipmentRequest request = new CreateShipmentRequest(1L, "R", "P", "A", "B", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, "CREATED");
+        CreateShipmentRequest request = new CreateShipmentRequest(java.util.UUID.randomUUID(), "S", "+380501112233", "R", "+380501112244", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE);
         String key = UUID.randomUUID().toString();
 
         try {
-            trackingService.createShipment(key, request);
+            trackingService.createShipment(key, 1L, request);
         } catch (Exception ignored) {
         }
 
@@ -283,9 +283,11 @@ class ShipmentClientIntegrationTest {
                                 }
                                 """)));
 
-        CreateShipmentRequest request = new CreateShipmentRequest(1L, "R", "P", "A", "B", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE, "CREATED");
+        CreateShipmentRequest request = new CreateShipmentRequest(java.util.UUID.randomUUID(), "S", "+380501112233", "R", "+380501112244", BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ONE);
         String key = UUID.randomUUID().toString();
-        trackingService.createShipment(key, request);
-        wireMock.verify(1, postRequestedFor(urlEqualTo("/shipments")).withHeader("Idempotency-Key", equalTo(key)));
+        trackingService.createShipment(key, 1L, request);
+        wireMock.verify(1, postRequestedFor(urlEqualTo("/shipments"))
+                .withHeader("Idempotency-Key", equalTo(key))
+                .withHeader("X-User-Id", equalTo("1")));
     }
 }

@@ -20,6 +20,9 @@ spec:
         - podSelector:
             matchLabels:
               app: tracking-service
+        - podSelector:
+            matchLabels:
+              app: dispatch-service
       ports:
         - protocol: TCP
           port: 9092

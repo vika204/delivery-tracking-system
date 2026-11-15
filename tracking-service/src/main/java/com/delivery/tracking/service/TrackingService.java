@@ -55,9 +55,10 @@ public class TrackingService {
     @Retry(name = "shipmentClient")
     public ShipmentDto createShipment(
             String idempotencyKey,
+            Long userId,
             CreateShipmentRequest request
     ) {
-        return metrics.timeShipmentCall("create", () -> shipmentClient.createShipment(idempotencyKey, request));
+        return metrics.timeShipmentCall("create", () -> shipmentClient.createShipment(idempotencyKey, userId, request));
     }
 
     //робимо окремі фолбеки тільки для технічних помилок,
