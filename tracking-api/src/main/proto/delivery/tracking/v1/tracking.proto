@@ -10,8 +10,20 @@ option java_outer_classname = "TrackingProto";
 
 service ShipmentTrackingService {
 
+  // Server streaming: нові GPS-координати посилки в реальному часі.
   rpc SubscribeToShipmentLocations(SubscribeToShipmentLocationsRequest)
       returns (stream ShipmentLocationUpdate);
+
+  // Unary: остання відома координата посилки.
+  // NOT_FOUND, якщо для посилки ще немає жодної координати.
+  rpc GetLatestShipmentLocation(GetLatestShipmentLocationRequest)
+      returns (ShipmentLocationUpdate);
+
+  // Client streaming: пакетне вивантаження GPS-маршруту кур'єра.
+  // Усі точки потоку зберігаються атомарно після onCompleted();
+  // повтор із тим самим upload_id не створює дублікатів.
+  rpc RecordShipmentRoute(stream ShipmentRoutePoint)
+      returns (ShipmentRouteSummary);
 
 }
 
@@ -25,4 +37,27 @@ message ShipmentLocationUpdate {
   double latitude = 3;
   double longitude = 4;
   google.protobuf.Timestamp recorded_at = 5;
+}
+
+message GetLatestShipmentLocationRequest {
+  int64 shipment_id = 1;
+}
+
+message ShipmentRoutePoint {
+  // Ключ ідемпотентності вивантаження; однаковий для всіх точок одного потоку.
+  string upload_id = 1;
+  int64 shipment_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  google.protobuf.Timestamp recorded_at = 5;
+}
+
+message ShipmentRouteSummary {
+  string upload_id = 1;
+  int64 shipment_id = 2;
+  int32 accepted_count = 3;
+  int64 first_location_id = 4;
+  int64 last_location_id = 5;
+  // true, якщо це вивантаження вже було збережено раніше (повторна спроба).
+  bool duplicate = 6;
 }
