@@ -77,6 +77,11 @@ spec:
                 configMapKeyRef:
                   name: dispatch-config
                   key: SPRING_DATASOURCE_URL
+            - name: TRACKING_GRPC_TARGET
+              valueFrom:
+                configMapKeyRef:
+                  name: dispatch-config
+                  key: TRACKING_GRPC_TARGET
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
