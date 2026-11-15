@@ -2,6 +2,7 @@ package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
+import com.delivery.tracking.route.ShipmentRouteService;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
 import io.grpc.Status;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.grpc.server.service.GrpcService;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.time.Clock;
 import java.util.Optional;
 
 @GrpcService
@@ -24,18 +26,23 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
 
     private final TrackingService trackingService;
     private final LocationService locationService;
+    private final ShipmentRouteService routeService;
     private final TrackingProtoMapper mapper;
+    private final Clock clock;
 
     public ShipmentTrackingGrpcService(
             LocationStreamPublisher publisher,
             TrackingService trackingService,
             LocationService locationService,
+            ShipmentRouteService routeService,
             TrackingProtoMapper mapper
     ) {
         this.publisher = publisher;
         this.trackingService = trackingService;
         this.locationService = locationService;
+        this.routeService = routeService;
         this.mapper = mapper;
+        this.clock = Clock.systemUTC();
     }
 
     @Override
@@ -110,5 +117,11 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
 
         responseObserver.onNext(mapper.toDeliveryInfo(shipmentId, shipment.status(), latest));
         responseObserver.onCompleted();
+    }
+
+    // Client streaming
+    @Override
+    public StreamObserver<ShipmentRoutePoint> recordShipmentRoute(StreamObserver<ShipmentRouteSummary> responseObserver) {
+        return new RouteUploadObserver(responseObserver, routeService, mapper, clock);
     }
 }
