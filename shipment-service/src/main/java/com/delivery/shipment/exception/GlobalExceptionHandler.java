@@ -1,5 +1,7 @@
 package com.delivery.shipment.exception;
 
+import com.delivery.shipment.geo.AddressNotGeocodableException;
+import com.delivery.shipment.pricing.QuoteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -8,6 +10,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.method.ParameterErrors;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,6 +33,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     private static final URI VALIDATION_FAILED = URI.create("urn:delivery:problem:validation-failed");
     private static final URI INTERNAL_ERROR = URI.create("urn:delivery:problem:internal-error");
     private static final URI SHIPMENT_STATUS_CONFLICT = URI.create("urn:delivery:problem:shipment-status-conflict");
+    private static final URI SHIPMENT_ACCESS_DENIED = URI.create("urn:delivery:problem:shipment-access-denied");
+    private static final URI CONCURRENT_UPDATE = URI.create("urn:delivery:problem:concurrent-update");
+    private static final URI ADDRESS_NOT_GEOCODABLE = URI.create("urn:delivery:problem:address-not-geocodable");
 
     @ExceptionHandler(ShipmentNotFoundException.class)
     public ResponseEntity<Object> handleShipmentNotFound(ShipmentNotFoundException ex, WebRequest request) {
@@ -55,6 +61,35 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
+    @ExceptionHandler(ShipmentAccessDeniedException.class)
+    public ResponseEntity<Object> handleAccessDenied(ShipmentAccessDeniedException ex, WebRequest request) {
+        return problem(ex, HttpStatus.FORBIDDEN, SHIPMENT_ACCESS_DENIED, "Action not allowed for this user", request);
+    }
+
+    // Паралельна зміна тієї самої доставки (наприклад, кур'єр і подія Dispatch одночасно).
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Object> handleConcurrentUpdate(ObjectOptimisticLockingFailureException ex, WebRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT, "The shipment was changed concurrently, reload it and retry");
+        problem.setType(CONCURRENT_UPDATE);
+        problem.setTitle("Concurrent update");
+        return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.CONFLICT, request);
+    }
+
+    // Адресу неможливо геокодувати: створення блокується (US-1.1).
+    @ExceptionHandler(AddressNotGeocodableException.class)
+    public ResponseEntity<Object> handleAddressNotGeocodable(AddressNotGeocodableException ex, WebRequest request) {
+        return problem(ex, HttpStatus.UNPROCESSABLE_ENTITY, ADDRESS_NOT_GEOCODABLE, "Address cannot be geocoded", request);
+    }
+
+    @ExceptionHandler(QuoteException.class)
+    public ResponseEntity<Object> handleQuote(QuoteException ex, WebRequest request) {
+        HttpStatus status = ex.getReason() == QuoteException.Reason.ALREADY_USED
+                ? HttpStatus.CONFLICT : HttpStatus.UNPROCESSABLE_ENTITY;
+        URI type = URI.create("urn:delivery:problem:quote-" + ex.getReason().name().toLowerCase().replace('_', '-'));
+        return problem(ex, status, type, "Price quote cannot be used", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleUnexpected(Exception ex, WebRequest request) {
         log.error("Unhandled exception", ex);
@@ -63,6 +98,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problem.setType(INTERNAL_ERROR);
         problem.setTitle("Internal server error");
         return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
+    }
+
+    private ResponseEntity<Object> problem(Exception ex, HttpStatus status, URI type, String title, WebRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
+        problem.setType(type);
+        problem.setTitle(title);
+        return handleExceptionInternal(ex, problem, new HttpHeaders(), status, request);
     }
 
     @Override

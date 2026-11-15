@@ -1,81 +1,87 @@
 package com.delivery.shipment.service;
 
-import com.delivery.events.ShipmentCreatedEvent;
-import com.delivery.events.ShipmentPayload;
-import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.chaos.ChaosSettings;
 import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentSummary;
+import com.delivery.shipment.entity.ActorType;
 import com.delivery.shipment.entity.IdempotencyRecord;
-import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
+import com.delivery.shipment.entity.ShipmentStatusHistory;
 import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
-import com.delivery.shipment.exception.ShipmentStatusConflictException;
 import com.delivery.shipment.metrics.ShipmentMetrics;
-import com.delivery.shipment.outbox.OutboxTraceContext;
+import com.delivery.shipment.outbox.ShipmentEventOutbox;
+import com.delivery.shipment.pricing.PriceQuote;
+import com.delivery.shipment.pricing.PricingService;
+import com.delivery.shipment.pricing.QuoteException;
 import com.delivery.shipment.repository.IdempotencyRecordRepository;
-import com.delivery.shipment.repository.OutboxEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
+import com.delivery.shipment.repository.ShipmentStatusHistoryRepository;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/** Створення доставки (CreateShipment) і читання. Переходи стану — у {@link ShipmentLifecycleService}. */
 @Service
 public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final IdempotencyRecordRepository idempotencyRecordRepository;
+    private final ShipmentStatusHistoryRepository historyRepository;
     private final TransactionTemplate transactionTemplate;
-    private final OutboxEventRepository outboxEventRepository;
-    private final JsonMapper jsonMapper;
+    private final ShipmentEventOutbox eventOutbox;
+    private final PricingService pricingService;
     private final ShipmentMetrics metrics;
     private final ChaosSettings chaos;
-    private final OutboxTraceContext traceContext;
+    private final Clock clock;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
             IdempotencyRecordRepository idempotencyRecordRepository,
-            OutboxEventRepository outboxEventRepository,
-            JsonMapper jsonMapper,
+            ShipmentStatusHistoryRepository historyRepository,
             TransactionTemplate transactionTemplate,
+            ShipmentEventOutbox eventOutbox,
+            PricingService pricingService,
             ShipmentMetrics metrics,
             ChaosSettings chaos,
-            OutboxTraceContext traceContext
+            Clock clock
     ) {
         this.shipmentRepository = shipmentRepository;
         this.idempotencyRecordRepository = idempotencyRecordRepository;
-        this.outboxEventRepository = outboxEventRepository;
-        this.jsonMapper = jsonMapper;
+        this.historyRepository = historyRepository;
         this.transactionTemplate = transactionTemplate;
+        this.eventOutbox = eventOutbox;
+        this.pricingService = pricingService;
         this.metrics = metrics;
         this.chaos = chaos;
-        this.traceContext = traceContext;
+        this.clock = clock;
     }
 
-    public CreationResult create(String idempotencyKey, CreateShipmentRequest request) {
+    public CreationResult create(String idempotencyKey, long userId, CreateShipmentRequest request) {
         try {
             chaos.inject();
-            CreationResult result = doCreate(idempotencyKey, request);
+            CreationResult result = doCreate(idempotencyKey, userId, request);
             if (!result.replayed()) {
-                metrics.shipmentCreated(request.weight());
+                metrics.shipmentCreated(result.shipment().getWeight());
             }
             return result;
-        } catch (IdempotencyKeyReuseException clientError) {
+        } catch (IdempotencyKeyReuseException | QuoteException clientError) {
             throw clientError;
         } catch (RuntimeException e) {
             metrics.shipmentFailed();
@@ -83,60 +89,100 @@ public class ShipmentService {
         }
     }
 
-    private CreationResult doCreate(String idempotencyKey, CreateShipmentRequest request) {
-        String requestHash = hash(request);
+    private CreationResult doCreate(String idempotencyKey, long userId, CreateShipmentRequest request) {
+        String requestHash = hash(userId, request);
         try {
-            return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, request));
+            return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
         } catch (DataIntegrityViolationException concurrentDuplicate) {
-            // another request with the same key committed first
+            // інший запит із тим самим ключем закомітився першим
             return transactionTemplate.execute(status -> replay(idempotencyKey, requestHash));
         }
     }
+
+    private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
+                                          CreateShipmentRequest request) {
+        if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
+            return replay(idempotencyKey, requestHash);
+        }
+
+        // Блокує пропозицію ціни до кінця транзакції: одну пропозицію не використати двічі.
+        PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
+
+        Shipment shipment = shipmentRepository.save(Shipment.builder()
+                .userId(userId)
+                .senderName(request.senderName().trim())
+                .senderPhone(request.senderPhone().trim())
+                .recipientName(request.recipientName().trim())
+                .recipientPhone(request.recipientPhone().trim())
+                .pickupAddress(quote.getPickupAddress())
+                .pickupCityCode(quote.getPickupCityCode())
+                .pickupLatitude(quote.getPickupLatitude())
+                .pickupLongitude(quote.getPickupLongitude())
+                .deliveryAddress(quote.getDeliveryAddress())
+                .deliveryCityCode(quote.getDeliveryCityCode())
+                .deliveryLatitude(quote.getDeliveryLatitude())
+                .deliveryLongitude(quote.getDeliveryLongitude())
+                .weight(quote.getWeight())
+                .length(request.length())
+                .width(request.width())
+                .height(request.height())
+                .distance(quote.getDistanceKm())
+                .price(quote.getTotalPrice())
+                .deliveryType(quote.getDeliveryType())
+                .quoteId(quote.getQuoteId())
+                .status(ShipmentStatus.WAITING_FOR_COURIER)
+                .build());
+
+        quote.setShipmentId(shipment.getShipmentId());
+
+        idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
+                .idempotencyKey(idempotencyKey)
+                .requestHash(requestHash)
+                .shipmentId(shipment.getShipmentId())
+                .build());
+
+        historyRepository.save(ShipmentStatusHistory.builder()
+                .shipmentId(shipment.getShipmentId())
+                .toStatus(ShipmentStatus.WAITING_FOR_COURIER)
+                .changedAt(Instant.now(clock))
+                .actorType(ActorType.SENDER)
+                .actorId(userId)
+                .build());
+
+        eventOutbox.shipmentCreated(shipment);
+
+        return new CreationResult(shipment, false);
+    }
+
+    private CreationResult replay(String idempotencyKey, String requestHash) {
+        IdempotencyRecord record = idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey)
+                .orElseThrow();
+        if (!record.getRequestHash().equals(requestHash)) {
+            throw new IdempotencyKeyReuseException(idempotencyKey);
+        }
+        return new CreationResult(getById(record.getShipmentId()), true);
+    }
+
+    // ---------- Читання ----------
 
     @Transactional(readOnly = true)
     public Shipment getById(Long id) {
         return shipmentRepository.findById(id).orElseThrow(() -> new ShipmentNotFoundException(id));
     }
 
-    @Transactional
-    public Shipment updateStatus(Long shipmentId, ShipmentStatus newStatus) {
-        Shipment shipment = shipmentRepository.findById(shipmentId).orElseThrow(() -> new ShipmentNotFoundException(shipmentId));
-
-        if (shipment.getStatus() == newStatus) {
-            return shipment;
-        }
-
-        if (shipment.getStatus() == ShipmentStatus.DELIVERED || shipment.getStatus() == ShipmentStatus.CANCELLED) {
-            throw new ShipmentStatusConflictException(shipmentId);
-        }
-
-        shipment.setStatus(newStatus);
-        shipmentRepository.save(shipment);
-
-        ShipmentStatusChangedEvent event = new ShipmentStatusChangedEvent(
-                UUID.randomUUID(),
-                ShipmentStatusChangedEvent.TYPE,
-                Instant.now(),
-                shipmentId,
-                newStatus.name()
-        );
-
-        outboxEventRepository.save(OutboxEvent.builder()
-                .eventId(event.eventId())
-                .aggregateType("Shipment")
-                .aggregateId(shipmentId.toString())
-                .eventType(event.eventType())
-                .payload(jsonMapper.writeValueAsString(event))
-                .traceparent(traceContext.capture())
-                .published(false)
-                .build());
-
-        return shipment;
+    /** Список, відсортований від найновіших (US-1.5). */
+    @Transactional(readOnly = true)
+    public List<Shipment> search(ShipmentSearchCriteria criteria, int page, int size) {
+        return shipmentRepository.findAll(
+                criteria.toSpecification(),
+                PageRequest.of(page, size, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("shipmentId")))
+        ).getContent();
     }
 
     @Transactional(readOnly = true)
-    public List<Shipment> getAll() {
-        return shipmentRepository.findAll();
+    public List<ShipmentStatusHistory> history(Long shipmentId) {
+        getById(shipmentId);
+        return historyRepository.findByShipmentIdOrderByChangedAtAscHistoryIdAsc(shipmentId);
     }
 
     @Transactional(readOnly = true)
@@ -154,75 +200,11 @@ public class ShipmentService {
         return new ShipmentBatchResponse(shipments, missingIds);
     }
 
-    private CreationResult createOrReplay(String idempotencyKey, String requestHash, CreateShipmentRequest request) {
-        if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
-            return replay(idempotencyKey, requestHash);
-        }
-        Shipment shipment = shipmentRepository.save(toEntity(request));
-        idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
-                .idempotencyKey(idempotencyKey)
-                .requestHash(requestHash)
-                .shipmentId(shipment.getShipmentId())
-                .build());
-
-        ShipmentCreatedEvent event = new ShipmentCreatedEvent(
-                UUID.randomUUID(),
-                ShipmentCreatedEvent.TYPE,
-                Instant.now(),
-                new ShipmentPayload(
-                        shipment.getShipmentId(),
-                        shipment.getUserId(),
-                        shipment.getStatus().name()
-                )
-        );
-
-        OutboxEvent outboxEvent = OutboxEvent.builder()
-                .eventId(event.eventId())
-                .aggregateType("Shipment")
-                .aggregateId(shipment.getShipmentId().toString())
-                .eventType(event.eventType())
-                .payload(jsonMapper.writeValueAsString(event))
-                .traceparent(traceContext.capture())
-                .published(false)
-                .build();
-        outboxEventRepository.save(outboxEvent);
-
-        return new CreationResult(shipment, false);
-    }
-
-    private CreationResult replay(String idempotencyKey, String requestHash) {
-        IdempotencyRecord record = idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey)
-                .orElseThrow();
-        if (!record.getRequestHash().equals(requestHash)) {
-            throw new IdempotencyKeyReuseException(idempotencyKey);
-        }
-        return new CreationResult(getById(record.getShipmentId()), true);
-    }
-
-    private Shipment toEntity(CreateShipmentRequest request) {
-        return Shipment.builder()
-                .userId(request.userId())
-                .recipientName(request.recipientName())
-                .recipientPhone(request.recipientPhone())
-                .pickupAddress(request.pickupAddress())
-                .deliveryAddress(request.deliveryAddress())
-                .weight(request.weight())
-                .length(request.length())
-                .width(request.width())
-                .height(request.height())
-                .distance(request.distance())
-                .price(request.price())
-                .status(request.status())
-                .build();
-    }
-
-    private String hash(CreateShipmentRequest request) {
+    private String hash(long userId, CreateShipmentRequest request) {
         String canonical = Stream.of(
-                        request.userId(), request.recipientName(), request.recipientPhone(),
-                        request.pickupAddress(), request.deliveryAddress(),
-                        plain(request.weight()), plain(request.length()), plain(request.width()),
-                        plain(request.height()), plain(request.distance()), plain(request.price()),
-                        request.status())
+                        userId, request.quoteId(), request.senderName(), request.senderPhone(),
+                        request.recipientName(), request.recipientPhone(),
+                        plain(request.length()), plain(request.width()), plain(request.height()))
                 .map(String::valueOf)
                 .collect(Collectors.joining("\u0000"));
         try {

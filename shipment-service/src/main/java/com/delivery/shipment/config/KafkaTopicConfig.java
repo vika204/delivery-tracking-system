@@ -10,18 +10,34 @@ public class KafkaTopicConfig {
 
     public static final String SHIPMENT_EVENTS_TOPIC = "shipment.events";
     public static final String SHIPMENT_STATUS_CHANGED_TOPIC = "shipment.status.changed";
+    // Окремий топік: notification-service трактує все з shipment.events як SHIPMENT_CREATED.
+    public static final String SHIPMENT_DETAILS_UPDATED_TOPIC = "shipment.details.updated";
+
+    public static final String DISPATCH_EVENTS_TOPIC = "dispatch.events";
+    public static final String DISPATCH_EVENTS_DLT = DISPATCH_EVENTS_TOPIC + "-dlt";
 
     @Bean
     public NewTopic shipmentEventsTopic() {
-        return TopicBuilder.name(SHIPMENT_EVENTS_TOPIC)
-                .partitions(3)
-                .replicas(1)
-                .build();
+        return topic(SHIPMENT_EVENTS_TOPIC);
     }
 
     @Bean
     public NewTopic shipmentStatusChangedTopic() {
-        return TopicBuilder.name(SHIPMENT_STATUS_CHANGED_TOPIC)
+        return topic(SHIPMENT_STATUS_CHANGED_TOPIC);
+    }
+
+    @Bean
+    public NewTopic shipmentDetailsUpdatedTopic() {
+        return topic(SHIPMENT_DETAILS_UPDATED_TOPIC);
+    }
+
+    @Bean
+    public NewTopic dispatchEventsDltTopic() {
+        return topic(DISPATCH_EVENTS_DLT);
+    }
+
+    private static NewTopic topic(String name) {
+        return TopicBuilder.name(name)
                 .partitions(3)
                 .replicas(1)
                 .build();

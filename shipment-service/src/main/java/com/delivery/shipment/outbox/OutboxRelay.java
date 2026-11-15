@@ -2,6 +2,7 @@ package com.delivery.shipment.outbox;
 
 import com.delivery.shipment.config.KafkaTopicConfig;
 import com.delivery.events.ShipmentCreatedEvent;
+import com.delivery.events.ShipmentDetailsUpdatedEvent;
 import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
@@ -12,6 +13,7 @@ import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -23,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
+@ConditionalOnProperty(prefix = "outbox.relay", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxRelay {
 
     private static final Logger log = LoggerFactory.getLogger(OutboxRelay.class);
@@ -105,6 +108,7 @@ public class OutboxRelay {
         return switch (event.getEventType()) {
             case ShipmentCreatedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC;
             case ShipmentStatusChangedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_STATUS_CHANGED_TOPIC;
+            case ShipmentDetailsUpdatedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_DETAILS_UPDATED_TOPIC;
             default -> throw new IllegalArgumentException("Unknown outbox event type: " + event.getEventType());
         };
     }

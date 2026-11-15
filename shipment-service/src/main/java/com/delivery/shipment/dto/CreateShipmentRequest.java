@@ -1,24 +1,28 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.entity.ShipmentStatus;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
+/**
+ * Підтвердження доставки за раніше розрахованою пропозицією ціни.
+ * Маршрут, вага, тип доставки, відстань і ціна беруться з пропозиції, а не з запиту,
+ * тож клієнт не може підмінити погоджену вартість. Статус задає система.
+ */
 public record CreateShipmentRequest(
-        @NotNull @Positive Long userId,
-        @NotBlank String recipientName,
-        @NotBlank String recipientPhone,
-        @NotBlank String pickupAddress,
-        @NotBlank String deliveryAddress,
-        @NotNull @Positive BigDecimal weight,
-        @NotNull @Positive BigDecimal length,
-        @NotNull @Positive BigDecimal width,
-        @NotNull @Positive BigDecimal height,
-        @NotNull @Positive BigDecimal distance,
-        @NotNull @Positive BigDecimal price,
-        @NotNull ShipmentStatus status
+        @NotNull UUID quoteId,
+        @NotBlank @Size(max = 100) String senderName,
+        @NotBlank @Pattern(regexp = PhoneNumber.PATTERN, message = PhoneNumber.MESSAGE) String senderPhone,
+        @NotBlank @Size(max = 100) String recipientName,
+        @NotBlank @Pattern(regexp = PhoneNumber.PATTERN, message = PhoneNumber.MESSAGE) String recipientPhone,
+        @NotNull @Positive @DecimalMax("500") BigDecimal length,
+        @NotNull @Positive @DecimalMax("500") BigDecimal width,
+        @NotNull @Positive @DecimalMax("500") BigDecimal height
 ) {
 }
