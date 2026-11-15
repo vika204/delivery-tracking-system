@@ -1,6 +1,7 @@
 package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
+import com.delivery.tracking.live.CourierLiveLocationService;
 import com.delivery.tracking.route.ShipmentRouteService;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
@@ -44,6 +45,9 @@ class ShipmentTrackingGrpcServiceTest {
 
     @Mock
     private ShipmentRouteService routeService;
+
+    @Mock
+    private CourierLiveLocationService liveLocationService;
 
     @Mock
     private TrackingProtoMapper mapper;
@@ -136,6 +140,29 @@ class ShipmentTrackingGrpcServiceTest {
                 .setRecordedAt(Timestamp.newBuilder().setSeconds(1_794_000_000L))
                 .build());
         requestObserver.onCompleted();
+
+        assertThat(capturedStatus(responseObserver)).isEqualTo(Status.Code.UNAVAILABLE);
+        verify(responseObserver, never()).onNext(any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void bidirectionalStreamingReturnsUnavailableWhenDatabaseIsDown() {
+        StreamObserver<CourierLocationDecision> responseObserver = mock(StreamObserver.class);
+        when(liveLocationService.processPoint(anyString(), anyLong(), any()))
+                .thenThrow(new CannotCreateTransactionException("Connection refused"));
+
+        ShipmentTrackingGrpcService service = new ShipmentTrackingGrpcService(
+                publisher, trackingService, locationService, routeService, liveLocationService, new TrackingProtoMapper("UTC"));
+
+        StreamObserver<CourierLocationReport> requestObserver = service.streamCourierLocations(responseObserver);
+        requestObserver.onNext(CourierLocationReport.newBuilder()
+                .setPointId("pt-1")
+                .setShipmentId(15L)
+                .setLatitude(50.45)
+                .setLongitude(30.52)
+                .setRecordedAt(Timestamp.newBuilder().setSeconds(1_794_000_000L))
+                .build());
 
         assertThat(capturedStatus(responseObserver)).isEqualTo(Status.Code.UNAVAILABLE);
         verify(responseObserver, never()).onNext(any());
