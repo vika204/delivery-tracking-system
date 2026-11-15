@@ -8,3 +8,4 @@ metadata:
 data:
   POSTGRES_DB: dispatch_db
   SPRING_DATASOURCE_URL: jdbc:postgresql://dispatch-db:5432/dispatch_db
+  TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
