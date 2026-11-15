@@ -108,7 +108,8 @@ services:
 
   dispatch-service:
     build:
-      context: ./dispatch-service
+      context: .
+      dockerfile: dispatch-service/Dockerfile
 
     ports:
       - "127.0.0.1:8083:8080"
@@ -118,6 +119,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DISPATCH_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DISPATCH_DB_PASSWORD}
       DISPATCH_COURIER_LOOKUP_ENABLED: ${DISPATCH_COURIER_LOOKUP_ENABLED:-false}
+      TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
 
     depends_on:
       dispatch-db:
