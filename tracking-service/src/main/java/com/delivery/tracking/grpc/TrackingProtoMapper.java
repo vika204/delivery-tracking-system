@@ -1,11 +1,14 @@
 package com.delivery.tracking.grpc;
 
+import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.event.LocationSavedEvent;
 import com.google.protobuf.Timestamp;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 @Component
@@ -18,7 +21,27 @@ public class TrackingProtoMapper {
     }
 
     public ShipmentLocationUpdate toProto(LocationSavedEvent event) {
-        Instant instant = event.recordedAt()
+        return toProto(event.locationId(), event.shipmentId(), event.latitude(), event.longitude(), event.recordedAt());
+    }
+
+    public ShipmentLocationUpdate toProto(Location location) {
+        return toProto(
+                location.getLocationId(),
+                location.getShipmentId(),
+                location.getLatitude(),
+                location.getLongitude(),
+                location.getRecordedAt()
+        );
+    }
+
+    private ShipmentLocationUpdate toProto(
+            Long locationId,
+            Long shipmentId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            LocalDateTime recordedAt
+    ) {
+        Instant instant = recordedAt
                 .atZone(recordedAtZone)
                 .toInstant();
 
@@ -28,10 +51,10 @@ public class TrackingProtoMapper {
                 .build();
 
         return ShipmentLocationUpdate.newBuilder()
-                .setLocationId(event.locationId())
-                .setShipmentId(event.shipmentId())
-                .setLatitude(event.latitude().doubleValue())
-                .setLongitude(event.longitude().doubleValue())
+                .setLocationId(locationId)
+                .setShipmentId(shipmentId)
+                .setLatitude(latitude.doubleValue())
+                .setLongitude(longitude.doubleValue())
                 .setRecordedAt(timestamp)
                 .build();
     }
