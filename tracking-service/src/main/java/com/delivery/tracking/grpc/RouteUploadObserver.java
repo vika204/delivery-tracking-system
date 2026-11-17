@@ -14,17 +14,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Серверна частина Client Streaming {@code RecordShipmentRoute}.
- * <p>
- * Кожна отримана координата перевіряється окремо: некоректні відхиляються й рахуються,
- * коректні накопичуються. У БД вони потрапляють однією транзакцією після {@code onCompleted()}
- * клієнта, тому обрив потоку посередині не залишає часткового маршруту, а повторна спроба
- * (gRPC retry надсилає всі буферизовані повідомлення заново) починає з чистого аркуша.
- * <p>
- * Увесь потік відхиляється з {@code INVALID_ARGUMENT} лише при порушенні протоколу:
- * порожній/різний upload_id, некоректний або різний shipment_id, перевищення ліміту точок.
- */
 class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
 
     static final int MAX_POINTS = 1000;
@@ -157,8 +146,7 @@ class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
     private void fail(Status status) {
         closed = true;
         validPoints.clear();
-        log.warn("Route upload rejected: uploadId={}, shipmentId={}, status={}, description={}",
-                uploadId, shipmentId, status.getCode(), status.getDescription());
+        log.warn("Route upload rejected: uploadId={}, shipmentId={}, status={}, description={}", uploadId, shipmentId, status.getCode(), status.getDescription());
         responseObserver.onError(status.asRuntimeException());
     }
 }

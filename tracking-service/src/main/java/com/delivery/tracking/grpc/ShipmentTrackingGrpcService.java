@@ -23,7 +23,6 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
 
     private static final Logger log = LoggerFactory.getLogger(ShipmentTrackingGrpcService.class);
     private final LocationStreamPublisher publisher;
-    // Статус, який повертає fallback TrackingService, коли shipment-service недоступний.
     static final String SHIPMENT_STATUS_UNAVAILABLE = "UNAVAILABLE";
 
     private final TrackingService trackingService;
@@ -83,7 +82,6 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
         }
     }
 
-    // Unary
     @Override
     public void getShipmentDeliveryInfo(GetShipmentDeliveryInfoRequest request, StreamObserver<ShipmentDeliveryInfo> responseObserver) {
         long shipmentId = request.getShipmentId();
@@ -114,7 +112,6 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
         }
 
         if (shipment == null || shipment.status() == null || SHIPMENT_STATUS_UNAVAILABLE.equals(shipment.status())) {
-            // Fallback TrackingService: shipment-service недоступний -> повторюваний статус для клієнта.
             log.warn("Shipment status unavailable (fallback): shipmentId={}", shipmentId);
             responseObserver.onError(Status.UNAVAILABLE
                     .withDescription("shipment-service is temporarily unavailable")
@@ -135,13 +132,11 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
         responseObserver.onCompleted();
     }
 
-    // Client streaming
     @Override
     public StreamObserver<ShipmentRoutePoint> recordShipmentRoute(StreamObserver<ShipmentRouteSummary> responseObserver) {
         return new RouteUploadObserver(responseObserver, routeService, mapper, clock);
     }
 
-    // Bidirectional streaming
     @Override
     public StreamObserver<CourierLocationReport> streamCourierLocations(StreamObserver<CourierLocationDecision> responseObserver) {
         return new CourierLocationStreamObserver(responseObserver, liveLocationService, mapper, clock);

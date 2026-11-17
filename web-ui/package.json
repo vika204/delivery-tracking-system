@@ -3,5 +3,8 @@
   "type": "module",
   "scripts": {
     "test:js": "node --test --experimental-test-isolation=none src/test/js/*.test.mjs"
+  },
+  "dependencies": {
+    "k6": "^0.0.0"
   }
 }

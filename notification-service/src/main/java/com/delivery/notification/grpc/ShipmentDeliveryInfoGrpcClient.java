@@ -12,15 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 
-/**
- * gRPC Unary-клієнт notification-service -> tracking-service:
- * поточний статус доставки та остання GPS-координата одним запитом.
- * <p>
- * Повтори (retries) при {@code UNAVAILABLE} виконує сам gRPC-канал за service config
- * з application.properties; цей клас бачить лише фінальний результат виклику.
- * Якщо всі спроби вичерпано, {@link StatusRuntimeException} перетворюється на
- * {@link TrackingGrpcException}, а HTTP-шар відповідає 503 Service Unavailable.
- */
 @Component
 public class ShipmentDeliveryInfoGrpcClient {
 

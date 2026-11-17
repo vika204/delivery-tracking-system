@@ -20,15 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Імітація застосунку кур'єра:
- * <ul>
- *   <li>{@code POST /dispatch/shipments/{id}/route} -> Client Streaming {@code RecordShipmentRoute}
- *       (вивантаження накопичених координат після офлайну);</li>
- *   <li>{@code POST /dispatch/shipments/{id}/live-locations} -> Bidirectional Streaming {@code StreamCourierLocations}
- *       (передача координат у реальному часі з миттєвою відповіддю сервера по кожній точці).</li>
- * </ul>
- */
 @RestController
 @RequestMapping("/dispatch/shipments")
 public class ShipmentRouteController {

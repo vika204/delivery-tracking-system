@@ -15,13 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.grpc.client.GlobalClientInterceptor;
 import org.springframework.stereotype.Component;
 
-/**
- * Логує кожну фізичну спробу gRPC-виклику та її статус.
- * <p>
- * Звичайний interceptor викликається один раз на логічний виклик, а retries виконуються
- * глибше в каналі. Тому для кожної спроби реєструється {@link ClientStreamTracer}:
- * gRPC створює новий tracer на кожну спробу й передає номер попередніх спроб.
- */
 @Component
 @GlobalClientInterceptor
 public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {

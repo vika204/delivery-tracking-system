@@ -10,21 +10,15 @@ option java_outer_classname = "TrackingProto";
 
 service ShipmentTrackingService {
 
-  // Server streaming: нові GPS-координати посилки в реальному часі.
   rpc SubscribeToShipmentLocations(SubscribeToShipmentLocationsRequest)
       returns (stream ShipmentLocationUpdate);
 
-  // Unary: поточний статус доставки (із shipment-service) та остання GPS-координата.
   rpc GetShipmentDeliveryInfo(GetShipmentDeliveryInfoRequest)
       returns (ShipmentDeliveryInfo);
 
-  // Client streaming: історія GPS-координат, накопичена застосунком кур'єра офлайн.
-  // Після завершення потоку сервер повертає кількість отриманих і збережених координат.
   rpc RecordShipmentRoute(stream ShipmentRoutePoint)
       returns (ShipmentRouteSummary);
 
-  // Bidirectional streaming: передавання GPS-координат кур'єром у реальному часі
-  // з паралельною перевіркою кожної точки сервером (прийнято / відхилено / підозрілий стрибок).
   rpc StreamCourierLocations(stream CourierLocationReport)
       returns (stream CourierLocationDecision);
 
@@ -48,9 +42,7 @@ message GetShipmentDeliveryInfoRequest {
 
 message ShipmentDeliveryInfo {
   int64 shipment_id = 1;
-  // Статус із shipment-service: WAITING_FOR_COURIER, ASSIGNED, TO_PICKUP, IN_TRANSIT, DELIVERED, CANCELLED.
   string status = 2;
-  // false, якщо для посилки ще немає жодної координати; тоді latitude/longitude/recorded_at не заповнені.
   bool has_location = 3;
   double latitude = 4;
   double longitude = 5;
@@ -58,8 +50,6 @@ message ShipmentDeliveryInfo {
 }
 
 message ShipmentRoutePoint {
-  // Ключ ідемпотентності вивантаження; однаковий для всіх точок одного потоку.
-  // Потрібен, щоб повтор потоку (gRPC retry) не створював дублікатів.
   string upload_id = 1;
   int64 shipment_id = 2;
   double latitude = 3;
@@ -70,16 +60,11 @@ message ShipmentRoutePoint {
 message ShipmentRouteSummary {
   string upload_id = 1;
   int64 shipment_id = 2;
-  // Скільки координат отримано в потоці.
   int32 received_count = 3;
-  // Скільки з них збережено в locations.
   int32 saved_count = 4;
-  // Скільки відхилено як некоректні (received_count = saved_count + rejected_count).
   int32 rejected_count = 5;
-  // ID першої та останньої збереженої координати; 0, якщо нічого не збережено.
   int64 first_location_id = 6;
   int64 last_location_id = 7;
-  // true, якщо це вивантаження вже було збережено раніше (повторна спроба).
   bool duplicate = 8;
 }
 
@@ -91,7 +76,6 @@ enum CourierLocationStatus {
 }
 
 message CourierLocationReport {
-  // Ключ ідемпотентності точки (запобігає дублюванню при перепідключенні або retry).
   string point_id = 1;
   int64 shipment_id = 2;
   double latitude = 3;
@@ -104,12 +88,9 @@ message CourierLocationDecision {
   int64 shipment_id = 2;
   CourierLocationStatus status = 3;
   bool saved = 4;
-  // ID збереженої координати в locations; 0, якщо точку не збережено.
   int64 location_id = 5;
   string reason = 6;
-  // Відстань від попередньої прийнятої точки цієї доставки (м) та розрахункова швидкість (км/год).
   double distance_meters = 7;
   double speed_kmh = 8;
-  // true, якщо ця точка з таким самим point_id вже була прийнята раніше.
   bool duplicate = 9;
 }

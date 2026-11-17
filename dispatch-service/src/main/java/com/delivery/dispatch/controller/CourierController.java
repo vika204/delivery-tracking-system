@@ -19,10 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * API застосунку кур'єра. Хто діє, визначає заголовок {@code X-User-Id}: він має збігатися
- * з {courierId} у шляху (тимчасова заміна автентифікації до Keycloak).
- */
 @RestController
 @RequestMapping("/couriers")
 public class CourierController {
@@ -59,8 +55,6 @@ public class CourierController {
         return CourierResponse.from(courierService.update(id, request));
     }
 
-    // ---------- «На лінії» ----------
-
     @GetMapping("/{id}/status")
     public CourierStatusResponse getStatus(@PathVariable long id, @RequestHeader(USER_ID) @Positive long userId) {
         requireSelf(id, userId);
@@ -73,8 +67,6 @@ public class CourierController {
         requireSelf(id, userId);
         return courierService.setAvailability(id, request.online());
     }
-
-    // ---------- Пропозиції ----------
 
     @GetMapping("/{id}/offers/current")
     public ResponseEntity<OfferResponse> getCurrentOffer(@PathVariable long id,
@@ -100,8 +92,6 @@ public class CourierController {
         dispatchService.declineOffer(id, offerId);
         return ResponseEntity.noContent().build();
     }
-
-    // ---------- Призначення ----------
 
     @GetMapping("/{id}/assignments")
     public List<AssignmentResponse> getAssignments(@PathVariable long id, @RequestHeader(USER_ID) @Positive long userId,

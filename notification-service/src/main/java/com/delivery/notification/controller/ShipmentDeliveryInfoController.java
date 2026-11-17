@@ -9,9 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-/**
- * HTTP-ендпоїнт для перевірки Unary-виклику GetShipmentDeliveryInfo.
- */
 @RestController
 @RequestMapping("/notifications/tracking/shipments")
 public class ShipmentDeliveryInfoController {

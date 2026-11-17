@@ -20,21 +20,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * gRPC Client Streaming-клієнт dispatch-service -> tracking-service.
- * Імітує застосунок кур'єра, що після відновлення зв'язку відправляє накопичені координати.
- * <p>
- * Повтори (retries) при {@code UNAVAILABLE} виконує сам gRPC-канал за service config
- * з application.properties: він буферизує надіслані повідомлення й відтворює весь потік.
- * Якщо всі спроби вичерпано, {@link StatusRuntimeException} перетворюється на
- * {@link TrackingGrpcException}, а HTTP-шар відповідає 503 Service Unavailable.
- */
 @Component
 public class ShipmentRouteGrpcClient {
 
     private static final Logger log = LoggerFactory.getLogger(ShipmentRouteGrpcClient.class);
 
-    // Страховка на випадок, якщо deadline не задано в service config.
     private static final Duration STREAM_RESULT_TIMEOUT = Duration.ofSeconds(60);
 
     private final ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub asyncStub;
@@ -72,7 +62,6 @@ public class ShipmentRouteGrpcClient {
         try {
             for (RoutePointRequest point : points) {
                 if (result.isDone()) {
-                    // Сервер уже відхилив потік (наприклад, INVALID_ARGUMENT) — далі не надсилаємо.
                     break;
                 }
                 requestObserver.onNext(toProto(shipmentId, uploadId, point));
@@ -128,11 +117,6 @@ public class ShipmentRouteGrpcClient {
         return new TrackingGrpcException(status, error);
     }
 
-    /**
-     * Координати передаються як є: перевіряє їх tracking-service і рахує відхилені.
-     * Відсутні значення кодуються так, щоб сервер їх відхилив: NaN для координат,
-     * незаповнений recorded_at для часу.
-     */
     private static ShipmentRoutePoint toProto(long shipmentId, String uploadId, RoutePointRequest point) {
         ShipmentRoutePoint.Builder builder = ShipmentRoutePoint.newBuilder()
                 .setUploadId(uploadId)
