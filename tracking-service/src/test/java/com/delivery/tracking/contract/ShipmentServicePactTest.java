@@ -20,10 +20,6 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Consumer contract: tracking-service (consumer) -> shipment-service (provider), GET /shipments/{id}.
- * The generated pact is written to target/pacts/tracking-service-shipment-service.json.
- */
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "shipment-service", pactVersion = PactSpecVersion.V3)
 class ShipmentServicePactTest {
