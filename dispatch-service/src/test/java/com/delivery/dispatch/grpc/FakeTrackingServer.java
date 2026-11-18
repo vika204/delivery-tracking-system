@@ -1,4 +1,4 @@
-package com.delivery.dispatch.tracking;
+package com.delivery.dispatch.grpc;
 
 import com.delivery.tracking.grpc.CourierLocationDecision;
 import com.delivery.tracking.grpc.CourierLocationReport;
@@ -22,11 +22,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Тестовий gRPC-сервер tracking-service на реальному TCP-порту.
- * Дозволяє імітувати тимчасові збої (перші N викликів -> обраний статус)
- * та повну недоступність (stop/start на тому ж порту).
- */
 class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingServiceImplBase {
 
     final AtomicInteger routeCalls = new AtomicInteger();
@@ -110,7 +105,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
             public void onCompleted() {
                 receivedRoutes.add(List.copyOf(points));
 
-                // Збій після отримання всіх точок, але до відповіді — найгірший випадок для retry.
                 if (shouldFail()) {
                     responseObserver.onError(failureStatus.asRuntimeException());
                     return;
@@ -153,7 +147,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
 
                 int midStreamCut = failMidStreamAfterPoints;
                 if (midStreamCut < 0 && shouldFail()) {
-                    // Збій до першої відповіді — перехоплюється та повторюється gRPC service-config.
                     responseObserver.onError(failureStatus.asRuntimeException());
                     return;
                 }
@@ -214,7 +207,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
                 .build();
     }
 
-    // Спрощена копія серверної перевірки tracking-service.
     private static boolean isValid(ShipmentRoutePoint point) {
         return point.getLatitude() >= -90 && point.getLatitude() <= 90
                 && point.getLongitude() >= -180 && point.getLongitude() <= 180

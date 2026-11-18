@@ -1,6 +1,7 @@
-package com.delivery.dispatch.tracking;
+package com.delivery.dispatch.grpc;
 
-import com.delivery.dispatch.tracking.dto.LiveLocationPointRequest;
+import com.delivery.dispatch.dto.LocationPointRequest;
+import com.delivery.dispatch.exception.TrackingGrpcException;
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,17 +31,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Інтеграційні тести Bidirectional Streaming-клієнта dispatch-service (StreamCourierLocations):
- * перевіряє обробку ACCEPTED / REJECTED / SUSPICIOUS_JUMP у реальному часі,
- * автоматичні retries на рівні gRPC service-config, перепідключення при обриві посеред потоку,
- * повернення HTTP 503 після вичерпання спроб і відновлення після рестарту сервера.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class CourierLiveTrackingGrpcClientRetryIntegrationTest {
+class LiveLocationBidiStreamingIntegrationTest {
 
     static final int MAX_ATTEMPTS = 4;
     static final int RESTART_TESTS = Integer.MAX_VALUE - 10;
@@ -73,7 +68,7 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
     }
 
     @Autowired
-    private CourierLiveTrackingGrpcClient client;
+    private TrackingGrpcClient client;
 
     @Autowired
     private MockMvc mockMvc;
@@ -82,8 +77,8 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
     void setUp() throws Exception {
         server.start();
         server.reset();
-        awaitSuccess(() -> client.streamLocations(1, "warm-up-" + System.nanoTime(), List.of(
-                new LiveLocationPointRequest("warmup-pt", 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
+        awaitSuccess(() -> client.streamLiveLocations(1, "warm-up-" + System.nanoTime(), List.of(
+                new LocationPointRequest("warmup-pt", 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         server.reset();
     }
@@ -138,7 +133,6 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
 
     @Test
     void bidirectionalStreamingReconnectsAndSendsOnlyRemainingPointsOnMidStreamUnavailable(CapturedOutput output) throws Exception {
-        // Перший потік підтверджує 1 точку і обривається з UNAVAILABLE; клієнт перепідключається й досилає решту 2 точки.
         server.failMidStreamNextCalls(1, 1, Status.UNAVAILABLE.withDescription("connection reset mid-stream"));
 
         mockMvc.perform(post("/dispatch/shipments/15/live-locations")
@@ -152,9 +146,8 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
         assertThat(server.liveStreamCalls).hasValue(2);
         assertThat(server.receivedLiveStreams).hasSize(2);
         assertThat(server.receivedLiveStreams.get(0)).hasSize(3);
-        // У другому підключенні клієнт надіслав лише 2 точки, які не отримали підтвердження в першому потоці!
         assertThat(server.receivedLiveStreams.get(1)).hasSize(2);
-        assertThat(output).contains("gRPC StreamCourierLocations interrupted mid-stream with UNAVAILABLE; reconnecting");
+        assertThat(output).contains("gRPC stream interrupted, reconnecting: method=StreamCourierLocations");
     }
 
     @Test
@@ -165,7 +158,7 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(threeValidPointsJson()))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(header().string("Retry-After", TrackingGrpcExceptionHandler.RETRY_AFTER_SECONDS));
+                .andExpect(header().string("Retry-After", "5"));
 
         assertThat(server.liveStreamCalls).hasValue(MAX_ATTEMPTS);
     }
@@ -182,8 +175,8 @@ class CourierLiveTrackingGrpcClientRetryIntegrationTest {
 
         server.start();
 
-        awaitSuccess(() -> client.streamLocations(15, "after-restart", List.of(
-                new LiveLocationPointRequest("pt-r1", 50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z"))
+        awaitSuccess(() -> client.streamLiveLocations(15, "after-restart", List.of(
+                new LocationPointRequest("pt-r1", 50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         assertThat(server.receivedLiveStreams).isNotEmpty();
     }

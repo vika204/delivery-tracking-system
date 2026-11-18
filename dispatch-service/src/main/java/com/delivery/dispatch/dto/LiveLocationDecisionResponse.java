@@ -1,9 +1,9 @@
-package com.delivery.dispatch.tracking.dto;
+package com.delivery.dispatch.dto;
 
-public record LiveLocationDecisionDto(
+public record LiveLocationDecisionResponse(
         String pointId,
         long shipmentId,
-        String status,
+        Status status,
         boolean saved,
         Long locationId,
         String reason,
@@ -11,4 +11,9 @@ public record LiveLocationDecisionDto(
         double speedKmh,
         boolean duplicate
 ) {
+    public enum Status {
+        ACCEPTED,
+        REJECTED,
+        SUSPICIOUS_JUMP
+    }
 }

@@ -1,4 +1,4 @@
-package com.delivery.dispatch.tracking;
+package com.delivery.dispatch.grpc;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -15,6 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.grpc.client.GlobalClientInterceptor;
 import org.springframework.stereotype.Component;
 
+/**
+ * Логує кожну фізичну спробу gRPC-виклику: retries виконуються всередині каналу,
+ * тому їх видно лише через {@link ClientStreamTracer}, створений на кожну спробу.
+ */
 @Component
 @GlobalClientInterceptor
 public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
@@ -23,10 +27,7 @@ public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
 
     @Override
     public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-            MethodDescriptor<ReqT, RespT> method,
-            CallOptions callOptions,
-            Channel next
-    ) {
+            MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
         String methodName = method.getBareMethodName();
         long startedAt = System.nanoTime();
 
@@ -34,7 +35,6 @@ public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
             @Override
             public ClientStreamTracer newClientStreamTracer(ClientStreamTracer.StreamInfo info, Metadata headers) {
                 int attempt = info.getPreviousAttempts() + 1;
-
                 if (attempt > 1) {
                     log.warn("gRPC retry attempt: method={}, attempt={}", methodName, attempt);
                 } else {
@@ -44,28 +44,22 @@ public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
                 return new ClientStreamTracer() {
                     @Override
                     public void streamClosed(Status status) {
-                        if (status.isOk()) {
-                            log.info("gRPC attempt finished: method={}, attempt={}, status=OK", methodName, attempt);
-                        } else {
-                            log.warn("gRPC attempt finished: method={}, attempt={}, status={}, description={}",
-                                    methodName, attempt, status.getCode(), status.getDescription());
-                        }
+                        log.info("gRPC attempt finished: method={}, attempt={}, status={}",
+                                methodName, attempt, status.getCode());
                     }
                 };
             }
         });
 
-        ClientCall<ReqT, RespT> call = next.newCall(method, tracedOptions);
-
-        return new ForwardingClientCall.SimpleForwardingClientCall<>(call) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<>(next.newCall(method, tracedOptions)) {
             @Override
             public void start(Listener<RespT> responseListener, Metadata headers) {
                 super.start(new ForwardingClientCallListener.SimpleForwardingClientCallListener<>(responseListener) {
                     @Override
                     public void onClose(Status status, Metadata trailers) {
-                        long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
-                        log.info("gRPC call completed: method={}, status={}, elapsedMs={}",
-                                methodName, status.getCode(), elapsedMs);
+                        log.info("gRPC call completed: method={}, status={}, description={}, elapsedMs={}",
+                                methodName, status.getCode(), status.getDescription(),
+                                (System.nanoTime() - startedAt) / 1_000_000);
                         super.onClose(status, trailers);
                     }
                 }, headers);

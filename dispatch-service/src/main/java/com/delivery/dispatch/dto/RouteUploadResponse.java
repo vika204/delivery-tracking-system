@@ -1,8 +1,5 @@
-package com.delivery.dispatch.tracking.dto;
+package com.delivery.dispatch.dto;
 
-/**
- * Підсумок вивантаження: firstLocationId/lastLocationId = null, якщо нічого не збережено.
- */
 public record RouteUploadResponse(
         String uploadId,
         long shipmentId,

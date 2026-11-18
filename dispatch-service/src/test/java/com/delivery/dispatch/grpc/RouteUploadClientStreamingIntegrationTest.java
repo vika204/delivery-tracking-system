@@ -1,4 +1,4 @@
-package com.delivery.dispatch.tracking;
+package com.delivery.dispatch.grpc;
 
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;
@@ -18,7 +18,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.delivery.dispatch.tracking.dto.RoutePointRequest;
+import com.delivery.dispatch.dto.LocationPointRequest;
+import com.delivery.dispatch.exception.TrackingGrpcException;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -32,18 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Інтеграційні тести Client Streaming-клієнта dispatch-service:
- * реальний Spring-контекст, канал із service config із application.properties
- * (перевизначено лише затримки) і реальний gRPC-сервер на TCP-порту.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
-// Тести з повною зупинкою сервера виконуються останніми, щоб стан каналу після
-// рестарту (reconnect backoff) не впливав на інші тести.
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ShipmentRouteGrpcClientRetryIntegrationTest {
+class RouteUploadClientStreamingIntegrationTest {
 
     static final int MAX_ATTEMPTS = 4;
     static final int RESTART_TESTS = Integer.MAX_VALUE - 10;
@@ -64,7 +58,6 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         registry.add("spring.datasource.username", () -> "sa");
         registry.add("spring.datasource.password", () -> "");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        // Kafka у цьому тесті не потрібна: не підключаємось до брокера й не створюємо топіки
         registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9999");
         registry.add("spring.kafka.listener.auto-startup", () -> "false");
         registry.add("spring.kafka.admin.auto-create", () -> "false");
@@ -77,7 +70,7 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
     }
 
     @Autowired
-    private ShipmentRouteGrpcClient client;
+    private TrackingGrpcClient client;
 
     @Autowired
     private MockMvc mockMvc;
@@ -85,11 +78,9 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         ensureServerRunning();
-        // Після тестів із рестартом сервера канал може ще бути в TRANSIENT_FAILURE —
-        // кожен тест починаємо з робочого з'єднання й нульових лічильників.
         server.reset();
         awaitSuccess(() -> client.uploadRoute(1, "warm-up-" + System.nanoTime(), List.of(
-                new RoutePointRequest(50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z")))));
+                new LocationPointRequest(null, 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z")))));
         server.reset();
     }
 
@@ -98,7 +89,6 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         server.stop();
     }
 
-    // ---------- Client streaming ----------
 
     @Test
     void clientStreamingUploadsAllPoints() throws Exception {
@@ -133,7 +123,6 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
                 .andExpect(jsonPath("$.savedCount").value(3));
 
         assertThat(server.routeCalls).hasValue(3);
-        // Кожна спроба отримала ПОВНИЙ потік із тим самим upload_id — gRPC відтворив буфер повідомлень.
         assertThat(server.receivedRoutes).hasSize(3)
                 .allSatisfy(route -> {
                     assertThat(route).hasSize(3);
@@ -150,7 +139,7 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(routeJson()))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(header().string("Retry-After", TrackingGrpcExceptionHandler.RETRY_AFTER_SECONDS));
+                .andExpect(header().string("Retry-After", "5"));
 
         assertThat(server.routeCalls).hasValue(MAX_ATTEMPTS);
     }
@@ -181,7 +170,7 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         server.start();
 
         awaitSuccess(() -> client.uploadRoute(15, "after-restart", List.of(
-                new RoutePointRequest(50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
+                new LocationPointRequest(null, 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         assertThat(server.receivedRoutes).isNotEmpty();
     }
@@ -202,7 +191,6 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
                 .andExpect(jsonPath("$.savedCount").value(1))
                 .andExpect(jsonPath("$.rejectedCount").value(2));
 
-        // Перевірку координат виконує сервер: усі три точки дійшли до нього.
         assertThat(server.receivedRoutes.getFirst()).hasSize(3);
         assertThat(server.receivedRoutes.getFirst().get(2).hasRecordedAt()).isFalse();
     }
@@ -217,7 +205,6 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         assertThat(server.routeCalls).hasValue(0);
     }
 
-    // ---------- helpers ----------
 
     private static String routeJson() {
         return """
@@ -233,11 +220,7 @@ class ShipmentRouteGrpcClientRetryIntegrationTest {
         server.start();
     }
 
-    /**
-     * Після рестарту канал може ще перебувати в TRANSIENT_FAILURE і чекати свого connect-backoff,
-     * тому перевіряємо, що виклики відновлюються протягом розумного часу, а не миттєво.
-     */
-    private static void awaitSuccess(Runnable call) throws InterruptedException {
+        private static void awaitSuccess(Runnable call) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
         TrackingGrpcException last = null;
 
