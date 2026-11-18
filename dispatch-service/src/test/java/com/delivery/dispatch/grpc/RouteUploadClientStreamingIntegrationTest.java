@@ -80,7 +80,7 @@ class RouteUploadClientStreamingIntegrationTest {
         ensureServerRunning();
         server.reset();
         awaitSuccess(() -> client.uploadRoute(1, "warm-up-" + System.nanoTime(), List.of(
-                new LocationPointRequest(null, 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z")))));
+                new LocationPointRequest(50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z")))));
         server.reset();
     }
 
@@ -170,7 +170,7 @@ class RouteUploadClientStreamingIntegrationTest {
         server.start();
 
         awaitSuccess(() -> client.uploadRoute(15, "after-restart", List.of(
-                new LocationPointRequest(null, 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
+                new LocationPointRequest(50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         assertThat(server.receivedRoutes).isNotEmpty();
     }

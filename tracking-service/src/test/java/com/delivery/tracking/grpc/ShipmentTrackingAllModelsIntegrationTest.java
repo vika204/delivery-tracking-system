@@ -1,7 +1,6 @@
 package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
-import com.delivery.tracking.repository.LiveLocationReceiptRepository;
 import com.delivery.tracking.repository.RouteUploadRepository;
 import com.delivery.tracking.repository.TrackingRepository;
 import com.delivery.tracking.service.TrackingService;
@@ -34,13 +33,6 @@ import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-/**
- * Спільний інтеграційний тест усіх чотирьох моделей gRPC у межах ShipmentTrackingService:
- * 1) Server Streaming (SubscribeToShipmentLocations)
- * 2) Client Streaming (RecordShipmentRoute)
- * 3) Bidirectional Streaming (StreamCourierLocations)
- * 4) Unary (GetShipmentDeliveryInfo)
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @AutoConfigureTestGrpcTransport
 @ImportGrpcClients(types = {
@@ -78,15 +70,11 @@ class ShipmentTrackingAllModelsIntegrationTest {
     @Autowired
     private RouteUploadRepository routeUploadRepository;
 
-    @Autowired
-    private LiveLocationReceiptRepository liveLocationReceiptRepository;
-
     @MockitoBean
     private TrackingService trackingService;
 
     @BeforeEach
     void setUp() {
-        liveLocationReceiptRepository.deleteAll();
         routeUploadRepository.deleteAll();
         trackingRepository.deleteAll();
         when(trackingService.getShipmentById(anyLong()))
@@ -102,7 +90,6 @@ class ShipmentTrackingAllModelsIntegrationTest {
         Context.CancellableContext subscriptionContext = Context.current().withCancellation();
 
         try {
-            // 1. Server Streaming: клієнт підписується на оновлення локацій посилки 42.
             subscriptionContext.run(() -> asyncStub.subscribeToShipmentLocations(
                     SubscribeToShipmentLocationsRequest.newBuilder().setShipmentId(shipmentId).build(),
                     new StreamObserver<>() {
@@ -121,7 +108,6 @@ class ShipmentTrackingAllModelsIntegrationTest {
                     }
             ));
 
-            // 2. Client Streaming: кур'єр вивантажує накопичений офлайн-маршрут (2 точки).
             Thread.sleep(150);
             ShipmentRouteSummary routeSummary = uploadRoute(List.of(
                     routePoint("route-42", shipmentId, 50.4500, 30.5200, "2026-11-15T10:00:00Z"),
@@ -130,17 +116,15 @@ class ShipmentTrackingAllModelsIntegrationTest {
 
             assertThat(routeSummary.getSavedCount()).isEqualTo(2);
 
-            // 3. Bidirectional Streaming: кур'єр продовжує рух онлайн і стрімить 2 нові точки (1 валідна + 1 підозрілий стрибок).
             List<CourierLocationDecision> bidiDecisions = streamLive(List.of(
-                    report("live-42-1", shipmentId, 50.4520, 30.5220, "2026-11-15T10:00:25Z"),
-                    report("live-42-jump", shipmentId, 48.0000, 25.0000, "2026-11-15T10:00:30Z")
+                    report(shipmentId, 50.4520, 30.5220, "2026-11-15T10:00:25Z"),
+                    report(shipmentId, 48.0000, 25.0000, "2026-11-15T10:00:30Z")
             )).get(10, TimeUnit.SECONDS);
 
             assertThat(bidiDecisions).hasSize(2);
             assertThat(bidiDecisions.get(0).getStatus()).isEqualTo(CourierLocationStatus.COURIER_LOCATION_STATUS_ACCEPTED);
             assertThat(bidiDecisions.get(1).getStatus()).isEqualTo(CourierLocationStatus.COURIER_LOCATION_STATUS_SUSPICIOUS_JUMP);
 
-            // Перевіряємо, що підписник Server Streaming отримав усі 3 збережені точки (2 з Client Streaming + 1 з Bidirectional).
             ShipmentLocationUpdate update1 = liveUpdates.poll(5, TimeUnit.SECONDS);
             ShipmentLocationUpdate update2 = liveUpdates.poll(5, TimeUnit.SECONDS);
             ShipmentLocationUpdate update3 = liveUpdates.poll(5, TimeUnit.SECONDS);
@@ -150,7 +134,6 @@ class ShipmentTrackingAllModelsIntegrationTest {
             assertThat(update3).isNotNull();
             assertThat(update3.getLatitude()).isCloseTo(50.4520, within(0.000001));
 
-            // 4. Unary: запитуємо поточний статус і останню відому координату посилки 42.
             ShipmentDeliveryInfo deliveryInfo = blockingStub.getShipmentDeliveryInfo(
                     GetShipmentDeliveryInfoRequest.newBuilder().setShipmentId(shipmentId).build()
             );
@@ -165,10 +148,9 @@ class ShipmentTrackingAllModelsIntegrationTest {
         }
     }
 
-    private static CourierLocationReport report(String pointId, long shipmentId, double lat, double lon, String recordedAt) {
+    private static CourierLocationReport report(long shipmentId, double lat, double lon, String recordedAt) {
         Instant instant = Instant.parse(recordedAt);
         return CourierLocationReport.newBuilder()
-                .setPointId(pointId)
                 .setShipmentId(shipmentId)
                 .setLatitude(lat)
                 .setLongitude(lon)

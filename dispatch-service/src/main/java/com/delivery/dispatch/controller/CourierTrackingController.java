@@ -37,8 +37,7 @@ public class CourierTrackingController {
     @PostMapping("/live-locations")
     public LiveLocationStreamResponse streamLiveLocations(
             @PathVariable @Positive long shipmentId,
-            @RequestHeader(name = IDEMPOTENCY_KEY, required = false) @Size(max = 64) String idempotencyKey,
             @Valid @RequestBody LocationPointsRequest request) {
-        return courierTrackingService.streamLiveLocations(shipmentId, idempotencyKey, request.points());
+        return courierTrackingService.streamLiveLocations(shipmentId, request.points());
     }
 }

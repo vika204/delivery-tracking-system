@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,10 +27,8 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
     final AtomicInteger failuresRemaining = new AtomicInteger();
     final List<List<ShipmentRoutePoint>> receivedRoutes = new CopyOnWriteArrayList<>();
     final List<List<CourierLocationReport>> receivedLiveStreams = new CopyOnWriteArrayList<>();
-    final Set<String> savedLivePointIds = ConcurrentHashMap.newKeySet();
 
     volatile Status failureStatus = Status.UNAVAILABLE.withDescription("simulated outage");
-    volatile int failMidStreamAfterPoints = -1;
 
     private final int port;
     private Server server;
@@ -67,22 +63,13 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
         routeCalls.set(0);
         liveStreamCalls.set(0);
         failuresRemaining.set(0);
-        failMidStreamAfterPoints = -1;
         receivedRoutes.clear();
         receivedLiveStreams.clear();
-        savedLivePointIds.clear();
         failureStatus = Status.UNAVAILABLE.withDescription("simulated outage");
     }
 
     void failNextCalls(int count, Status status) {
         failureStatus = status;
-        failMidStreamAfterPoints = -1;
-        failuresRemaining.set(count);
-    }
-
-    void failMidStreamNextCalls(int count, int afterPoints, Status status) {
-        failureStatus = status;
-        failMidStreamAfterPoints = afterPoints;
         failuresRemaining.set(count);
     }
 
@@ -145,24 +132,14 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
             public void onCompleted() {
                 receivedLiveStreams.add(List.copyOf(reports));
 
-                int midStreamCut = failMidStreamAfterPoints;
-                if (midStreamCut < 0 && shouldFail()) {
+                if (shouldFail()) {
                     responseObserver.onError(failureStatus.asRuntimeException());
                     return;
                 }
 
-                boolean failThisMidStream = midStreamCut >= 0 && shouldFail();
-                int limit = failThisMidStream ? Math.min(midStreamCut, reports.size()) : reports.size();
-
-                for (int i = 0; i < limit; i++) {
+                for (int i = 0; i < reports.size(); i++) {
                     responseObserver.onNext(evaluateReport(reports.get(i), i + 1));
                 }
-
-                if (failThisMidStream) {
-                    responseObserver.onError(failureStatus.asRuntimeException());
-                    return;
-                }
-
                 responseObserver.onCompleted();
             }
         };
@@ -173,7 +150,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
                 || !(report.getLongitude() >= -180 && report.getLongitude() <= 180)
                 || !report.hasRecordedAt()) {
             return CourierLocationDecision.newBuilder()
-                    .setPointId(report.getPointId())
                     .setShipmentId(report.getShipmentId())
                     .setStatus(CourierLocationStatus.COURIER_LOCATION_STATUS_REJECTED)
                     .setSaved(false)
@@ -183,27 +159,21 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
 
         if (Math.abs(report.getLatitude() - 50.45) > 1.0) {
             return CourierLocationDecision.newBuilder()
-                    .setPointId(report.getPointId())
                     .setShipmentId(report.getShipmentId())
                     .setStatus(CourierLocationStatus.COURIER_LOCATION_STATUS_SUSPICIOUS_JUMP)
                     .setSaved(false)
                     .setDistanceMeters(450_000.0)
-                    .setSpeedKmh(162_000.0)
-                    .setReason("suspicious distance/speed jump")
+                    .setReason("suspicious location jump")
                     .build();
         }
 
-        boolean duplicate = !savedLivePointIds.add(report.getPointId());
         return CourierLocationDecision.newBuilder()
-                .setPointId(report.getPointId())
                 .setShipmentId(report.getShipmentId())
                 .setStatus(CourierLocationStatus.COURIER_LOCATION_STATUS_ACCEPTED)
                 .setSaved(true)
                 .setLocationId(seq)
-                .setReason(duplicate ? "Duplicate point ignored" : "Coordinate accepted")
+                .setReason("Coordinate accepted")
                 .setDistanceMeters(120.0)
-                .setSpeedKmh(28.5)
-                .setDuplicate(duplicate)
                 .build();
     }
 

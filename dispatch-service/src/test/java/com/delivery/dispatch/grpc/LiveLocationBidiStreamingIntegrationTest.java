@@ -77,8 +77,8 @@ class LiveLocationBidiStreamingIntegrationTest {
     void setUp() throws Exception {
         server.start();
         server.reset();
-        awaitSuccess(() -> client.streamLiveLocations(1, "warm-up-" + System.nanoTime(), List.of(
-                new LocationPointRequest("warmup-pt", 50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
+        awaitSuccess(() -> client.streamLiveLocations(1, List.of(
+                new LocationPointRequest(50.45, 30.52, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         server.reset();
     }
@@ -91,18 +91,16 @@ class LiveLocationBidiStreamingIntegrationTest {
     @Test
     void bidirectionalStreamingProcessesAcceptedRejectedAndSuspiciousPoints() throws Exception {
         mockMvc.perform(post("/dispatch/shipments/15/live-locations")
-                        .header("Idempotency-Key", "session-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"points":[
-                                  {"pointId":"pt-1","latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
-                                  {"pointId":"pt-2","latitude":95.0,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
-                                  {"pointId":"pt-3","latitude":48.0000,"longitude":24.0000,"recordedAt":"2026-11-15T10:00:20Z"},
-                                  {"pointId":"pt-4","latitude":50.4520,"longitude":30.5250,"recordedAt":"2026-11-15T10:00:30Z"}
+                                  {"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
+                                  {"latitude":95.0,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
+                                  {"latitude":48.0000,"longitude":24.0000,"recordedAt":"2026-11-15T10:00:20Z"},
+                                  {"latitude":50.4520,"longitude":30.5250,"recordedAt":"2026-11-15T10:00:30Z"}
                                 ]}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sessionId").value("session-1"))
                 .andExpect(jsonPath("$.shipmentId").value(15))
                 .andExpect(jsonPath("$.sentCount").value(4))
                 .andExpect(jsonPath("$.acceptedCount").value(2))
@@ -117,11 +115,10 @@ class LiveLocationBidiStreamingIntegrationTest {
     }
 
     @Test
-    void bidirectionalStreamingRetriesOnInitialUnavailableViaServiceConfig(CapturedOutput output) throws Exception {
-        server.failNextCalls(2, Status.UNAVAILABLE.withDescription("simulated initial outage"));
+    void bidirectionalStreamingRetriesOnUnavailable(CapturedOutput output) throws Exception {
+        server.failNextCalls(2, Status.UNAVAILABLE.withDescription("simulated outage"));
 
         mockMvc.perform(post("/dispatch/shipments/15/live-locations")
-                        .header("Idempotency-Key", "session-retry")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(threeValidPointsJson()))
                 .andExpect(status().isOk())
@@ -129,25 +126,6 @@ class LiveLocationBidiStreamingIntegrationTest {
 
         assertThat(server.liveStreamCalls).hasValue(3);
         assertThat(output).contains("gRPC retry attempt: method=StreamCourierLocations, attempt=3");
-    }
-
-    @Test
-    void bidirectionalStreamingReconnectsAndSendsOnlyRemainingPointsOnMidStreamUnavailable(CapturedOutput output) throws Exception {
-        server.failMidStreamNextCalls(1, 1, Status.UNAVAILABLE.withDescription("connection reset mid-stream"));
-
-        mockMvc.perform(post("/dispatch/shipments/15/live-locations")
-                        .header("Idempotency-Key", "session-midstream")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(threeValidPointsJson()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.sentCount").value(3))
-                .andExpect(jsonPath("$.acceptedCount").value(3));
-
-        assertThat(server.liveStreamCalls).hasValue(2);
-        assertThat(server.receivedLiveStreams).hasSize(2);
-        assertThat(server.receivedLiveStreams.get(0)).hasSize(3);
-        assertThat(server.receivedLiveStreams.get(1)).hasSize(2);
-        assertThat(output).contains("gRPC stream interrupted, reconnecting: method=StreamCourierLocations");
     }
 
     @Test
@@ -175,8 +153,8 @@ class LiveLocationBidiStreamingIntegrationTest {
 
         server.start();
 
-        awaitSuccess(() -> client.streamLiveLocations(15, "after-restart", List.of(
-                new LocationPointRequest("pt-r1", 50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z"))
+        awaitSuccess(() -> client.streamLiveLocations(15, List.of(
+                new LocationPointRequest(50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z"))
         )));
         assertThat(server.receivedLiveStreams).isNotEmpty();
     }
@@ -184,9 +162,9 @@ class LiveLocationBidiStreamingIntegrationTest {
     private static String threeValidPointsJson() {
         return """
                 {"points":[
-                  {"pointId":"pt-1","latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
-                  {"pointId":"pt-2","latitude":50.4510,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
-                  {"pointId":"pt-3","latitude":50.4520,"longitude":30.5250,"recordedAt":"2026-11-15T10:00:20Z"}
+                  {"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
+                  {"latitude":50.4510,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
+                  {"latitude":50.4520,"longitude":30.5250,"recordedAt":"2026-11-15T10:00:20Z"}
                 ]}
                 """;
     }

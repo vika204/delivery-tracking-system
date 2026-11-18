@@ -154,7 +154,7 @@ class ShipmentTrackingGrpcServiceTest {
     @SuppressWarnings("unchecked")
     void bidirectionalStreamingReturnsUnavailableWhenDatabaseIsDown() {
         StreamObserver<CourierLocationDecision> responseObserver = mock(StreamObserver.class);
-        when(liveLocationService.processPoint(anyString(), anyLong(), any()))
+        when(liveLocationService.processPoint(anyLong(), any()))
                 .thenThrow(new CannotCreateTransactionException("Connection refused"));
 
         ShipmentTrackingGrpcService service = new ShipmentTrackingGrpcService(
@@ -163,7 +163,6 @@ class ShipmentTrackingGrpcServiceTest {
 
         StreamObserver<CourierLocationReport> requestObserver = service.streamCourierLocations(responseObserver);
         requestObserver.onNext(CourierLocationReport.newBuilder()
-                .setPointId("pt-1")
                 .setShipmentId(15L)
                 .setLatitude(50.45)
                 .setLongitude(30.52)

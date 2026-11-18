@@ -11,11 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 
 class CourierLocationStreamObserver implements StreamObserver<CourierLocationReport> {
-
-    static final int MAX_POINT_ID_LENGTH = 64;
 
     private static final Logger log = LoggerFactory.getLogger(CourierLocationStreamObserver.class);
 
@@ -43,20 +40,19 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
             return;
         }
         receivedCount++;
-        String pointId = report.getPointId().isBlank() ? "auto-" + UUID.randomUUID() : report.getPointId().trim();
         long shipmentId = report.getShipmentId();
         Instant recordedAt = report.hasRecordedAt() ? ProtoTimestamps.toInstant(report.getRecordedAt()) : null;
 
         LiveLocationDecisionResult decision;
         try {
-            Optional<String> violation = findViolation(pointId, report, recordedAt);
+            Optional<String> violation = findViolation(shipmentId, report, recordedAt);
             decision = violation.isPresent()
-                    ? LiveLocationDecisionResult.rejected(pointId, shipmentId, violation.get())
-                    : liveLocationService.processPoint(pointId, shipmentId,
+                    ? LiveLocationDecisionResult.rejected(shipmentId, violation.get())
+                    : liveLocationService.processPoint(shipmentId,
                             mapper.toRoutePoint(report.getLatitude(), report.getLongitude(), recordedAt));
         } catch (RuntimeException ex) {
             closed = true;
-            log.error("Live courier location processing failed: pointId={}, shipmentId={}", pointId, shipmentId, ex);
+            log.error("Live courier location processing failed: shipmentId={}", shipmentId, ex);
             responseObserver.onError(GrpcStatusMapper.toStatus(ex));
             return;
         }
@@ -80,11 +76,8 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
         responseObserver.onCompleted();
     }
 
-    private Optional<String> findViolation(String pointId, CourierLocationReport report, Instant recordedAt) {
-        if (pointId.length() > MAX_POINT_ID_LENGTH) {
-            return Optional.of("pointId must be at most " + MAX_POINT_ID_LENGTH + " characters");
-        }
-        if (report.getShipmentId() <= 0) {
+    private Optional<String> findViolation(long shipmentId, CourierLocationReport report, Instant recordedAt) {
+        if (shipmentId <= 0) {
             return Optional.of("shipmentId must be positive");
         }
         return pointValidator.findViolation(report.getLatitude(), report.getLongitude(), recordedAt);

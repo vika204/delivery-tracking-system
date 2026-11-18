@@ -46,9 +46,6 @@ public class TrackingProtoMapper {
         return info.build();
     }
 
-    /**
-     * Точка має бути вже перевірена {@link com.delivery.tracking.service.RoutePointValidator}.
-     */
     public RoutePoint toRoutePoint(double latitude, double longitude, Instant recordedAt) {
         return new RoutePoint(
                 BigDecimal.valueOf(latitude).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
@@ -78,15 +75,12 @@ public class TrackingProtoMapper {
         };
 
         return CourierLocationDecision.newBuilder()
-                .setPointId(result.pointId() == null ? "" : result.pointId())
                 .setShipmentId(result.shipmentId())
                 .setStatus(status)
                 .setSaved(result.saved())
                 .setLocationId(result.locationId() == null ? 0 : result.locationId())
                 .setReason(result.reason() == null ? "" : result.reason())
                 .setDistanceMeters(result.distanceMeters())
-                .setSpeedKmh(result.speedKmh())
-                .setDuplicate(result.duplicate())
                 .build();
     }
 

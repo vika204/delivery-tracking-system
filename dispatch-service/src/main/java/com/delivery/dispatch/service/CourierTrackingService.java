@@ -22,11 +22,12 @@ public class CourierTrackingService {
         return trackingClient.uploadRoute(shipmentId, keyOrRandom(idempotencyKey), points);
     }
 
-    public LiveLocationStreamResponse streamLiveLocations(
-            long shipmentId, String idempotencyKey, List<LocationPointRequest> points) {
-        String sessionId = keyOrRandom(idempotencyKey);
-        return LiveLocationStreamResponse.of(sessionId, shipmentId, points.size(),
-                trackingClient.streamLiveLocations(shipmentId, sessionId, points));
+    public LiveLocationStreamResponse streamLiveLocations(long shipmentId, List<LocationPointRequest> points) {
+        return LiveLocationStreamResponse.of(
+                shipmentId,
+                points.size(),
+                trackingClient.streamLiveLocations(shipmentId, points)
+        );
     }
 
     private static String keyOrRandom(String idempotencyKey) {

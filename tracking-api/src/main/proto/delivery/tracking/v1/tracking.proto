@@ -76,21 +76,17 @@ enum CourierLocationStatus {
 }
 
 message CourierLocationReport {
-  string point_id = 1;
-  int64 shipment_id = 2;
-  double latitude = 3;
-  double longitude = 4;
-  google.protobuf.Timestamp recorded_at = 5;
+  int64 shipment_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  google.protobuf.Timestamp recorded_at = 4;
 }
 
 message CourierLocationDecision {
-  string point_id = 1;
-  int64 shipment_id = 2;
-  CourierLocationStatus status = 3;
-  bool saved = 4;
-  int64 location_id = 5;
-  string reason = 6;
-  double distance_meters = 7;
-  double speed_kmh = 8;
-  bool duplicate = 9;
+  int64 shipment_id = 1;
+  CourierLocationStatus status = 2;
+  bool saved = 3;
+  int64 location_id = 4;
+  string reason = 5;
+  double distance_meters = 6;
 }
