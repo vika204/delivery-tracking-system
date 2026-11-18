@@ -2,6 +2,7 @@ package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
+import com.delivery.tracking.entity.RouteUpload;
 import com.delivery.tracking.repository.RouteUploadRepository;
 import com.delivery.tracking.repository.TrackingRepository;
 import com.delivery.tracking.service.LocationService;
@@ -21,7 +22,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,6 +34,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -40,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 /**
@@ -83,7 +88,7 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
     @Autowired
     private TrackingRepository trackingRepository;
 
-    @Autowired
+    @MockitoSpyBean
     private RouteUploadRepository routeUploadRepository;
 
     @MockitoBean
@@ -94,6 +99,8 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         routeUploadRepository.deleteAll();
         trackingRepository.deleteAll();
         when(trackingService.getShipmentById(anyLong()))
+                .thenAnswer(invocation -> new ShipmentDto(invocation.getArgument(0), "Recipient", "IN_TRANSIT"));
+        when(trackingService.getShipmentByIdWithoutFallback(anyLong()))
                 .thenAnswer(invocation -> new ShipmentDto(invocation.getArgument(0), "Recipient", "IN_TRANSIT"));
     }
 
@@ -119,7 +126,7 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
     @Test
     void unaryReturnsStatusWithoutLocationWhenNoCoordinatesYet() {
-        when(trackingService.getShipmentById(16L)).thenReturn(new ShipmentDto(16L, "WAITING_FOR_COURIER", "WAITING_FOR_COURIER"));
+        when(trackingService.getShipmentByIdWithoutFallback(16L)).thenReturn(new ShipmentDto(16L, "WAITING_FOR_COURIER", "WAITING_FOR_COURIER"));
 
         ShipmentDeliveryInfo info = blockingStub.getShipmentDeliveryInfo(request(16L));
 
@@ -130,7 +137,7 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
     @Test
     void unaryReturnsNotFoundWhenShipmentDoesNotExist() {
-        when(trackingService.getShipmentById(99L))
+        when(trackingService.getShipmentByIdWithoutFallback(99L))
                 .thenThrow(HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
         assertThat(statusOf(() -> blockingStub.getShipmentDeliveryInfo(request(99L))))
@@ -138,9 +145,9 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
     }
 
     @Test
-    void unaryReturnsUnavailableWhenShipmentServiceFallbackIsUsed() {
-        when(trackingService.getShipmentById(15L))
-                .thenReturn(new ShipmentDto(15L, "Дані тимчасово недоступні (Fallback)", "UNAVAILABLE"));
+    void unaryReturnsUnavailableWhenShipmentServiceIsDown() {
+        when(trackingService.getShipmentByIdWithoutFallback(15L))
+                .thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThat(statusOf(() -> blockingStub.getShipmentDeliveryInfo(request(15L))))
                 .isEqualTo(Status.Code.UNAVAILABLE);
@@ -232,6 +239,25 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         assertThat(second.getFirstLocationId()).isEqualTo(first.getFirstLocationId());
         assertThat(second.getLastLocationId()).isEqualTo(first.getLastLocationId());
         assertThat(trackingRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void clientStreamingConcurrentRetryWithSameUploadIdDoesNotDuplicatePoints() throws Exception {
+        List<ShipmentRoutePoint> route = List.of(point("upload-race", 15L, 50.45, 30.52, "2026-11-15T10:00:00Z"));
+        ShipmentRouteSummary first = upload(route).get(10, TimeUnit.SECONDS);
+        RouteUpload committed = routeUploadRepository.findById("upload-race").orElseThrow();
+
+        // Паралельна спроба: перевірка upload_id відбулася ще до коміту першої,
+        // тому вона не бачить запису й намагається зберегти маршрут повторно.
+        // Після конфлікту первинного ключа повторна перевірка вже бачить закомічений запис.
+        doReturn(Optional.empty()).doReturn(Optional.of(committed))
+                .when(routeUploadRepository).findById("upload-race");
+
+        ShipmentRouteSummary second = upload(route).get(10, TimeUnit.SECONDS);
+
+        assertThat(second.getDuplicate()).isTrue();
+        assertThat(second.getFirstLocationId()).isEqualTo(first.getFirstLocationId());
+        assertThat(trackingRepository.count()).isEqualTo(1);
     }
 
     @Test

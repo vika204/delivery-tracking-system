@@ -1,7 +1,10 @@
 package com.delivery.dispatch.exception;
 
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcProblems;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -23,6 +26,11 @@ public class DispatchExceptionHandler {
     @ExceptionHandler(DispatchAccessDeniedException.class)
     public ProblemDetail accessDenied(DispatchAccessDeniedException ex) {
         return problem(HttpStatus.FORBIDDEN, "dispatch-access-denied", "Action not allowed for this courier", ex);
+    }
+
+    @ExceptionHandler(TrackingGrpcException.class)
+    public ResponseEntity<ProblemDetail> trackingUnavailable(TrackingGrpcException ex) {
+        return TrackingGrpcProblems.toResponse(ex);
     }
 
     private static ProblemDetail problem(HttpStatus status, String type, String title, Exception ex) {

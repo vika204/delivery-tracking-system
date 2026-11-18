@@ -1,10 +1,11 @@
 package com.delivery.tracking.grpc;
 
+import com.delivery.tracking.api.ProtoTimestamps;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.event.LocationSavedEvent;
-import com.delivery.tracking.live.LiveLocationDecisionResult;
-import com.delivery.tracking.route.RoutePoint;
-import com.delivery.tracking.route.RouteUploadResult;
+import com.delivery.tracking.dto.LiveLocationDecisionResult;
+import com.delivery.tracking.dto.RoutePoint;
+import com.delivery.tracking.dto.RouteUploadResult;
 import com.google.protobuf.Timestamp;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,6 @@ import java.util.Optional;
 @Component
 public class TrackingProtoMapper {
 
-    // Відповідає precision = 9, scale = 6 у Location.
     private static final int COORDINATE_SCALE = 6;
 
     private final ZoneId recordedAtZone;
@@ -46,13 +46,14 @@ public class TrackingProtoMapper {
         return info.build();
     }
 
-    public RoutePoint toRoutePoint(ShipmentRoutePoint point) {
-        Instant instant = Instant.ofEpochSecond(point.getRecordedAt().getSeconds(), point.getRecordedAt().getNanos());
-
+    /**
+     * Точка має бути вже перевірена {@link com.delivery.tracking.service.RoutePointValidator}.
+     */
+    public RoutePoint toRoutePoint(double latitude, double longitude, Instant recordedAt) {
         return new RoutePoint(
-                BigDecimal.valueOf(point.getLatitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(point.getLongitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                LocalDateTime.ofInstant(instant, recordedAtZone)
+                BigDecimal.valueOf(latitude).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(longitude).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                LocalDateTime.ofInstant(recordedAt, recordedAtZone)
         );
     }
 
@@ -67,16 +68,6 @@ public class TrackingProtoMapper {
                 .setLastLocationId(result.lastLocationId() == null ? 0 : result.lastLocationId())
                 .setDuplicate(result.duplicate())
                 .build();
-    }
-
-    public RoutePoint toRoutePoint(CourierLocationReport report) {
-        Instant instant = Instant.ofEpochSecond(report.getRecordedAt().getSeconds(), report.getRecordedAt().getNanos());
-
-        return new RoutePoint(
-                BigDecimal.valueOf(report.getLatitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(report.getLongitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                LocalDateTime.ofInstant(instant, recordedAtZone)
-        );
     }
 
     public CourierLocationDecision toProto(LiveLocationDecisionResult result) {
@@ -116,13 +107,6 @@ public class TrackingProtoMapper {
     }
 
     private Timestamp toTimestamp(LocalDateTime recordedAt) {
-        Instant instant = recordedAt
-                .atZone(recordedAtZone)
-                .toInstant();
-
-        return Timestamp.newBuilder()
-                .setSeconds(instant.getEpochSecond())
-                .setNanos(instant.getNano())
-                .build();
+        return ProtoTimestamps.toTimestamp(recordedAt.atZone(recordedAtZone).toInstant());
     }
 }

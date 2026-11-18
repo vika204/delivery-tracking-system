@@ -15,11 +15,6 @@ import java.net.ServerSocket;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Тестовий gRPC-сервер tracking-service на реальному TCP-порту.
- * Дозволяє імітувати тимчасові збої (перші N викликів -> обраний статус)
- * та повну недоступність (stop/start на тому ж порту).
- */
 class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingServiceImplBase {
 
     final AtomicInteger unaryCalls = new AtomicInteger();

@@ -17,6 +17,7 @@ import java.util.List;
 
 @Service
 public class TrackingService {
+
     private final ShipmentClient shipmentClient;
     private final TrackingMetrics metrics;
 
@@ -34,6 +35,15 @@ public class TrackingService {
     )
     @Retry(name = "shipmentClient")
     public ShipmentDto getShipmentById(Long shipmentId) {
+        return metrics.timeShipmentCall("get", () -> shipmentClient.getShipmentById(shipmentId));
+    }
+
+    //те саме без fallback: для gRPC недоступність shipment-service має дійти до клієнта
+    //винятком (-> статус UNAVAILABLE, який клієнт повторить), а не підмінним DTO
+    @Bulkhead(name = "shipmentClient")
+    @CircuitBreaker(name = "shipmentClient")
+    @Retry(name = "shipmentClient")
+    public ShipmentDto getShipmentByIdWithoutFallback(Long shipmentId) {
         return metrics.timeShipmentCall("get", () -> shipmentClient.getShipmentById(shipmentId));
     }
 

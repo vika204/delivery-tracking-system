@@ -8,6 +8,10 @@ RUN mvn -B -f tracking-api/pom.xml dependency:go-offline
 COPY tracking-api/src tracking-api/src
 RUN mvn -B -f tracking-api/pom.xml clean install -DskipTests
 
+COPY tracking-grpc-client/pom.xml tracking-grpc-client/pom.xml
+COPY tracking-grpc-client/src tracking-grpc-client/src
+RUN mvn -B -f tracking-grpc-client/pom.xml clean install -DskipTests
+
 COPY dispatch-service/pom.xml dispatch-service/pom.xml
 RUN mvn -B -f dispatch-service/pom.xml dependency:go-offline
 

@@ -1,46 +1,40 @@
 package com.delivery.tracking.grpc;
 
-import com.delivery.tracking.live.CourierLiveLocationService;
-import com.delivery.tracking.live.LiveLocationDecisionResult;
-import com.delivery.tracking.route.RoutePoint;
+import com.delivery.tracking.api.ProtoTimestamps;
+import com.delivery.tracking.dto.LiveLocationDecisionResult;
+import com.delivery.tracking.service.CourierLiveLocationService;
+import com.delivery.tracking.service.RoutePointValidator;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 class CourierLocationStreamObserver implements StreamObserver<CourierLocationReport> {
 
     static final int MAX_POINT_ID_LENGTH = 64;
-    static final Duration MAX_CLOCK_SKEW = Duration.ofMinutes(5);
 
     private static final Logger log = LoggerFactory.getLogger(CourierLocationStreamObserver.class);
 
     private final StreamObserver<CourierLocationDecision> responseObserver;
     private final CourierLiveLocationService liveLocationService;
+    private final RoutePointValidator pointValidator;
     private final TrackingProtoMapper mapper;
-    private final Clock clock;
 
     private int receivedCount;
-    private int acceptedCount;
-    private int rejectedCount;
-    private int suspiciousCount;
     private boolean closed;
 
-    CourierLocationStreamObserver(
-            StreamObserver<CourierLocationDecision> responseObserver,
-            CourierLiveLocationService liveLocationService,
-            TrackingProtoMapper mapper,
-            Clock clock
-    ) {
+    CourierLocationStreamObserver(StreamObserver<CourierLocationDecision> responseObserver,
+                                  CourierLiveLocationService liveLocationService,
+                                  RoutePointValidator pointValidator,
+                                  TrackingProtoMapper mapper) {
         this.responseObserver = responseObserver;
         this.liveLocationService = liveLocationService;
+        this.pointValidator = pointValidator;
         this.mapper = mapper;
-        this.clock = clock;
     }
 
     @Override
@@ -48,51 +42,32 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
         if (closed) {
             return;
         }
-
-        if (receivedCount == 0) {
-            log.info("Live courier location stream opened: firstShipmentId={}", report.getShipmentId());
-        }
         receivedCount++;
-
-        String rawPointId = report.getPointId().isBlank()
-                ? "auto-" + UUID.randomUUID()
-                : report.getPointId().trim();
+        String pointId = report.getPointId().isBlank() ? "auto-" + UUID.randomUUID() : report.getPointId().trim();
         long shipmentId = report.getShipmentId();
+        Instant recordedAt = report.hasRecordedAt() ? ProtoTimestamps.toInstant(report.getRecordedAt()) : null;
 
-        String validationError = validateReport(report, rawPointId);
-        if (validationError != null) {
-            rejectedCount++;
-            log.warn("Live courier location rejected: pointId={}, shipmentId={}, index={}, reason={}",
-                    rawPointId, shipmentId, receivedCount - 1, validationError);
-            responseObserver.onNext(mapper.toProto(
-                    LiveLocationDecisionResult.rejected(rawPointId, shipmentId, validationError)));
-            return;
-        }
-
+        LiveLocationDecisionResult decision;
         try {
-            RoutePoint routePoint = mapper.toRoutePoint(report);
-            LiveLocationDecisionResult decision = liveLocationService.processPoint(rawPointId, shipmentId, routePoint);
-
-            switch (decision.type()) {
-                case ACCEPTED -> acceptedCount++;
-                case REJECTED -> rejectedCount++;
-                case SUSPICIOUS_JUMP -> suspiciousCount++;
-            }
-
-            responseObserver.onNext(mapper.toProto(decision));
+            Optional<String> violation = findViolation(pointId, report, recordedAt);
+            decision = violation.isPresent()
+                    ? LiveLocationDecisionResult.rejected(pointId, shipmentId, violation.get())
+                    : liveLocationService.processPoint(pointId, shipmentId,
+                            mapper.toRoutePoint(report.getLatitude(), report.getLongitude(), recordedAt));
         } catch (RuntimeException ex) {
             closed = true;
-            log.error("Live courier location processing failed: pointId={}, shipmentId={}",
-                    rawPointId, shipmentId, ex);
+            log.error("Live courier location processing failed: pointId={}, shipmentId={}", pointId, shipmentId, ex);
             responseObserver.onError(GrpcStatusMapper.toStatus(ex));
+            return;
         }
+        responseObserver.onNext(mapper.toProto(decision));
     }
 
     @Override
     public synchronized void onError(Throwable error) {
         closed = true;
-        log.warn("Live courier location stream aborted by client: received={}, accepted={}, rejected={}, suspicious={}, status={}",
-                receivedCount, acceptedCount, rejectedCount, suspiciousCount, Status.fromThrowable(error).getCode());
+        log.warn("Live courier location stream aborted by client: received={}, status={}",
+                receivedCount, Status.fromThrowable(error).getCode());
     }
 
     @Override
@@ -101,31 +76,17 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
             return;
         }
         closed = true;
-        log.info("Live courier location stream completed: received={}, accepted={}, rejected={}, suspicious={}",
-                receivedCount, acceptedCount, rejectedCount, suspiciousCount);
+        log.info("Live courier location stream completed: received={}", receivedCount);
         responseObserver.onCompleted();
     }
 
-    private String validateReport(CourierLocationReport report, String pointId) {
+    private Optional<String> findViolation(String pointId, CourierLocationReport report, Instant recordedAt) {
         if (pointId.length() > MAX_POINT_ID_LENGTH) {
-            return "pointId must be at most " + MAX_POINT_ID_LENGTH + " characters";
+            return Optional.of("pointId must be at most " + MAX_POINT_ID_LENGTH + " characters");
         }
         if (report.getShipmentId() <= 0) {
-            return "shipmentId must be positive";
+            return Optional.of("shipmentId must be positive");
         }
-        if (!(report.getLatitude() >= -90 && report.getLatitude() <= 90)) {
-            return "latitude must be between -90 and 90";
-        }
-        if (!(report.getLongitude() >= -180 && report.getLongitude() <= 180)) {
-            return "longitude must be between -180 and 180";
-        }
-        if (!report.hasRecordedAt()) {
-            return "recordedAt is required";
-        }
-        Instant recordedAt = Instant.ofEpochSecond(report.getRecordedAt().getSeconds(), report.getRecordedAt().getNanos());
-        if (recordedAt.isAfter(Instant.now(clock).plus(MAX_CLOCK_SKEW))) {
-            return "recordedAt must not be in the future";
-        }
-        return null;
+        return pointValidator.findViolation(report.getLatitude(), report.getLongitude(), recordedAt);
     }
 }
