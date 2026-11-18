@@ -17,6 +17,9 @@ import java.util.List;
 
 @Service
 public class TrackingService {
+
+    public static final String UNAVAILABLE_STATUS = "UNAVAILABLE";
+
     private final ShipmentClient shipmentClient;
     private final TrackingMetrics metrics;
 
@@ -90,7 +93,7 @@ public class TrackingService {
         return new ShipmentDto(
                 shipmentId,
                 "Дані тимчасово недоступні (Fallback)",
-                "UNAVAILABLE"
+                UNAVAILABLE_STATUS
         );
     }
 }

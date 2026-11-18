@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -19,10 +21,11 @@ import java.util.Optional;
 @Component
 public class TrackingProtoMapper {
 
-    // Відповідає precision = 9, scale = 6 у Location.
     private static final int COORDINATE_SCALE = 6;
+    private static final Duration MAX_CLOCK_SKEW = Duration.ofMinutes(5);
 
     private final ZoneId recordedAtZone;
+    private final Clock clock = Clock.systemUTC();
 
     public TrackingProtoMapper(@Value("${tracking.recorded-at-zone:UTC}") String zone) {
         this.recordedAtZone = ZoneId.of(zone);
@@ -46,12 +49,26 @@ public class TrackingProtoMapper {
         return info.build();
     }
 
-    public RoutePoint toRoutePoint(ShipmentRoutePoint point) {
-        Instant instant = Instant.ofEpochSecond(point.getRecordedAt().getSeconds(), point.getRecordedAt().getNanos());
-
+    /**
+     * @throws IllegalArgumentException із причиною відхилення, якщо точка некоректна
+     */
+    public RoutePoint toRoutePoint(double latitude, double longitude, Timestamp recordedAt) {
+        if (!(latitude >= -90 && latitude <= 90)) {
+            throw new IllegalArgumentException("latitude must be between -90 and 90");
+        }
+        if (!(longitude >= -180 && longitude <= 180)) {
+            throw new IllegalArgumentException("longitude must be between -180 and 180");
+        }
+        if (recordedAt == null) {
+            throw new IllegalArgumentException("recordedAt is required");
+        }
+        Instant instant = Instant.ofEpochSecond(recordedAt.getSeconds(), recordedAt.getNanos());
+        if (instant.isAfter(Instant.now(clock).plus(MAX_CLOCK_SKEW))) {
+            throw new IllegalArgumentException("recordedAt must not be in the future");
+        }
         return new RoutePoint(
-                BigDecimal.valueOf(point.getLatitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(point.getLongitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(latitude).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(longitude).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
                 LocalDateTime.ofInstant(instant, recordedAtZone)
         );
     }
@@ -67,16 +84,6 @@ public class TrackingProtoMapper {
                 .setLastLocationId(result.lastLocationId() == null ? 0 : result.lastLocationId())
                 .setDuplicate(result.duplicate())
                 .build();
-    }
-
-    public RoutePoint toRoutePoint(CourierLocationReport report) {
-        Instant instant = Instant.ofEpochSecond(report.getRecordedAt().getSeconds(), report.getRecordedAt().getNanos());
-
-        return new RoutePoint(
-                BigDecimal.valueOf(report.getLatitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                BigDecimal.valueOf(report.getLongitude()).setScale(COORDINATE_SCALE, RoundingMode.HALF_UP),
-                LocalDateTime.ofInstant(instant, recordedAtZone)
-        );
     }
 
     public CourierLocationDecision toProto(LiveLocationDecisionResult result) {

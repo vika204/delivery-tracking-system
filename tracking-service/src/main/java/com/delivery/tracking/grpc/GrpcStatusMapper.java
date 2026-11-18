@@ -1,5 +1,6 @@
 package com.delivery.tracking.grpc;
 
+import com.delivery.tracking.exception.UploadIdConflictException;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.grpc.Status;
@@ -7,18 +8,15 @@ import io.grpc.StatusRuntimeException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.transaction.CannotCreateTransactionException;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.sql.SQLTransientException;
 
 /**
- * Перетворення серверних винятків на gRPC-статуси.
- * <p>
- * Тимчасова недоступність залежності (БД tracking-service або shipment-service)
- * повертається як {@code UNAVAILABLE}: саме цей статус клієнт вважає повторюваним
- * (retryableStatusCodes), тож виклик буде повторено автоматично.
- * Решта неочікуваних помилок — {@code INTERNAL}, їх повторювати немає сенсу.
+ * Єдине місце перетворення серверних винятків на gRPC-статуси.
+ * Тимчасова недоступність залежності -> UNAVAILABLE, єдиний статус, який повторюють клієнти.
  */
 final class GrpcStatusMapper {
 
@@ -26,20 +24,22 @@ final class GrpcStatusMapper {
     }
 
     static StatusRuntimeException toStatus(Throwable error) {
-        if (isTransient(error)) {
-            return Status.UNAVAILABLE
-                    .withDescription("tracking dependency is temporarily unavailable")
-                    .withCause(error)
-                    .asRuntimeException();
-        }
-
-        return Status.INTERNAL
-                .withDescription("internal tracking error")
-                .withCause(error)
-                .asRuntimeException();
+        return switch (error) {
+            case StatusRuntimeException status -> status;
+            case HttpClientErrorException.NotFound ignored -> Status.NOT_FOUND
+                    .withDescription("shipment not found").asRuntimeException();
+            case HttpClientErrorException clientError -> Status.FAILED_PRECONDITION
+                    .withDescription("shipment-service rejected request: " + clientError.getStatusCode()).asRuntimeException();
+            case UploadIdConflictException conflict -> Status.ALREADY_EXISTS
+                    .withDescription(conflict.getMessage()).asRuntimeException();
+            default -> (isTransient(error)
+                    ? Status.UNAVAILABLE.withDescription("tracking dependency is temporarily unavailable")
+                    : Status.INTERNAL.withDescription("internal tracking error"))
+                    .withCause(error).asRuntimeException();
+        };
     }
 
-    static boolean isTransient(Throwable error) {
+    private static boolean isTransient(Throwable error) {
         for (Throwable current = error; current != null; current = current.getCause()) {
             if (current instanceof CannotCreateTransactionException
                     || current instanceof TransientDataAccessException

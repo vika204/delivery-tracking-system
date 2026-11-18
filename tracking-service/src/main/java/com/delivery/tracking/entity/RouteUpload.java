@@ -10,10 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-/**
- * Журнал завершених Client Streaming-вивантажень маршруту.
- * Первинний ключ upload_id робить повторну спробу того самого вивантаження ідемпотентною.
- */
 @Entity
 @Table(name = "route_uploads")
 @Getter
@@ -37,7 +33,6 @@ public class RouteUpload {
     @Column(name = "rejected_count", nullable = false)
     private Integer rejectedCount;
 
-    // null, якщо жодну координату не збережено
     @Column(name = "first_location_id")
     private Long firstLocationId;
 

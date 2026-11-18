@@ -129,7 +129,7 @@ class ShipmentTrackingGrpcServiceTest {
                 .thenThrow(new CannotCreateTransactionException("Connection refused"));
 
         ShipmentTrackingGrpcService service = new ShipmentTrackingGrpcService(
-                publisher, trackingService, locationService, routeService, new TrackingProtoMapper("UTC"));
+                publisher, trackingService, locationService, routeService, liveLocationService, new TrackingProtoMapper("UTC"));
 
         StreamObserver<ShipmentRoutePoint> requestObserver = service.recordShipmentRoute(responseObserver);
         requestObserver.onNext(ShipmentRoutePoint.newBuilder()
