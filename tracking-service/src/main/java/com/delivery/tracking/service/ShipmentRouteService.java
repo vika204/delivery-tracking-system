@@ -1,9 +1,11 @@
-package com.delivery.tracking.route;
+package com.delivery.tracking.service;
 
+import com.delivery.tracking.dto.RoutePoint;
+import com.delivery.tracking.dto.RouteUploadResult;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.entity.RouteUpload;
+import com.delivery.tracking.exception.UploadIdConflictException;
 import com.delivery.tracking.repository.RouteUploadRepository;
-import com.delivery.tracking.service.LocationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,12 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Збереження історії GPS-координат, отриманої через Client Streaming.
- * <p>
- * Коректні точки зберігаються в одній транзакції через {@link LocationService#createLocation(Location)},
- * тому активні Server Streaming-підписники отримують кожну точку після коміту.
- * Якщо upload_id уже зафіксовано, повертається збережений підсумок без повторного запису —
- * це робить безпечними gRPC retries, коли сервер зберіг дані, але відповідь не дійшла до клієнта.
+ * Зберігає маршрут, отриманий через Client Streaming. Повтор із тим самим upload_id
+ * повертає збережений підсумок замість повторного запису точок.
  */
 @Service
 public class ShipmentRouteService {
@@ -44,10 +42,6 @@ public class ShipmentRouteService {
         this.clock = Clock.systemUTC();
     }
 
-    /**
-     * @param validPoints   координати, що пройшли перевірку
-     * @param receivedCount скільки координат отримано в потоці загалом (разом із відхиленими)
-     */
     public RouteUploadResult recordRoute(String uploadId, long shipmentId, List<RoutePoint> validPoints, int receivedCount) {
         Optional<RouteUploadResult> existing = findExisting(uploadId, shipmentId);
         if (existing.isPresent()) {
@@ -60,7 +54,6 @@ public class ShipmentRouteService {
                     uploadId, shipmentId, result.receivedCount(), result.savedCount(), result.rejectedCount());
             return result;
         } catch (DataIntegrityViolationException ex) {
-            // Паралельна спроба з тим самим upload_id встигла закомітитися першою.
             return findExisting(uploadId, shipmentId).orElseThrow(() -> ex);
         }
     }
@@ -119,11 +112,5 @@ public class ShipmentRouteService {
                     true
             );
         });
-    }
-
-    public static class UploadIdConflictException extends RuntimeException {
-        public UploadIdConflictException(String uploadId) {
-            super("uploadId " + uploadId + " is already used for another shipment");
-        }
     }
 }

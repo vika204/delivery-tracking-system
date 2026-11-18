@@ -2,9 +2,9 @@ package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.event.LocationSavedEvent;
-import com.delivery.tracking.live.LiveLocationDecisionResult;
-import com.delivery.tracking.route.RoutePoint;
-import com.delivery.tracking.route.RouteUploadResult;
+import com.delivery.tracking.dto.LiveLocationDecisionResult;
+import com.delivery.tracking.dto.RoutePoint;
+import com.delivery.tracking.dto.RouteUploadResult;
 import com.google.protobuf.Timestamp;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

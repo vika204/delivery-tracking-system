@@ -1,8 +1,9 @@
 package com.delivery.tracking.grpc;
 
-import com.delivery.tracking.route.RoutePoint;
-import com.delivery.tracking.route.RouteUploadResult;
-import com.delivery.tracking.route.ShipmentRouteService;
+import com.delivery.tracking.dto.RoutePoint;
+import com.delivery.tracking.dto.RouteUploadResult;
+import com.delivery.tracking.exception.UploadIdConflictException;
+import com.delivery.tracking.service.ShipmentRouteService;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -100,7 +101,7 @@ class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
             RouteUploadResult result = routeService.recordRoute(uploadId, shipmentId, List.copyOf(validPoints), receivedCount);
             responseObserver.onNext(mapper.toProto(result));
             responseObserver.onCompleted();
-        } catch (ShipmentRouteService.UploadIdConflictException ex) {
+        } catch (UploadIdConflictException ex) {
             responseObserver.onError(Status.ALREADY_EXISTS.withDescription(ex.getMessage()).asRuntimeException());
         } catch (RuntimeException ex) {
             log.error("Route upload failed: uploadId={}, shipmentId={}", uploadId, shipmentId, ex);

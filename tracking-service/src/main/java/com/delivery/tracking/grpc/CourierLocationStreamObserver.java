@@ -1,8 +1,8 @@
 package com.delivery.tracking.grpc;
 
-import com.delivery.tracking.live.CourierLiveLocationService;
-import com.delivery.tracking.live.LiveLocationDecisionResult;
-import com.delivery.tracking.route.RoutePoint;
+import com.delivery.tracking.service.CourierLiveLocationService;
+import com.delivery.tracking.dto.LiveLocationDecisionResult;
+import com.delivery.tracking.dto.RoutePoint;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;

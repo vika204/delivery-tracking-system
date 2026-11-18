@@ -1,4 +1,4 @@
-package com.delivery.tracking.live;
+package com.delivery.tracking.dto;
 
 public record LiveLocationDecisionResult(
         String pointId,

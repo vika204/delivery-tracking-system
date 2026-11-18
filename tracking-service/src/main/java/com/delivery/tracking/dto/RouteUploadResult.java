@@ -1,4 +1,4 @@
-package com.delivery.tracking.route;
+package com.delivery.tracking.dto;
 
 public record RouteUploadResult(
         String uploadId,

@@ -1,10 +1,10 @@
-package com.delivery.tracking.live;
+package com.delivery.tracking.service;
 
+import com.delivery.tracking.dto.LiveLocationDecisionResult;
+import com.delivery.tracking.dto.RoutePoint;
 import com.delivery.tracking.entity.LiveLocationReceipt;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.repository.LiveLocationReceiptRepository;
-import com.delivery.tracking.route.RoutePoint;
-import com.delivery.tracking.service.LocationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

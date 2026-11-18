@@ -1,8 +1,8 @@
 package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.client.dto.ShipmentDto;
-import com.delivery.tracking.live.CourierLiveLocationService;
-import com.delivery.tracking.route.ShipmentRouteService;
+import com.delivery.tracking.service.CourierLiveLocationService;
+import com.delivery.tracking.service.ShipmentRouteService;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
 import com.google.protobuf.Timestamp;
