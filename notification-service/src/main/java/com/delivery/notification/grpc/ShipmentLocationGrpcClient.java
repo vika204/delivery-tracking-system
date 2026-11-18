@@ -1,5 +1,6 @@
 package com.delivery.notification.grpc;
 
+import com.delivery.notification.config.TrackingGrpcProperties;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpc.SubscribeToShipmentLocationsRequest;
@@ -9,7 +10,7 @@ import io.grpc.stub.StreamObserver;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -37,11 +38,22 @@ public class ShipmentLocationGrpcClient {
     private final long maxDelayMs;
     private final double multiplier;
 
+    @Autowired
     public ShipmentLocationGrpcClient(
             ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub,
-            @Value("${tracking.grpc.reconnect.initial-delay-ms}") long initialDelayMs,
-            @Value("${tracking.grpc.reconnect.max-delay-ms}") long maxDelayMs,
-            @Value("${tracking.grpc.reconnect.multiplier}") double multiplier
+            TrackingGrpcProperties properties
+    ) {
+        this(stub,
+                properties.retry().initialBackoff().toMillis(),
+                properties.retry().maxBackoff().toMillis(),
+                properties.retry().backoffMultiplier());
+    }
+
+    ShipmentLocationGrpcClient(
+            ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub,
+            long initialDelayMs,
+            long maxDelayMs,
+            double multiplier
     ) {
         this.stub = stub;
         this.initialDelayMs = initialDelayMs;
