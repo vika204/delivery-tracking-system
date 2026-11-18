@@ -3,7 +3,6 @@ package com.delivery.dispatch.dto;
 import java.util.List;
 
 public record LiveLocationStreamResponse(
-        String sessionId,
         long shipmentId,
         int sentCount,
         int acceptedCount,
@@ -12,9 +11,8 @@ public record LiveLocationStreamResponse(
         List<LiveLocationDecisionResponse> decisions
 ) {
     public static LiveLocationStreamResponse of(
-            String sessionId, long shipmentId, int sentCount, List<LiveLocationDecisionResponse> decisions) {
+            long shipmentId, int sentCount, List<LiveLocationDecisionResponse> decisions) {
         return new LiveLocationStreamResponse(
-                sessionId,
                 shipmentId,
                 sentCount,
                 count(decisions, LiveLocationDecisionResponse.Status.ACCEPTED),

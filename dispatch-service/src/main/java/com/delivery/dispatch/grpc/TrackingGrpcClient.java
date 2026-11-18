@@ -14,23 +14,16 @@ import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class TrackingGrpcClient {
-
-    private static final Logger log = LoggerFactory.getLogger(TrackingGrpcClient.class);
 
     private final ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub;
     private final TrackingGrpcProperties properties;
@@ -79,45 +72,14 @@ public class TrackingGrpcClient {
         }
     }
 
-    /**
-     * Канал повторює потік лише до першої відповіді сервера. Якщо потік обірвався пізніше,
-     * клієнт перепідключається з тим самим backoff і досилає лише непідтверджені точки.
-     */
-    public List<LiveLocationDecisionResponse> streamLiveLocations(
-            long shipmentId, String sessionId, List<LocationPointRequest> points) {
-        List<CourierLocationReport> reports = toReports(shipmentId, sessionId, points);
-        Map<String, CourierLocationDecision> decisions = new LinkedHashMap<>();
-        TrackingGrpcProperties.Retry retry = properties.retry();
-
-        for (int attempt = 1; ; attempt++) {
-            int confirmedBefore = decisions.size();
-            List<CourierLocationReport> pending = reports.stream()
-                    .filter(report -> !decisions.containsKey(report.getPointId()))
-                    .toList();
-            try {
-                streamOnce(pending, decisions);
-                break;
-            } catch (StatusRuntimeException ex) {
-                boolean progressed = decisions.size() > confirmedBefore;
-                if (ex.getStatus().getCode() != Status.Code.UNAVAILABLE || !progressed || attempt >= retry.maxAttempts()) {
-                    throw new TrackingGrpcException(ex);
-                }
-                Duration backoff = retry.backoff(attempt);
-                log.warn("gRPC stream interrupted, reconnecting: method=StreamCourierLocations, sessionId={}, attempt={}, remainingPoints={}, backoffMs={}",
-                        sessionId, attempt + 1, reports.size() - decisions.size(), backoff.toMillis());
-                sleep(backoff);
-            }
-        }
-
-        return decisions.values().stream().map(TrackingGrpcClient::toResponse).toList();
-    }
-
-    private void streamOnce(List<CourierLocationReport> reports, Map<String, CourierLocationDecision> decisions) {
+    public List<LiveLocationDecisionResponse> streamLiveLocations(long shipmentId, List<LocationPointRequest> points) {
+        List<LiveLocationDecisionResponse> decisions = new ArrayList<>();
         CompletableFuture<Void> completed = new CompletableFuture<>();
+
         StreamObserver<CourierLocationReport> requests = deadlineStub().streamCourierLocations(new StreamObserver<>() {
             @Override
             public void onNext(CourierLocationDecision decision) {
-                decisions.put(decision.getPointId(), decision);
+                decisions.add(toResponse(decision));
             }
 
             @Override
@@ -131,9 +93,24 @@ public class TrackingGrpcClient {
             }
         });
 
-        reports.forEach(requests::onNext);
+        for (LocationPointRequest point : points) {
+            CourierLocationReport.Builder report = CourierLocationReport.newBuilder()
+                    .setShipmentId(shipmentId)
+                    .setLatitude(coordinate(point.latitude()))
+                    .setLongitude(coordinate(point.longitude()));
+            if (point.recordedAt() != null) {
+                report.setRecordedAt(ProtoTimestamps.toTimestamp(point.recordedAt()));
+            }
+            requests.onNext(report.build());
+        }
         requests.onCompleted();
-        await(completed);
+
+        try {
+            await(completed);
+            return List.copyOf(decisions);
+        } catch (StatusRuntimeException ex) {
+            throw new TrackingGrpcException(ex);
+        }
     }
 
     private ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub deadlineStub() {
@@ -151,36 +128,6 @@ public class TrackingGrpcClient {
         }
     }
 
-    private static void sleep(Duration duration) {
-        try {
-            Thread.sleep(duration);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new TrackingGrpcException(Status.CANCELLED.withCause(ex).asRuntimeException());
-        }
-    }
-
-    private static List<CourierLocationReport> toReports(long shipmentId, String sessionId, List<LocationPointRequest> points) {
-        List<CourierLocationReport> reports = new ArrayList<>(points.size());
-        for (int i = 0; i < points.size(); i++) {
-            LocationPointRequest point = points.get(i);
-            String pointId = point.pointId() == null || point.pointId().isBlank()
-                    ? sessionId + "-" + (i + 1)
-                    : point.pointId().trim();
-            CourierLocationReport.Builder report = CourierLocationReport.newBuilder()
-                    .setPointId(pointId)
-                    .setShipmentId(shipmentId)
-                    .setLatitude(coordinate(point.latitude()))
-                    .setLongitude(coordinate(point.longitude()));
-            if (point.recordedAt() != null) {
-                report.setRecordedAt(ProtoTimestamps.toTimestamp(point.recordedAt()));
-            }
-            reports.add(report.build());
-        }
-        return reports;
-    }
-
-    // Відсутні значення надсилаються навмисно: tracking-service відхиляє такі точки поштучно.
     private static double coordinate(Double value) {
         return value == null ? Double.NaN : value;
     }
@@ -205,15 +152,12 @@ public class TrackingGrpcClient {
             default -> LiveLocationDecisionResponse.Status.REJECTED;
         };
         return new LiveLocationDecisionResponse(
-                decision.getPointId(),
                 decision.getShipmentId(),
                 status,
                 decision.getSaved(),
                 decision.getLocationId() == 0 ? null : decision.getLocationId(),
                 decision.getReason(),
-                decision.getDistanceMeters(),
-                decision.getSpeedKmh(),
-                decision.getDuplicate()
+                decision.getDistanceMeters()
         );
     }
 }
