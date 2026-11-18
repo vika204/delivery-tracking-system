@@ -64,9 +64,9 @@ class RouteUploadClientStreamingIntegrationTest {
         registry.add("outbox.relay.enabled", () -> "false");
         registry.add("dispatch.scheduling.enabled", () -> "false");
         registry.add("TRACKING_GRPC_TARGET", () -> "dns:///127.0.0.1:" + server.port());
-        registry.add("TRACKING_GRPC_RETRY_MAX_ATTEMPTS", () -> String.valueOf(MAX_ATTEMPTS));
-        registry.add("TRACKING_GRPC_RETRY_INITIAL_BACKOFF", () -> "50ms");
-        registry.add("TRACKING_GRPC_RETRY_MAX_BACKOFF", () -> "200ms");
+        registry.add("tracking.grpc.retry.max-attempts", () -> String.valueOf(MAX_ATTEMPTS));
+        registry.add("tracking.grpc.retry.initial-backoff", () -> "50ms");
+        registry.add("tracking.grpc.retry.max-backoff", () -> "200ms");
     }
 
     @Autowired

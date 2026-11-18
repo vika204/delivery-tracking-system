@@ -1,6 +1,7 @@
 package com.delivery.dispatch;
 
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
+import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -11,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConfigurationPropertiesScan
 @EnableScheduling
 @ImportGrpcClients(
-        target = "tracking",
+        target = TrackingGrpcProperties.CHANNEL,
         types = ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub.class
 )
 public class DispatchServiceApplication {

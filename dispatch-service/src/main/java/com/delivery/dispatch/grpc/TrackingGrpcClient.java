@@ -1,16 +1,16 @@
 package com.delivery.dispatch.grpc;
 
-import com.delivery.dispatch.config.TrackingGrpcProperties;
 import com.delivery.dispatch.dto.LiveLocationDecisionResponse;
 import com.delivery.dispatch.dto.LocationPointRequest;
 import com.delivery.dispatch.dto.RouteUploadResponse;
 import com.delivery.tracking.api.ProtoTimestamps;
-import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpc.CourierLocationDecision;
 import com.delivery.tracking.grpc.CourierLocationReport;
 import com.delivery.tracking.grpc.ShipmentRoutePoint;
 import com.delivery.tracking.grpc.ShipmentRouteSummary;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
