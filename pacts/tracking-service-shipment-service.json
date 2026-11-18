@@ -4,9 +4,7 @@
   },
   "interactions": [
     {
-      "description": "GET request for shipment details by ID 1",
-      "key": "shipment-get-by-id-1",
-      "pending": false,
+      "description": "a request for shipment 1",
       "providerStates": [
         {
           "name": "shipment 1 exists"
@@ -18,18 +16,12 @@
       },
       "response": {
         "body": {
-          "content": {
-            "recipientName": "Marta Shevchenko",
-            "shipmentId": 1,
-            "status": "WAITING_FOR_COURIER"
-          },
-          "contentType": "application/json",
-          "encoded": false
+          "recipientName": "Ivan Petrenko",
+          "shipmentId": 1,
+          "status": "CREATED"
         },
         "headers": {
-          "Content-Type": [
-            "application/json"
-          ]
+          "Content-Type": "application/json"
         },
         "matchingRules": {
           "body": {
@@ -45,7 +37,7 @@
               "combine": "AND",
               "matchers": [
                 {
-                  "match": "number"
+                  "match": "integer"
                 }
               ]
             },
@@ -57,23 +49,10 @@
                 }
               ]
             }
-          },
-          "header": {
-            "Content-Type": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "regex",
-                  "regex": "application/json(;\\s?charset=[\\w\\-]+)?"
-                }
-              ]
-            }
           }
         },
         "status": 200
-      },
-      "transport": "http",
-      "type": "Synchronous/HTTP"
+      }
     }
   ],
   "metadata": {
@@ -81,7 +60,7 @@
       "version": "4.6.17"
     },
     "pactSpecification": {
-      "version": "4.0"
+      "version": "3.0.0"
     }
   },
   "provider": {
