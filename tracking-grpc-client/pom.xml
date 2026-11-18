@@ -16,7 +16,7 @@
     <artifactId>tracking-grpc-client</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>tracking-grpc-client</name>
-    <description>Спільна клієнтська частина gRPC до tracking-service: логування спроб і обробка фінального статусу</description>
+    <description>Спільна клієнтська частина gRPC до tracking-service: retry-політика, логування спроб і обробка фінального статусу</description>
 
     <properties>
         <java.version>25</java.version>
@@ -24,8 +24,19 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.delivery</groupId>
+            <artifactId>tracking-api</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-grpc-client</artifactId>
         </dependency>
 
         <dependency>
@@ -41,6 +52,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
