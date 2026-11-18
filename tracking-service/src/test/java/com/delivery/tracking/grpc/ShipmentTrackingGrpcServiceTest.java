@@ -4,6 +4,7 @@ import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.service.CourierLiveLocationService;
 import com.delivery.tracking.service.ShipmentRouteService;
 import com.delivery.tracking.service.LocationService;
+import com.delivery.tracking.service.RoutePointValidator;
 import com.delivery.tracking.service.TrackingService;
 import com.google.protobuf.Timestamp;
 import io.github.resilience4j.bulkhead.Bulkhead;
@@ -50,6 +51,9 @@ class ShipmentTrackingGrpcServiceTest {
     private CourierLiveLocationService liveLocationService;
 
     @Mock
+    private RoutePointValidator pointValidator;
+
+    @Mock
     private TrackingProtoMapper mapper;
 
     @Mock
@@ -91,7 +95,7 @@ class ShipmentTrackingGrpcServiceTest {
 
     @Test
     void unaryReturnsUnavailableWhenDatabaseIsDown() {
-        when(trackingService.getShipmentById(15L)).thenReturn(new ShipmentDto(15L, "Recipient", "IN_TRANSIT"));
+        when(trackingService.getShipmentByIdWithoutFallback(15L)).thenReturn(new ShipmentDto(15L, "Recipient", "IN_TRANSIT"));
         when(locationService.findLatestLocation(15L))
                 .thenThrow(new CannotCreateTransactionException("Connection refused"));
 
@@ -102,7 +106,7 @@ class ShipmentTrackingGrpcServiceTest {
 
     @Test
     void unaryReturnsUnavailableWhenShipmentServiceBulkheadIsFull() {
-        when(trackingService.getShipmentById(15L))
+        when(trackingService.getShipmentByIdWithoutFallback(15L))
                 .thenThrow(BulkheadFullException.createBulkheadFullException(Bulkhead.ofDefaults("shipmentClient")));
 
         grpcService.getShipmentDeliveryInfo(deliveryInfoRequest(15L), deliveryObserver);
@@ -112,7 +116,7 @@ class ShipmentTrackingGrpcServiceTest {
 
     @Test
     void unaryReturnsInternalForUnexpectedError() {
-        when(trackingService.getShipmentById(15L)).thenReturn(new ShipmentDto(15L, "Recipient", "IN_TRANSIT"));
+        when(trackingService.getShipmentByIdWithoutFallback(15L)).thenReturn(new ShipmentDto(15L, "Recipient", "IN_TRANSIT"));
         when(locationService.findLatestLocation(15L))
                 .thenThrow(new DataIntegrityViolationException("broken"));
 
@@ -129,7 +133,8 @@ class ShipmentTrackingGrpcServiceTest {
                 .thenThrow(new CannotCreateTransactionException("Connection refused"));
 
         ShipmentTrackingGrpcService service = new ShipmentTrackingGrpcService(
-                publisher, trackingService, locationService, routeService, liveLocationService, new TrackingProtoMapper("UTC"));
+                publisher, trackingService, locationService, routeService, liveLocationService,
+                new RoutePointValidator(), new TrackingProtoMapper("UTC"));
 
         StreamObserver<ShipmentRoutePoint> requestObserver = service.recordShipmentRoute(responseObserver);
         requestObserver.onNext(ShipmentRoutePoint.newBuilder()
@@ -153,7 +158,8 @@ class ShipmentTrackingGrpcServiceTest {
                 .thenThrow(new CannotCreateTransactionException("Connection refused"));
 
         ShipmentTrackingGrpcService service = new ShipmentTrackingGrpcService(
-                publisher, trackingService, locationService, routeService, liveLocationService, new TrackingProtoMapper("UTC"));
+                publisher, trackingService, locationService, routeService, liveLocationService,
+                new RoutePointValidator(), new TrackingProtoMapper("UTC"));
 
         StreamObserver<CourierLocationReport> requestObserver = service.streamCourierLocations(responseObserver);
         requestObserver.onNext(CourierLocationReport.newBuilder()

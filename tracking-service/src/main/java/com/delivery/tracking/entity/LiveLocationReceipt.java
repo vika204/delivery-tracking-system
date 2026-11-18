@@ -15,7 +15,7 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class LiveLocationReceipt {
+public class LiveLocationReceipt extends AssignedIdEntity {
 
     @Id
     @Column(name = "point_id", length = 64)
@@ -35,4 +35,9 @@ public class LiveLocationReceipt {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Override
+    public String getId() {
+        return pointId;
+    }
 }

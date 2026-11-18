@@ -1,14 +1,18 @@
 package com.delivery.tracking.grpc;
 
+import com.delivery.tracking.api.ProtoTimestamps;
 import com.delivery.tracking.dto.RoutePoint;
+import com.delivery.tracking.service.RoutePointValidator;
 import com.delivery.tracking.service.ShipmentRouteService;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
 
@@ -19,6 +23,7 @@ class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
 
     private final StreamObserver<ShipmentRouteSummary> responseObserver;
     private final ShipmentRouteService routeService;
+    private final RoutePointValidator pointValidator;
     private final TrackingProtoMapper mapper;
     private final List<RoutePoint> validPoints = new ArrayList<>();
 
@@ -29,9 +34,11 @@ class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
 
     RouteUploadObserver(StreamObserver<ShipmentRouteSummary> responseObserver,
                         ShipmentRouteService routeService,
+                        RoutePointValidator pointValidator,
                         TrackingProtoMapper mapper) {
         this.responseObserver = responseObserver;
         this.routeService = routeService;
+        this.pointValidator = pointValidator;
         this.mapper = mapper;
     }
 
@@ -49,13 +56,14 @@ class RouteUploadObserver implements StreamObserver<ShipmentRoutePoint> {
         shipmentId = point.getShipmentId();
         receivedCount++;
 
-        try {
-            validPoints.add(mapper.toRoutePoint(point.getLatitude(), point.getLongitude(),
-                    point.hasRecordedAt() ? point.getRecordedAt() : null));
-        } catch (IllegalArgumentException ex) {
+        Instant recordedAt = point.hasRecordedAt() ? ProtoTimestamps.toInstant(point.getRecordedAt()) : null;
+        Optional<String> violation = pointValidator.findViolation(point.getLatitude(), point.getLongitude(), recordedAt);
+        if (violation.isPresent()) {
             log.warn("Route point rejected: uploadId={}, shipmentId={}, index={}, reason={}",
-                    uploadId, shipmentId, receivedCount - 1, ex.getMessage());
+                    uploadId, shipmentId, receivedCount - 1, violation.get());
+            return;
         }
+        validPoints.add(mapper.toRoutePoint(point.getLatitude(), point.getLongitude(), recordedAt));
     }
 
     @Override

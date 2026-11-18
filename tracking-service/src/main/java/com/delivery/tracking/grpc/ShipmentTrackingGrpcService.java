@@ -3,6 +3,7 @@ package com.delivery.tracking.grpc;
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.service.CourierLiveLocationService;
 import com.delivery.tracking.service.LocationService;
+import com.delivery.tracking.service.RoutePointValidator;
 import com.delivery.tracking.service.ShipmentRouteService;
 import com.delivery.tracking.service.TrackingService;
 import io.grpc.Status;
@@ -25,6 +26,7 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
     private final LocationService locationService;
     private final ShipmentRouteService routeService;
     private final CourierLiveLocationService liveLocationService;
+    private final RoutePointValidator pointValidator;
     private final TrackingProtoMapper mapper;
 
     public ShipmentTrackingGrpcService(LocationStreamPublisher publisher,
@@ -32,12 +34,14 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
                                        LocationService locationService,
                                        ShipmentRouteService routeService,
                                        CourierLiveLocationService liveLocationService,
+                                       RoutePointValidator pointValidator,
                                        TrackingProtoMapper mapper) {
         this.publisher = publisher;
         this.trackingService = trackingService;
         this.locationService = locationService;
         this.routeService = routeService;
         this.liveLocationService = liveLocationService;
+        this.pointValidator = pointValidator;
         this.mapper = mapper;
     }
 
@@ -69,10 +73,7 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
             return;
         }
         try {
-            ShipmentDto shipment = trackingService.getShipmentById(shipmentId);
-            if (TrackingService.UNAVAILABLE_STATUS.equals(shipment.status())) {
-                throw Status.UNAVAILABLE.withDescription("shipment-service is temporarily unavailable").asRuntimeException();
-            }
+            ShipmentDto shipment = trackingService.getShipmentByIdWithoutFallback(shipmentId);
             responseObserver.onNext(mapper.toDeliveryInfo(shipmentId, shipment.status(),
                     locationService.findLatestLocation(shipmentId)));
             responseObserver.onCompleted();
@@ -84,12 +85,12 @@ public class ShipmentTrackingGrpcService extends ShipmentTrackingServiceGrpc.Shi
 
     @Override
     public StreamObserver<ShipmentRoutePoint> recordShipmentRoute(StreamObserver<ShipmentRouteSummary> responseObserver) {
-        return new RouteUploadObserver(responseObserver, routeService, mapper);
+        return new RouteUploadObserver(responseObserver, routeService, pointValidator, mapper);
     }
 
     @Override
     public StreamObserver<CourierLocationReport> streamCourierLocations(StreamObserver<CourierLocationDecision> responseObserver) {
-        return new CourierLocationStreamObserver(responseObserver, liveLocationService, mapper);
+        return new CourierLocationStreamObserver(responseObserver, liveLocationService, pointValidator, mapper);
     }
 
     private static RuntimeException invalidShipmentId() {

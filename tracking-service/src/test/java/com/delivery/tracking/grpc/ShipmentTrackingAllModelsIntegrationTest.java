@@ -91,6 +91,8 @@ class ShipmentTrackingAllModelsIntegrationTest {
         trackingRepository.deleteAll();
         when(trackingService.getShipmentById(anyLong()))
                 .thenAnswer(invocation -> new ShipmentDto(invocation.getArgument(0), "Recipient", "IN_TRANSIT"));
+        when(trackingService.getShipmentByIdWithoutFallback(anyLong()))
+                .thenAnswer(invocation -> new ShipmentDto(invocation.getArgument(0), "Recipient", "IN_TRANSIT"));
     }
 
     @Test

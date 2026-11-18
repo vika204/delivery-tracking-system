@@ -1,13 +1,16 @@
 package com.delivery.tracking.grpc;
 
+import com.delivery.tracking.api.ProtoTimestamps;
 import com.delivery.tracking.dto.LiveLocationDecisionResult;
-import com.delivery.tracking.dto.RoutePoint;
 import com.delivery.tracking.service.CourierLiveLocationService;
+import com.delivery.tracking.service.RoutePointValidator;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 class CourierLocationStreamObserver implements StreamObserver<CourierLocationReport> {
@@ -18,6 +21,7 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
 
     private final StreamObserver<CourierLocationDecision> responseObserver;
     private final CourierLiveLocationService liveLocationService;
+    private final RoutePointValidator pointValidator;
     private final TrackingProtoMapper mapper;
 
     private int receivedCount;
@@ -25,9 +29,11 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
 
     CourierLocationStreamObserver(StreamObserver<CourierLocationDecision> responseObserver,
                                   CourierLiveLocationService liveLocationService,
+                                  RoutePointValidator pointValidator,
                                   TrackingProtoMapper mapper) {
         this.responseObserver = responseObserver;
         this.liveLocationService = liveLocationService;
+        this.pointValidator = pointValidator;
         this.mapper = mapper;
     }
 
@@ -39,12 +45,15 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
         receivedCount++;
         String pointId = report.getPointId().isBlank() ? "auto-" + UUID.randomUUID() : report.getPointId().trim();
         long shipmentId = report.getShipmentId();
+        Instant recordedAt = report.hasRecordedAt() ? ProtoTimestamps.toInstant(report.getRecordedAt()) : null;
 
         LiveLocationDecisionResult decision;
         try {
-            decision = liveLocationService.processPoint(pointId, shipmentId, toRoutePoint(pointId, report));
-        } catch (IllegalArgumentException ex) {
-            decision = LiveLocationDecisionResult.rejected(pointId, shipmentId, ex.getMessage());
+            Optional<String> violation = findViolation(pointId, report, recordedAt);
+            decision = violation.isPresent()
+                    ? LiveLocationDecisionResult.rejected(pointId, shipmentId, violation.get())
+                    : liveLocationService.processPoint(pointId, shipmentId,
+                            mapper.toRoutePoint(report.getLatitude(), report.getLongitude(), recordedAt));
         } catch (RuntimeException ex) {
             closed = true;
             log.error("Live courier location processing failed: pointId={}, shipmentId={}", pointId, shipmentId, ex);
@@ -71,14 +80,13 @@ class CourierLocationStreamObserver implements StreamObserver<CourierLocationRep
         responseObserver.onCompleted();
     }
 
-    private RoutePoint toRoutePoint(String pointId, CourierLocationReport report) {
+    private Optional<String> findViolation(String pointId, CourierLocationReport report, Instant recordedAt) {
         if (pointId.length() > MAX_POINT_ID_LENGTH) {
-            throw new IllegalArgumentException("pointId must be at most " + MAX_POINT_ID_LENGTH + " characters");
+            return Optional.of("pointId must be at most " + MAX_POINT_ID_LENGTH + " characters");
         }
         if (report.getShipmentId() <= 0) {
-            throw new IllegalArgumentException("shipmentId must be positive");
+            return Optional.of("shipmentId must be positive");
         }
-        return mapper.toRoutePoint(report.getLatitude(), report.getLongitude(),
-                report.hasRecordedAt() ? report.getRecordedAt() : null);
+        return pointValidator.findViolation(report.getLatitude(), report.getLongitude(), recordedAt);
     }
 }
