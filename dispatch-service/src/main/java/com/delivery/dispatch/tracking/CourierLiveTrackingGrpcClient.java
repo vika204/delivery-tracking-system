@@ -1,5 +1,6 @@
 package com.delivery.dispatch.tracking;
 
+import com.delivery.dispatch.config.TrackingGrpcProperties;
 import com.delivery.dispatch.tracking.dto.LiveLocationDecisionDto;
 import com.delivery.dispatch.tracking.dto.LiveLocationPointRequest;
 import com.delivery.dispatch.tracking.dto.LiveLocationStreamResponse;
@@ -12,7 +13,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -33,23 +33,14 @@ public class CourierLiveTrackingGrpcClient {
     private static final Duration STREAM_RESULT_TIMEOUT = Duration.ofSeconds(60);
 
     private final ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub asyncStub;
-    private final int maxAttempts;
-    private final Duration initialBackoff;
-    private final Duration maxBackoff;
-    private final double backoffMultiplier;
+    private final TrackingGrpcProperties.Retry retry;
 
     public CourierLiveTrackingGrpcClient(
             ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub asyncStub,
-            @Value("${spring.grpc.client.channel.tracking.service-config.method[1].retry.max-attempts:5}") int maxAttempts,
-            @Value("${spring.grpc.client.channel.tracking.service-config.method[1].retry.initial-backoff:500ms}") Duration initialBackoff,
-            @Value("${spring.grpc.client.channel.tracking.service-config.method[1].retry.max-backoff:4s}") Duration maxBackoff,
-            @Value("${spring.grpc.client.channel.tracking.service-config.method[1].retry.backoff-multiplier:2.0}") double backoffMultiplier
+            TrackingGrpcProperties properties
     ) {
         this.asyncStub = asyncStub;
-        this.maxAttempts = Math.max(1, maxAttempts);
-        this.initialBackoff = initialBackoff;
-        this.maxBackoff = maxBackoff;
-        this.backoffMultiplier = backoffMultiplier;
+        this.retry = properties.retry();
     }
 
     public LiveLocationStreamResponse streamLocations(
@@ -125,12 +116,12 @@ public class CourierLiveTrackingGrpcClient {
 
             if (status.getCode() == Status.Code.UNAVAILABLE
                     && midStreamFailure
-                    && reconnectAttempt < maxAttempts - 1) {
+                    && reconnectAttempt < retry.maxAttempts() - 1) {
                 reconnectAttempt++;
                 long delayMs = computeBackoffMs(reconnectAttempt);
                 int remaining = allReports.size() - decisionsByPointId.size();
                 log.warn("gRPC StreamCourierLocations interrupted mid-stream with UNAVAILABLE; reconnecting: sessionId={}, shipmentId={}, reconnectAttempt={}/{}, remainingPoints={}, backoffMs={}",
-                        sessionId, shipmentId, reconnectAttempt, maxAttempts - 1, remaining, delayMs);
+                        sessionId, shipmentId, reconnectAttempt, retry.maxAttempts() - 1, remaining, delayMs);
                 sleepBackoff(shipmentId, delayMs);
                 continue;
             }
@@ -183,8 +174,7 @@ public class CourierLiveTrackingGrpcClient {
     }
 
     private long computeBackoffMs(int reconnectAttempt) {
-        double raw = initialBackoff.toMillis() * Math.pow(backoffMultiplier, Math.max(0, reconnectAttempt - 1));
-        return Math.min((long) raw, maxBackoff.toMillis());
+        return retry.backoff(reconnectAttempt).toMillis();
     }
 
     private void sleepBackoff(long shipmentId, long delayMs) {
