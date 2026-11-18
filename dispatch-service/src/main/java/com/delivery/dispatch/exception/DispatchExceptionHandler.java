@@ -1,6 +1,7 @@
 package com.delivery.dispatch.exception;
 
-import org.springframework.http.HttpHeaders;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcProblems;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -29,24 +30,7 @@ public class DispatchExceptionHandler {
 
     @ExceptionHandler(TrackingGrpcException.class)
     public ResponseEntity<ProblemDetail> trackingUnavailable(TrackingGrpcException ex) {
-        HttpStatus status = switch (ex.getCode()) {
-            case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
-            case DEADLINE_EXCEEDED -> HttpStatus.GATEWAY_TIMEOUT;
-            case INVALID_ARGUMENT -> HttpStatus.BAD_REQUEST;
-            case NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case ALREADY_EXISTS -> HttpStatus.CONFLICT;
-            case FAILED_PRECONDITION -> HttpStatus.UNPROCESSABLE_CONTENT;
-            default -> HttpStatus.BAD_GATEWAY;
-        };
-        ProblemDetail problem = problem(status, "tracking-" + ex.getCode().name().toLowerCase().replace('_', '-'),
-                "Tracking gRPC " + ex.getCode(), ex);
-        problem.setProperty("grpcStatus", ex.getCode().name());
-
-        ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
-        if (status == HttpStatus.SERVICE_UNAVAILABLE) {
-            response.header(HttpHeaders.RETRY_AFTER, "5");
-        }
-        return response.body(problem);
+        return TrackingGrpcProblems.toResponse(ex);
     }
 
     private static ProblemDetail problem(HttpStatus status, String type, String title, Exception ex) {

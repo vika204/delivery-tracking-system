@@ -2,7 +2,8 @@ package com.delivery.notification.grpc;
 
 import com.delivery.notification.config.TrackingGrpcProperties;
 import com.delivery.notification.dto.DeliveryInfoResponse;
-import com.delivery.notification.exception.TrackingGrpcException;
+import com.delivery.tracking.api.ProtoTimestamps;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpc.GetShipmentDeliveryInfoRequest;
 import com.delivery.tracking.grpc.ShipmentDeliveryInfo;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
@@ -18,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -90,7 +90,7 @@ public class TrackingGrpcClient {
                 info.getStatus(),
                 info.getLatitude(),
                 info.getLongitude(),
-                Instant.ofEpochSecond(info.getRecordedAt().getSeconds(), info.getRecordedAt().getNanos())
+                ProtoTimestamps.toInstant(info.getRecordedAt())
         );
     }
 
@@ -140,7 +140,7 @@ public class TrackingGrpcClient {
             }
             log.info("gRPC location received: shipmentId={}, locationId={}, latitude={}, longitude={}, recordedAt={}",
                     update.getShipmentId(), update.getLocationId(), update.getLatitude(), update.getLongitude(),
-                    Instant.ofEpochSecond(update.getRecordedAt().getSeconds(), update.getRecordedAt().getNanos()));
+                    ProtoTimestamps.toInstant(update.getRecordedAt()));
         }
 
         @Override

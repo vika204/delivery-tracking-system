@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.delivery.dispatch.dto.LocationPointRequest;
-import com.delivery.dispatch.exception.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
 
 import java.io.IOException;
 import java.time.Instant;

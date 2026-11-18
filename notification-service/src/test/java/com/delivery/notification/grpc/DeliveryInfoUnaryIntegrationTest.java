@@ -1,6 +1,6 @@
 package com.delivery.notification.grpc;
 
-import com.delivery.notification.exception.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
 
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;

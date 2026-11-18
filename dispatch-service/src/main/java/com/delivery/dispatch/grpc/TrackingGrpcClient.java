@@ -4,13 +4,13 @@ import com.delivery.dispatch.config.TrackingGrpcProperties;
 import com.delivery.dispatch.dto.LiveLocationDecisionResponse;
 import com.delivery.dispatch.dto.LocationPointRequest;
 import com.delivery.dispatch.dto.RouteUploadResponse;
-import com.delivery.dispatch.exception.TrackingGrpcException;
+import com.delivery.tracking.api.ProtoTimestamps;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpc.CourierLocationDecision;
 import com.delivery.tracking.grpc.CourierLocationReport;
 import com.delivery.tracking.grpc.ShipmentRoutePoint;
 import com.delivery.tracking.grpc.ShipmentRouteSummary;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
-import com.google.protobuf.Timestamp;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,7 +66,7 @@ public class TrackingGrpcClient {
                     .setLatitude(coordinate(point.latitude()))
                     .setLongitude(coordinate(point.longitude()));
             if (point.recordedAt() != null) {
-                message.setRecordedAt(timestamp(point.recordedAt()));
+                message.setRecordedAt(ProtoTimestamps.toTimestamp(point.recordedAt()));
             }
             requests.onNext(message.build());
         }
@@ -174,7 +173,7 @@ public class TrackingGrpcClient {
                     .setLatitude(coordinate(point.latitude()))
                     .setLongitude(coordinate(point.longitude()));
             if (point.recordedAt() != null) {
-                report.setRecordedAt(timestamp(point.recordedAt()));
+                report.setRecordedAt(ProtoTimestamps.toTimestamp(point.recordedAt()));
             }
             reports.add(report.build());
         }
@@ -184,10 +183,6 @@ public class TrackingGrpcClient {
     // Відсутні значення надсилаються навмисно: tracking-service відхиляє такі точки поштучно.
     private static double coordinate(Double value) {
         return value == null ? Double.NaN : value;
-    }
-
-    private static Timestamp timestamp(Instant instant) {
-        return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
     }
 
     private static RouteUploadResponse toResponse(ShipmentRouteSummary summary) {

@@ -1,7 +1,7 @@
 package com.delivery.dispatch.grpc;
 
 import com.delivery.dispatch.dto.LocationPointRequest;
-import com.delivery.dispatch.exception.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
