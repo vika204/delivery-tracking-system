@@ -1,6 +1,7 @@
 package com.delivery.webui.config;
 
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
+import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +15,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
         havingValue = "true"
 )
 @ImportGrpcClients(
-        target = "tracking",
+        target = TrackingGrpcProperties.CHANNEL,
         types = ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub.class
 )
 public class TrackingGrpcClientConfiguration {
