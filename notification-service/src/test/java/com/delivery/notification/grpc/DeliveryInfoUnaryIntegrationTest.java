@@ -1,5 +1,7 @@
 package com.delivery.notification.grpc;
 
+import com.delivery.notification.exception.TrackingGrpcException;
+
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,19 +31,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Інтеграційні тести Unary-клієнта notification-service:
- * реальний Spring-контекст, канал із service config із application.properties
- * (перевизначено лише затримки) і реальний gRPC-сервер на TCP-порту.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 @ExtendWith(OutputCaptureExtension.class)
-// Тести з повною зупинкою сервера виконуються останніми, щоб стан каналу після
-// рестарту (reconnect backoff) не впливав на інші тести.
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class ShipmentDeliveryInfoGrpcClientRetryIntegrationTest {
+class DeliveryInfoUnaryIntegrationTest {
 
     static final int MAX_ATTEMPTS = 4;
     static final int RESTART_TESTS = Integer.MAX_VALUE - 10;
@@ -79,7 +74,7 @@ class ShipmentDeliveryInfoGrpcClientRetryIntegrationTest {
     }
 
     @Autowired
-    private ShipmentDeliveryInfoGrpcClient client;
+    private TrackingGrpcClient client;
 
     @Autowired
     private MockMvc mockMvc;
@@ -87,7 +82,6 @@ class ShipmentDeliveryInfoGrpcClientRetryIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         server.start();
-        // Кожен тест починаємо з робочого з'єднання й нульових лічильників.
         server.reset();
         awaitSuccess(() -> client.getDeliveryInfo(1));
         server.reset();
@@ -183,11 +177,7 @@ class ShipmentDeliveryInfoGrpcClientRetryIntegrationTest {
         assertThat(server.unaryCalls.get()).isPositive();
     }
 
-    /**
-     * Після рестарту канал може ще перебувати в TRANSIENT_FAILURE і чекати свого connect-backoff,
-     * тому перевіряємо, що виклики відновлюються протягом розумного часу, а не миттєво.
-     */
-    private static void awaitSuccess(Runnable call) throws InterruptedException {
+        private static void awaitSuccess(Runnable call) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
         TrackingGrpcException last = null;
 

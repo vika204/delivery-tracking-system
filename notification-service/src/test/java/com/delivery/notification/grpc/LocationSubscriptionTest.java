@@ -1,5 +1,6 @@
 package com.delivery.notification.grpc;
 
+import com.delivery.notification.config.TrackingGrpcProperties;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpc.SubscribeToShipmentLocationsRequest;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,12 +26,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-class ShipmentLocationGrpcClientTest {
+class LocationSubscriptionTest {
 
     @Mock
     private ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub stub;
 
-    private ShipmentLocationGrpcClient client;
+    private TrackingGrpcClient client;
 
     @AfterEach
     void tearDown() {
@@ -57,7 +59,7 @@ class ShipmentLocationGrpcClientTest {
             return null;
         }).when(stub).subscribeToShipmentLocations(any(), any());
 
-        client = new ShipmentLocationGrpcClient(stub, 10, 100, 2.0);
+        client = client(10, 100);
 
         assertThat(client.subscribe(15L)).isTrue();
 
@@ -85,7 +87,7 @@ class ShipmentLocationGrpcClientTest {
             return null;
         }).when(stub).subscribeToShipmentLocations(any(), any());
 
-        client = new ShipmentLocationGrpcClient(stub, 10, 100, 2.0);
+        client = client(10, 100);
 
         assertThat(client.subscribe(15L)).isTrue();
         assertThat(attempts.get()).isEqualTo(1);
@@ -115,7 +117,7 @@ class ShipmentLocationGrpcClientTest {
             return null;
         }).when(stub).subscribeToShipmentLocations(any(), any());
 
-        client = new ShipmentLocationGrpcClient(stub, 10, 100, 2.0);
+        client = client(10, 100);
 
         assertThat(client.subscribe(15L)).isTrue();
 
@@ -135,12 +137,18 @@ class ShipmentLocationGrpcClientTest {
             return null;
         }).when(stub).subscribeToShipmentLocations(any(), any());
 
-        client = new ShipmentLocationGrpcClient(stub, 200, 200, 2.0);
+        client = client(200, 200);
 
         assertThat(client.subscribe(15L)).isTrue();
         assertThat(client.unsubscribe(15L)).isTrue();
 
         verify(stub, after(350).times(1))
                 .subscribeToShipmentLocations(any(SubscribeToShipmentLocationsRequest.class), any());
+    }
+
+    private TrackingGrpcClient client(long initialBackoffMs, long maxBackoffMs) {
+        TrackingGrpcProperties properties = new TrackingGrpcProperties(Duration.ofSeconds(5), new TrackingGrpcProperties.Retry(
+                5, Duration.ofMillis(initialBackoffMs), Duration.ofMillis(maxBackoffMs), 2.0));
+        return new TrackingGrpcClient(null, stub, properties);
     }
 }

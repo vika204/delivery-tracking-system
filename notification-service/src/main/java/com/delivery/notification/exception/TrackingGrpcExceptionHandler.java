@@ -1,6 +1,5 @@
-package com.delivery.notification.controller;
+package com.delivery.notification.exception;
 
-import com.delivery.notification.grpc.TrackingGrpcException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -10,44 +9,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.net.URI;
 
-/**
- * Перетворює фінальний gRPC-статус tracking-service на HTTP-відповідь.
- * UNAVAILABLE (усі retries вичерпано) -> 503 + Retry-After, щоб викликач повторив пізніше.
- */
-@RestControllerAdvice(assignableTypes = ShipmentDeliveryInfoController.class)
+@RestControllerAdvice
 public class TrackingGrpcExceptionHandler {
-
-    static final String RETRY_AFTER_SECONDS = "5";
 
     @ExceptionHandler(TrackingGrpcException.class)
     public ResponseEntity<ProblemDetail> handle(TrackingGrpcException ex) {
         HttpStatus status = switch (ex.getCode()) {
             case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             case DEADLINE_EXCEEDED -> HttpStatus.GATEWAY_TIMEOUT;
-            case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case INVALID_ARGUMENT -> HttpStatus.BAD_REQUEST;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case ALREADY_EXISTS -> HttpStatus.CONFLICT;
             case FAILED_PRECONDITION -> HttpStatus.UNPROCESSABLE_CONTENT;
             default -> HttpStatus.BAD_GATEWAY;
         };
-
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail(ex));
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
         problem.setType(URI.create("urn:delivery:problem:tracking-" + ex.getCode().name().toLowerCase().replace('_', '-')));
         problem.setTitle("Tracking gRPC " + ex.getCode());
         problem.setProperty("grpcStatus", ex.getCode().name());
 
         ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
-        if (ex.isUnavailable()) {
-            response.header(HttpHeaders.RETRY_AFTER, RETRY_AFTER_SECONDS);
+        if (status == HttpStatus.SERVICE_UNAVAILABLE) {
+            response.header(HttpHeaders.RETRY_AFTER, "5");
         }
         return response.body(problem);
-    }
-
-    private static String detail(TrackingGrpcException ex) {
-        return switch (ex.getCode()) {
-            case UNAVAILABLE -> "Tracking-service тимчасово недоступний. Спробуйте пізніше.";
-            case DEADLINE_EXCEEDED -> "Tracking-service не відповів вчасно.";
-            case NOT_FOUND -> "Посилку не знайдено.";
-            default -> ex.getMessage();
-        };
     }
 }
