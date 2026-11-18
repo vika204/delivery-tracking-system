@@ -1,14 +1,14 @@
 package com.delivery.notification.grpc;
 
-import com.delivery.notification.config.TrackingGrpcProperties;
 import com.delivery.notification.dto.DeliveryInfoResponse;
 import com.delivery.tracking.api.ProtoTimestamps;
-import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpc.GetShipmentDeliveryInfoRequest;
 import com.delivery.tracking.grpc.ShipmentDeliveryInfo;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpc.SubscribeToShipmentLocationsRequest;
+import com.delivery.tracking.grpcclient.TrackingGrpcException;
+import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import io.grpc.Context;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;

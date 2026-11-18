@@ -1,9 +1,9 @@
 package com.delivery.notification.grpc;
 
-import com.delivery.notification.config.TrackingGrpcProperties;
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpc.SubscribeToShipmentLocationsRequest;
+import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.AfterEach;
