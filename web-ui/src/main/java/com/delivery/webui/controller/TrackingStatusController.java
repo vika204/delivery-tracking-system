@@ -5,7 +5,6 @@ import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.controller.dto.TrackingShipmentStatusResponse;
 import com.delivery.webui.controller.support.LoopbackOnly;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,14 +19,10 @@ import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/tracking/shipments")
-@ConditionalOnProperty(
-        prefix = "tracking.stream",
-        name = "enabled",
-        havingValue = "true"
-)
 public class TrackingStatusController {
 
     private final TrackingShipmentClient shipmentClient;
+
     public TrackingStatusController(TrackingShipmentClient shipmentClient) {
         this.shipmentClient = shipmentClient;
     }
@@ -49,7 +44,10 @@ public class TrackingStatusController {
         try {
             TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
 
-            if (shipment == null || shipment.shipmentId() == null || shipment.shipmentId() != shipmentId || shipment.status() == null || shipment.status().isBlank() || "UNAVAILABLE".equalsIgnoreCase(shipment.status())) {
+            if (shipment == null || shipment.shipmentId() == null
+                    || shipment.shipmentId() != shipmentId
+                    || shipment.status() == null || shipment.status().isBlank()
+                    || "UNAVAILABLE".equalsIgnoreCase(shipment.status().trim())) {
                 throw new ResponseStatusException(
                         HttpStatus.SERVICE_UNAVAILABLE,
                         "Shipment status is temporarily unavailable"

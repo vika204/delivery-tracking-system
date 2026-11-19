@@ -25,14 +25,17 @@ let current = null;
 let gpsWatch = null;
 let lastSentAt = null;
 let sending = false;
-// точка, яку не вдалося доставити через збій; надсилається повторно з тим самим pointId
 let pendingPoint = null;
+let requestInProgress = false;
+let refreshTimer = null;
+let pageClosed = false;
 
 async function call(method, path = '', body) {
     let response;
     try {
         response = await fetch(api + path, {
             method,
+            cache: 'no-store',
             headers: body ? {'Content-Type': 'application/json'} : {},
             body: body ? JSON.stringify(body) : undefined
         });
@@ -70,6 +73,10 @@ function render(shipment) {
     if (action) advanceLabel.textContent = action.label;
 
     if (sharesGps(shipment.status)) startGps(); else stopGps();
+    if (shipment.status === 'DELIVERED' || shipment.status === 'CANCELLED') {
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+    }
 }
 
 function setGpsStatus(text, warning = false) {
@@ -79,17 +86,22 @@ function setGpsStatus(text, warning = false) {
 }
 
 async function sendPosition(position) {
-    if (sending || !shouldSendPosition(lastSentAt, Date.now())) return;
+    if (pageClosed || !sharesGps(current?.status) || sending ||
+        !shouldSendPosition(lastSentAt, Date.now())) return;
     sending = true;
     lastSentAt = Date.now();
     const point = pendingPoint ?? locationPayload(position);
     try {
         await call('POST', '/locations', point);
         pendingPoint = null;
-        setGpsStatus(`GPS: sharing location · last sent ${new Date().toLocaleTimeString()}`);
+        if (!pageClosed && sharesGps(current?.status)) {
+            setGpsStatus(`GPS: sharing location · last sent ${new Date().toLocaleTimeString()}`);
+        }
     } catch (error) {
-        pendingPoint = isRetriableFailure(error.status) ? point : null;
-        setGpsStatus(`GPS: ${error.message}`, true);
+        if (!pageClosed && sharesGps(current?.status)) {
+            pendingPoint = isRetriableFailure(error.status) ? point : null;
+            setGpsStatus(`GPS: ${error.message}`, true);
+        }
     } finally {
         sending = false;
     }
@@ -104,7 +116,11 @@ function startGps() {
     setGpsStatus('GPS: waiting for location…');
     gpsWatch = navigator.geolocation.watchPosition(
         sendPosition,
-        error => setGpsStatus(`GPS: ${error.message || 'location is unavailable'}`, true),
+        error => {
+            if (!pageClosed && sharesGps(current?.status)) {
+                setGpsStatus(`GPS: ${error.message || 'location is unavailable'}`, true);
+            }
+        },
         {enableHighAccuracy: true, maximumAge: 5000}
     );
 }
@@ -114,25 +130,54 @@ function stopGps() {
         navigator.geolocation.clearWatch(gpsWatch);
         gpsWatch = null;
     }
+    pendingPoint = null;
     gpsStatus.hidden = true;
 }
 
 advance.addEventListener('click', async () => {
     const action = current && nextAction(current.status);
-    if (!action) return;
+    if (pageClosed || requestInProgress || !action) return;
+    requestInProgress = true;
     advance.disabled = true;
     notice.textContent = '';
     try {
-        render(await call('POST', `/${action.action}`));
+        const shipment = await call('POST', `/${action.action}`);
+        if (!pageClosed) render(shipment);
     } catch (error) {
-        notice.textContent = error.message;
+        if (!pageClosed) notice.textContent = error.message;
     } finally {
+        requestInProgress = false;
         advance.disabled = false;
     }
 });
 
-window.addEventListener('pagehide', stopGps);
+async function refreshShipment() {
+    if (pageClosed) return;
+    if (!requestInProgress) {
+        requestInProgress = true;
+        advance.disabled = true;
+        try {
+            const shipment = await call('GET');
+            if (!pageClosed) {
+                render(shipment);
+                notice.textContent = '';
+            }
+        } catch (error) {
+            if (!pageClosed) notice.textContent = error.message;
+        } finally {
+            requestInProgress = false;
+            advance.disabled = false;
+        }
+    }
+    if (!pageClosed && current?.status !== 'DELIVERED' && current?.status !== 'CANCELLED') {
+        refreshTimer = setTimeout(refreshShipment, 5000);
+    }
+}
 
-call('GET').then(render).catch(error => {
-    notice.textContent = error.message;
+window.addEventListener('pagehide', () => {
+    pageClosed = true;
+    clearTimeout(refreshTimer);
+    stopGps();
 });
+
+refreshShipment();

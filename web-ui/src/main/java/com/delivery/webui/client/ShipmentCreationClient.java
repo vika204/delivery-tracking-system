@@ -15,7 +15,6 @@ import org.springframework.web.client.RestClient;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-/** Pricing і CreateShipment у shipment-service від імені відправника (X-User-Id). */
 @Component
 public class ShipmentCreationClient {
 
@@ -29,7 +28,7 @@ public class ShipmentCreationClient {
     public ShipmentCreationClient(RestClient.Builder builder, @Value("${shipment.client.base-url}") String baseUrl) {
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(20));
         this.restClient = builder.baseUrl(baseUrl).requestFactory(requestFactory).build();
     }
 
@@ -45,7 +44,6 @@ public class ShipmentCreationClient {
                 .retrieve().body(ShipmentQuoteResponse.class);
     }
 
-    /** Idempotency-Key передається як є: повтор з тим самим ключем поверне вже створену доставку. */
     public Creation create(long senderId, String idempotencyKey, CreateShipmentRequest request) {
         ResponseEntity<CreatedShipmentResponse> response = restClient.post().uri("/shipments")
                 .header(USER_ID, String.valueOf(senderId))

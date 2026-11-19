@@ -6,6 +6,8 @@ import com.delivery.events.ShipmentDetailsUpdatedEvent;
 import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.ShipmentStatus;
+import com.delivery.shipment.geo.OfflineRoutingClient;
+import com.delivery.shipment.geo.RoutingClient;
 import com.delivery.shipment.kafka.DispatchEventListener;
 import com.delivery.shipment.kafka.InvalidDispatchEventException;
 import com.delivery.shipment.outbox.OutboxRelay;
@@ -29,6 +31,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -100,6 +103,12 @@ class ShipmentApiIntegrationTest {
     @Autowired private ProcessedEventRepository processed;
     @Autowired private OutboxTraceContext traceContext;
     @Autowired private MeterRegistry meterRegistry;
+
+    @TestBean private RoutingClient routingClient;
+
+    static RoutingClient routingClient() {
+        return new OfflineRoutingClient();
+    }
 
     @BeforeEach
     void cleanDatabase() {

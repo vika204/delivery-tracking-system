@@ -82,6 +82,9 @@ test('formats price, distance and server problems', () => {
     assert.equal(formatPrice(142), '142.00 UAH');
     assert.equal(formatPrice(null), '—');
     assert.equal(formatDistance(7.3), '7.3 km');
+    assert.equal(formatDistance(0.02), '20 m');
+    assert.equal(formatDistance(0), '0 km');
+    assert.equal(formatDistance(null), '—');
     assert.equal(problemMessage({detail: 'Request validation failed',
         errors: [{field: 'recipientPhone', message: 'must be a valid phone number'}]}, 'fallback'),
         'Request validation failed: recipientPhone must be a valid phone number');

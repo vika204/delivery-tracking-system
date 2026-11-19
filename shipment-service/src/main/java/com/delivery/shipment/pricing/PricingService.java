@@ -14,10 +14,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Pricing Context. Знаходиться в shipment-service окремим пакетом і спілкується з рештою
- * коду лише через цей сервіс, тож його можна винести в окремий мікросервіс без змін у Shipment.
- */
 @Service
 public class PricingService {
 
@@ -55,7 +51,7 @@ public class PricingService {
         Coordinates pickup = routingClient.geocode(pickupCityCode, pickupAddress);
         Coordinates delivery = routingClient.geocode(deliveryCityCode, deliveryAddress);
         BigDecimal distanceKm = BigDecimal.valueOf(routingClient.routeDistanceKm(pickup, delivery))
-                .setScale(1, RoundingMode.HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
         return new RouteQuote(pickup, delivery, distanceKm, calculator.calculate(distanceKm, weight, deliveryType));
     }

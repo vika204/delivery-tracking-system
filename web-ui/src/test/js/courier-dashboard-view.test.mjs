@@ -26,7 +26,10 @@ test('labels delivery by pickup progress', () => {
 
 test('formats offer details and tolerates missing values', () => {
     assert.equal(formatWeight(4.2), '4.2 kg');
-    assert.equal(formatDistance(7.25), '7.3 km');
+    assert.equal(formatDistance(7.25), '7.25 km');
+    assert.equal(formatDistance(0.02), '20 m');
+    assert.equal(formatDistance(0.99), '990 m');
+    assert.equal(formatDistance(1), '1 km');
     assert.equal(formatPrice(142), '₴142');
     assert.equal(formatWeight(null), '—');
     assert.equal(formatDistance(undefined), '—');

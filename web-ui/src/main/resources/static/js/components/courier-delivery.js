@@ -1,4 +1,4 @@
-// Чисті функції сторінки доставки кур'єра: без DOM і мережі, тож тестуються в node.
+import {formatDistance} from './format-distance.js';
 
 /** TO PICK UP — підпис посилки зі статусом ASSIGNED (і TO_PICKUP, якщо кур'єр уже виїхав). */
 const LABELS = Object.freeze({
@@ -63,5 +63,6 @@ export function isRetriableFailure(status) {
 }
 
 export function formatValue(value, unit) {
+    if (unit === 'km') return formatDistance(value);
     return value == null ? '—' : `${Number(value)} ${unit}`;
 }

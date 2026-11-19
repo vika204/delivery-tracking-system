@@ -1,6 +1,7 @@
 package com.delivery.shipment.exception;
 
 import com.delivery.shipment.geo.AddressNotGeocodableException;
+import com.delivery.shipment.geo.GeoapifyUnavailableException;
 import com.delivery.shipment.pricing.QuoteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AddressNotGeocodableException.class)
     public ResponseEntity<Object> handleAddressNotGeocodable(AddressNotGeocodableException ex, WebRequest request) {
         return problem(ex, HttpStatus.UNPROCESSABLE_ENTITY, ADDRESS_NOT_GEOCODABLE, "Address cannot be geocoded", request);
+    }
+
+    @ExceptionHandler(GeoapifyUnavailableException.class)
+    public ResponseEntity<Object> handleGeoapifyUnavailable(GeoapifyUnavailableException ex, WebRequest request) {
+        return problem(ex, HttpStatus.SERVICE_UNAVAILABLE, URI.create("urn:delivery:problem:routing-unavailable"),
+                "Delivery distance calculation unavailable", request);
     }
 
     @ExceptionHandler(QuoteException.class)

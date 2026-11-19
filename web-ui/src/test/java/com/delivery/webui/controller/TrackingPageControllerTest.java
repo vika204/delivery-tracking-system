@@ -181,7 +181,8 @@ class TrackingPageControllerTest {
                 .andExpect(content().string(containsString("2D VIEW")))
                 .andExpect(content().string(containsString("maplibre-gl.js")))
                 .andExpect(content().string(containsString("tracking-map.js")))
-                .andExpect(content().string(not(containsString("tracking-live.js"))))
+                .andExpect(content().string(containsString("tracking-live.js")))
+                .andExpect(content().string(containsString("streamEnabled: false")))
                 .andExpect(content().string(not(containsString(
                         "id=\"tracking-stream-status\""
                 ))))

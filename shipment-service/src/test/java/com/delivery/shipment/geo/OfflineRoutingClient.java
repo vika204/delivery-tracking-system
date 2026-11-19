@@ -1,14 +1,12 @@
 package com.delivery.shipment.geo;
 
-import org.springframework.stereotype.Component;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
 /**
- * Офлайн-реалізація Maps/Routing API без зовнішніх викликів.
+ * Тестова реалізація RoutingClient без зовнішніх викликів.
  * <p>
  * Геокодування: перші дві цифри KATOTTG-коду визначають область, її центр береться з таблиці.
  * Конкретний населений пункт отримує детерміноване зміщення від центру (за хешем коду),
@@ -17,7 +15,6 @@ import java.util.zip.CRC32;
  * <p>
  * Відстань: велике коло (haversine) × коефіцієнт звивистості доріг.
  */
-@Component
 public class OfflineRoutingClient implements RoutingClient {
 
     static final double ROAD_FACTOR = 1.3;

@@ -244,6 +244,125 @@ test("complete with a non-terminal status reconnects safely", async () => {
     assert.deepEqual(harness.timers.delays(), [1000]);
 });
 
+test("refreshes ASSIGNED and IN_TRANSIT while the GPS stream stays open", async () => {
+    const statuses = ["ASSIGNED", "IN_TRANSIT"];
+    const harness = createHarness({
+        statusRefreshMs: 5000,
+        fetchStatus: async () => ({shipmentId: 15, status: statuses.shift()})
+    });
+
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "COURIER ASSIGNED");
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources.length, 1);
+    assert.equal(harness.sources[0].closed, false);
+    assert.deepEqual(harness.timers.delays(), [5000]);
+});
+
+for (const status of ["DELIVERED", "CANCELLED"]) {
+    test(`status refresh confirms ${status}, closes SSE and preserves the route`, async () => {
+        const harness = createHarness({
+            statusRefreshMs: 5000,
+            initialLocations: [location(10)],
+            fetchStatus: async () => ({shipmentId: 15, status})
+        });
+
+        await harness.timers.runNext();
+        assert.equal(harness.deliveryStatus.textContent, status);
+        assert.equal(harness.sources[0].closeCount, 1);
+        assert.equal(harness.status.element.hidden, true);
+        assert.equal(harness.timers.size, 0);
+        assert.deepEqual(harness.mapApi.locationIds(), [10]);
+        await harness.sources[0].emit("complete");
+        assert.equal(harness.sources[0].closeCount, 1);
+    });
+}
+
+test("refreshes status with GPS disabled and no map or EventSource", async () => {
+    const harness = createHarness({
+        config: {shipmentId: 15, streamEnabled: false},
+        statusRefreshMs: 5000,
+        mapApi: null,
+        createEventSource: null,
+        fetchBackfill: null,
+        fetchStatus: async () => ({shipmentId: 15, status: "ASSIGNED"})
+    });
+
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "COURIER ASSIGNED");
+    assert.equal(harness.sources.length, 0);
+    harness.page.emit("pagehide");
+    assert.equal(harness.timers.size, 0);
+});
+
+test("a network failure preserves the confirmed status and retries later", async () => {
+    let requests = 0;
+    const harness = createHarness({
+        statusRefreshMs: 5000,
+        fetchStatus: async () => {
+            if (++requests === 1) throw new Error("Network unavailable");
+            return {shipmentId: 15, status: "DELIVERED"};
+        }
+    });
+
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closed, false);
+    assert.deepEqual(harness.timers.delays(), [5000]);
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+});
+
+test("polling and SSE completion share one pending status request", async () => {
+    const pending = deferred();
+    let requests = 0;
+    const harness = createHarness({
+        statusRefreshMs: 5000,
+        fetchStatus: () => {
+            requests += 1;
+            return pending.promise;
+        }
+    });
+
+    const refresh = harness.timers.runNext();
+    const completion = harness.sources[0].emit("complete");
+    await Promise.resolve();
+    assert.equal(requests, 1);
+    assert.equal(harness.timers.size, 0);
+    pending.resolve({shipmentId: 15, status: "DELIVERED"});
+    await Promise.all([refresh, completion]);
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+    assert.equal(harness.timers.size, 0);
+});
+
+test("leaving the page ignores a late status response and cancels timers", async () => {
+    const pending = deferred();
+    const harness = createHarness({
+        statusRefreshMs: 5000,
+        fetchStatus: () => pending.promise
+    });
+
+    const refresh = harness.timers.runNext();
+    harness.page.emit("pagehide");
+    pending.resolve({shipmentId: 15, status: "DELIVERED"});
+    await refresh;
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closeCount, 1);
+    assert.equal(harness.timers.size, 0);
+});
+
+test("ignores status belonging to a different shipment", async () => {
+    const harness = createHarness({
+        statusRefreshMs: 5000,
+        fetchStatus: async () => ({shipmentId: 99, status: "DELIVERED"})
+    });
+
+    await harness.timers.runNext();
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closed, false);
+});
+
 test("temporary status failure reconnects but permanent rejection stops", async () => {
     const temporary = createHarness({
         fetchStatus: async () => {
@@ -542,6 +661,7 @@ function baseOptions(overrides = {}) {
         fetchStatus: async () => activeShipment(),
         fetchBackfill: async () => ({locations: [], complete: true}),
         pageTarget: new FakePageTarget(),
+        statusRefreshMs: 0,
         ...overrides
     };
 }

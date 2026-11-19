@@ -15,9 +15,7 @@ export function formatWeight(kg) {
     return kg == null ? '—' : `${Number(kg)} kg`;
 }
 
-export function formatDistance(km) {
-    return km == null ? '—' : `${Number(km).toFixed(1)} km`;
-}
+export {formatDistance} from './format-distance.js';
 
 export function formatPrice(uah) {
     return uah == null ? '—' : `₴${Number(uah)}`;
