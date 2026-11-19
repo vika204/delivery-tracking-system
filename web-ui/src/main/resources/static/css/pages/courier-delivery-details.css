@@ -282,3 +282,27 @@ button {
         transition: none;
     }
 }
+
+.gps-status,
+.delivery-notice {
+    margin: 0 0 14px;
+    font: 700 14px/1.5 'DM Sans', sans-serif;
+}
+
+.gps-status {
+    color: #4f6b3a;
+}
+
+.gps-status.warning,
+.delivery-notice {
+    color: #ab513f;
+}
+
+.delivery-notice:empty {
+    display: none;
+}
+
+.delivery-button:disabled {
+    cursor: progress;
+    opacity: .65;
+}
