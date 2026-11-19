@@ -7,11 +7,20 @@
 }
 
 .courier-profile-page .profile-art {
+    position: relative;
     margin-top: 8px;
 }
 
 .courier-profile-page .profile-art img {
     transform: scale(1.1);
+}
+
+.courier-profile-page .profile-art img.open-to-work-frame {
+    position: absolute;
+    inset: 0;
+    object-fit: contain;
+    transform: none;
+    pointer-events: none;
 }
 
 .courier-profile-page .profile-data + .profile-data {
