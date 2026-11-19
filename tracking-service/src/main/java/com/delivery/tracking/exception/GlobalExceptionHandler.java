@@ -22,6 +22,18 @@ public class GlobalExceptionHandler
     private static final Logger log =
             LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(LocationRejectedException.class)
+    public ProblemDetail handleLocationRejected(LocationRejectedException ex) {
+        boolean jump = ex.getReason() == LocationRejectedException.Reason.SUSPICIOUS_JUMP;
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                jump ? HttpStatus.UNPROCESSABLE_CONTENT : HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create(jump
+                ? "urn:delivery:problem:location-suspicious-jump"
+                : "urn:delivery:problem:location-invalid"));
+        problem.setTitle("Location rejected");
+        return problem;
+    }
+
     //сюди попадають помилки 4xx від shipment-service, наприклад 404, якщо посилку не знайдено
     @ExceptionHandler(HttpClientErrorException.class)
     public ProblemDetail handleShipmentClientError(
