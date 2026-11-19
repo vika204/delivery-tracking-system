@@ -2,6 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.controller.dto.CourierDashboardView;
+import com.delivery.webui.controller.support.UpstreamProblemAdvice;
 import com.delivery.webui.service.CourierDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,8 @@ class CourierDashboardApiControllerTest {
     private static final long COURIER = 7;
 
     private final CourierDashboardService service = mock(CourierDashboardService.class);
-    private final MockMvc mockMvc = standaloneSetup(new CourierDashboardApiController(service, COURIER)).build();
+    private final MockMvc mockMvc = standaloneSetup(new CourierDashboardApiController(service, COURIER))
+            .setControllerAdvice(new UpstreamProblemAdvice()).build();
 
     @Test
     void returnsDashboardOfConfiguredCourier() throws Exception {
@@ -76,7 +78,8 @@ class CourierDashboardApiControllerTest {
                                 """));
         CourierDashboardService realService = new CourierDashboardService(
                 new DispatchCourierDashboardClient(builder.baseUrl("http://dispatch.test").build()));
-        MockMvc wired = standaloneSetup(new CourierDashboardApiController(realService, COURIER)).build();
+        MockMvc wired = standaloneSetup(new CourierDashboardApiController(realService, COURIER))
+                .setControllerAdvice(new UpstreamProblemAdvice()).build();
 
         wired.perform(post("/api/courier/dashboard/offers/55/accept").with(loopback()))
                 .andExpect(status().isConflict())

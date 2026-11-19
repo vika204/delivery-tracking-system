@@ -1,13 +1,11 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.controller.dto.CourierDashboardView;
+import com.delivery.webui.controller.support.LoopbackOnly;
 import com.delivery.webui.service.CourierDashboardService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,12 +14,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 /**
  * BFF для Courier Dashboard. Лише для локальної розробки: кур'єр задається властивістю
@@ -43,9 +35,7 @@ public class CourierDashboardApiController {
 
     @ModelAttribute
     void requireLoopback(HttpServletRequest request) {
-        if (!isLoopback(request.getRemoteAddr())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Courier dashboard API is restricted to local development");
-        }
+        LoopbackOnly.require(request, "Courier dashboard API");
     }
 
     @GetMapping
@@ -66,42 +56,6 @@ public class CourierDashboardApiController {
     @PostMapping("/offers/{offerId}/decline")
     public CourierDashboardView decline(@PathVariable long offerId) {
         return dashboardService.declineOffer(courierId, offerId);
-    }
-
-    /** 4xx dispatch-service (прострочена пропозиція, кур'єр офлайн тощо) передаємо сторінці як є. */
-    @ExceptionHandler(RestClientResponseException.class)
-    ProblemDetail dispatchRejected(RestClientResponseException ex) {
-        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
-        if (status == null || !status.is4xxClientError()) {
-            return unavailable();
-        }
-        return ProblemDetail.forStatusAndDetail(status, upstreamDetail(ex, status.getReasonPhrase()));
-    }
-
-    private static String upstreamDetail(RestClientResponseException ex, String fallback) {
-        try {
-            ProblemDetail upstream = ex.getResponseBodyAs(ProblemDetail.class);
-            return upstream != null && upstream.getDetail() != null ? upstream.getDetail() : fallback;
-        } catch (RuntimeException unreadableBody) {
-            return fallback;
-        }
-    }
-
-    @ExceptionHandler(RestClientException.class)
-    ProblemDetail dispatchUnavailable(RestClientException ex) {
-        return unavailable();
-    }
-
-    private static ProblemDetail unavailable() {
-        return ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, "Dispatch service is temporarily unavailable");
-    }
-
-    private static boolean isLoopback(String remoteAddress) {
-        try {
-            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
-        } catch (UnknownHostException ex) {
-            return false;
-        }
     }
 
     public record AvailabilityRequest(boolean online) {
