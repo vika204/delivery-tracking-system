@@ -3,7 +3,6 @@ package com.delivery.webui.controller;
 import com.delivery.webui.client.ShipmentCreationClient;
 import com.delivery.webui.client.dto.CreateShipmentRequest;
 import com.delivery.webui.client.dto.CreatedShipmentResponse;
-import com.delivery.webui.client.dto.ShipmentCreationResult;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import com.delivery.webui.client.dto.ShipmentQuoteResponse;
 import com.delivery.webui.controller.support.LoopbackOnly;
@@ -54,11 +53,11 @@ public class ShipmentCreationApiController {
     public ResponseEntity<CreatedShipmentResponse> create(
             @RequestHeader(IDEMPOTENCY_KEY) String idempotencyKey,
             @RequestBody CreateShipmentRequest request) {
-        ShipmentCreationResult creation = client.create(senderId, idempotencyKey, request);
+        ResponseEntity<CreatedShipmentResponse> creation = client.create(senderId, idempotencyKey, request);
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
-        if (creation.replayed()) {
+        if ("true".equals(creation.getHeaders().getFirst(REPLAYED))) {
             response.header(REPLAYED, "true");
         }
-        return response.body(creation.shipment());
+        return response.body(creation.getBody());
     }
 }

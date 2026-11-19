@@ -7,6 +7,7 @@ import com.delivery.webui.client.dto.DispatchCourierResponse;
 import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
+import com.delivery.webui.client.dto.TrackingShipmentBatchResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,7 @@ import java.util.stream.LongStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class TrackingViewServiceTest {
@@ -40,11 +42,11 @@ class TrackingViewServiceTest {
     void displaysRealDestinationAndCourierName() {
         when(shipmentClient.getShipmentById(15L))
                 .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
-        when(shipmentClient.getShipmentDetails(15L))
-                .thenReturn(new ShipmentDetailsResponse(
+        when(shipmentClient.getShipments(15L))
+                .thenReturn(new TrackingShipmentBatchResponse(List.of(new ShipmentDetailsResponse(
                         15L,
                         "  Kyiv, Delivery Street 2  "
-                ));
+                )), List.of()));
         when(locationClient.getShipmentLocations(15, 0, 100))
                 .thenReturn(List.of());
         when(courierClient.getShipmentCourier(15L))
@@ -106,7 +108,7 @@ class TrackingViewServiceTest {
     void keepsCardAvailableWhenShipmentDetailsCannotBeRead() {
         when(shipmentClient.getShipmentById(15L))
                 .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
-        when(shipmentClient.getShipmentDetails(15L))
+        when(shipmentClient.getShipments(15L))
                 .thenThrow(new ResourceAccessException("Connection refused"));
         when(locationClient.getShipmentLocations(15, 0, 100))
                 .thenReturn(List.of());
@@ -227,11 +229,51 @@ class TrackingViewServiceTest {
         assertThat(service().getLiveTracking(15).terminal()).isFalse();
     }
 
+    @Test
+    void doesNotCallDispatchWhenFeatureIsDisabled() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(locationClient.getShipmentLocations(15, 0, 100)).thenReturn(List.of());
+
+        TrackingPageViewModel result = new TrackingViewService(shipmentClient, locationClient, courierClient, false)
+                .getLiveTracking(15);
+
+        assertThat(result.courierText()).isEqualTo("Not available");
+        verifyNoInteractions(courierClient);
+    }
+
+    @Test
+    void treatsMissingGpsResponseBodyAsEmptyHistory() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(locationClient.getShipmentLocations(15, 0, 100)).thenReturn(null);
+
+        TrackingPageViewModel result = service().getLiveTracking(15);
+
+        assertThat(result.locations()).isEmpty();
+        assertThat(result.locationHistoryComplete()).isTrue();
+        assertThat(result.locationMessage()).isEqualTo("WAITING FOR COURIER LOCATION");
+    }
+
+    @Test
+    void selectsDestinationOnlyForRequestedShipmentFromBatch() {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "IN_TRANSIT"));
+        when(shipmentClient.getShipments(15L)).thenReturn(new TrackingShipmentBatchResponse(List.of(
+                new ShipmentDetailsResponse(99L, "Another shipment address"),
+                new ShipmentDetailsResponse(15L, "Kyiv, Delivery Street 2")
+        ), List.of()));
+        when(locationClient.getShipmentLocations(15, 0, 100)).thenReturn(List.of());
+
+        assertThat(service().getLiveTracking(15).destinationText()).isEqualTo("Kyiv, Delivery Street 2");
+    }
+
     private TrackingViewService service() {
         return new TrackingViewService(
                 shipmentClient,
                 locationClient,
-                courierClient
+                courierClient,
+                true
         );
     }
 

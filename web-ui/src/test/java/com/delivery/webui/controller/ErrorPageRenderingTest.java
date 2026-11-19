@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -41,6 +42,22 @@ class ErrorPageRenderingTest {
                 .andExpect(content().string(not(containsString(
                         "TRACK A PACKAGE"
                 ))));
+    }
+
+    @Test
+    void bootJsonErrorHidesExceptionAndMessageEvenWhenRequested() throws Exception {
+        mockMvc.perform(get("/error").accept(MediaType.APPLICATION_JSON)
+                        .param("trace", "true").param("message", "true")
+                        .requestAttr(RequestDispatcher.ERROR_STATUS_CODE, 500)
+                        .requestAttr(RequestDispatcher.ERROR_REQUEST_URI, "/failed-page")
+                        .requestAttr(RequestDispatcher.ERROR_MESSAGE, "private-internal-message")
+                        .requestAttr(RequestDispatcher.ERROR_EXCEPTION, new IllegalStateException("private-exception")))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.exception").doesNotExist())
+                .andExpect(jsonPath("$.message").doesNotExist())
+                .andExpect(content().string(not(containsString("private-internal-message"))))
+                .andExpect(content().string(not(containsString("private-exception"))));
     }
 
     @Test

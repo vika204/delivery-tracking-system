@@ -2,7 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.controller.dto.CourierDashboardView;
-import com.delivery.webui.controller.support.UpstreamProblemAdvice;
+import com.delivery.webui.controller.support.ApiExceptionHandler;
 import com.delivery.webui.service.CourierDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -11,6 +11,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 import org.springframework.web.client.ResourceAccessException;
 
 import java.util.List;
@@ -33,7 +35,7 @@ class CourierDashboardApiControllerTest {
 
     private final CourierDashboardService service = mock(CourierDashboardService.class);
     private final MockMvc mockMvc = standaloneSetup(new CourierDashboardApiController(service, COURIER))
-            .setControllerAdvice(new UpstreamProblemAdvice()).build();
+            .setControllerAdvice(new ApiExceptionHandler()).build();
 
     @Test
     void returnsDashboardOfConfiguredCourier() throws Exception {
@@ -77,9 +79,10 @@ class CourierDashboardApiControllerTest {
                                  "detail": "Courier 7 is offline: go online to accept offers"}
                                 """));
         CourierDashboardService realService = new CourierDashboardService(
-                new DispatchCourierDashboardClient(builder.baseUrl("http://dispatch.test").build()));
+                HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://dispatch.test").build()))
+                .build().createClient(DispatchCourierDashboardClient.class));
         MockMvc wired = standaloneSetup(new CourierDashboardApiController(realService, COURIER))
-                .setControllerAdvice(new UpstreamProblemAdvice()).build();
+                .setControllerAdvice(new ApiExceptionHandler()).build();
 
         wired.perform(post("/api/courier/dashboard/offers/55/accept").with(loopback()))
                 .andExpect(status().isConflict())

@@ -1,0 +1,19 @@
+package com.delivery.webui.config;
+
+import com.delivery.webui.client.CourierShipmentClient;
+import com.delivery.webui.client.DispatchCourierClient;
+import com.delivery.webui.client.DispatchCourierDashboardClient;
+import com.delivery.webui.client.ShipmentCreationClient;
+import com.delivery.webui.client.ShipmentReadClient;
+import com.delivery.webui.client.TrackingLocationClient;
+import com.delivery.webui.client.TrackingShipmentClient;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.service.registry.ImportHttpServices;
+
+@Configuration(proxyBeanMethods = false)
+@ImportHttpServices(group = "shipment", types = {ShipmentReadClient.class, CourierShipmentClient.class})
+@ImportHttpServices(group = "shipment-creation", types = ShipmentCreationClient.class)
+@ImportHttpServices(group = "dispatch", types = {DispatchCourierClient.class, DispatchCourierDashboardClient.class})
+@ImportHttpServices(group = "tracking", types = {TrackingShipmentClient.class, TrackingLocationClient.class})
+public class HttpClientConfiguration {
+}

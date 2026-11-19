@@ -2,7 +2,6 @@ package com.delivery.webui.client;
 
 import com.delivery.webui.client.dto.CreateShipmentRequest;
 import com.delivery.webui.client.dto.CreatedShipmentResponse;
-import com.delivery.webui.client.dto.ShipmentCreationResult;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +10,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -33,7 +34,8 @@ class ShipmentCreationClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new ShipmentCreationClient(builder.baseUrl("http://shipment.test").build());
+        client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://shipment.test").build()))
+                .build().createClient(ShipmentCreationClient.class);
     }
 
     @Test
@@ -72,10 +74,10 @@ class ShipmentCreationClientTest {
                         {"shipmentId": 15, "status": "WAITING_FOR_COURIER", "price": 120.50, "userId": 42}
                         """, MediaType.APPLICATION_JSON).headers(replayed));
 
-        ShipmentCreationResult creation = client.create(42, "key-1", request());
+        var creation = client.create(42, "key-1", request());
 
-        assertThat(creation.shipment()).isEqualTo(new CreatedShipmentResponse(15, "WAITING_FOR_COURIER", new BigDecimal("120.50")));
-        assertThat(creation.replayed()).isTrue();
+        assertThat(creation.getBody()).isEqualTo(new CreatedShipmentResponse(15, "WAITING_FOR_COURIER", new BigDecimal("120.50")));
+        assertThat(creation.getHeaders().getFirst("Idempotent-Replayed")).isEqualTo("true");
     }
 
     @Test
@@ -83,7 +85,7 @@ class ShipmentCreationClientTest {
         server.expect(requestTo("http://shipment.test/shipments"))
                 .andRespond(withSuccess("{\"shipmentId\": 16}", MediaType.APPLICATION_JSON));
 
-        assertThat(client.create(42, "key-2", request()).replayed()).isFalse();
+        assertThat(client.create(42, "key-2", request()).getHeaders().getFirst("Idempotent-Replayed")).isNull();
     }
 
     private static CreateShipmentRequest request() {

@@ -7,7 +7,9 @@ import com.delivery.webui.client.dto.DispatchCourierResponse;
 import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
+import com.delivery.webui.client.dto.TrackingShipmentBatchResponse;
 import com.delivery.webui.viewmodel.TrackingPageViewModel;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 
@@ -27,15 +29,18 @@ public class TrackingViewService {
     private final TrackingShipmentClient shipmentClient;
     private final TrackingLocationClient locationClient;
     private final DispatchCourierClient courierClient;
+    private final boolean courierLookupEnabled;
 
     public TrackingViewService(
             TrackingShipmentClient shipmentClient,
             TrackingLocationClient locationClient,
-            DispatchCourierClient courierClient
+            DispatchCourierClient courierClient,
+            @Value("${dispatch.courier-lookup.enabled:false}") boolean courierLookupEnabled
     ) {
         this.shipmentClient = shipmentClient;
         this.locationClient = locationClient;
         this.courierClient = courierClient;
+        this.courierLookupEnabled = courierLookupEnabled;
     }
 
     public TrackingPageViewModel getLiveTracking(long shipmentId) {
@@ -64,7 +69,13 @@ public class TrackingViewService {
 
     private String loadDestination(long shipmentId) {
         try {
-            ShipmentDetailsResponse details = shipmentClient.getShipmentDetails(shipmentId);
+            TrackingShipmentBatchResponse response = shipmentClient.getShipments(shipmentId);
+            if (response == null || response.shipments() == null) {
+                return NOT_AVAILABLE;
+            }
+            ShipmentDetailsResponse details = response.shipments().stream()
+                    .filter(item -> item != null && item.shipmentId() != null && item.shipmentId() == shipmentId)
+                    .findFirst().orElse(null);
 
             if (details == null || details.shipmentId() == null || details.shipmentId() != shipmentId || details.deliveryAddress() == null || details.deliveryAddress().isBlank()) {
                 return NOT_AVAILABLE;
@@ -77,9 +88,11 @@ public class TrackingViewService {
     }
 
     private String loadCourier(long shipmentId) {
+        if (!courierLookupEnabled) {
+            return NOT_AVAILABLE;
+        }
         try {
-            DispatchCourierResponse response =
-                    courierClient.getShipmentCourier(shipmentId);
+            DispatchCourierResponse response = courierClient.getShipmentCourier(shipmentId);
 
             if (response == null || response.shipmentId() == null || response.shipmentId() != shipmentId) {
                 return NOT_AVAILABLE;
@@ -117,7 +130,7 @@ public class TrackingViewService {
                                 pageLimit
                         );
 
-                if (page.isEmpty()) {
+                if (page == null || page.isEmpty()) {
                     return LocationHistory.complete(validLocations);
                 }
 
@@ -141,7 +154,7 @@ public class TrackingViewService {
             List<TrackingLocationResponse> nextPage = locationClient
                     .getShipmentLocations(shipmentId, afterLocationId, 1);
 
-            if (!nextPage.isEmpty()) {
+            if (nextPage != null && !nextPage.isEmpty()) {
                 validatePage(shipmentId, afterLocationId, 1, nextPage);
                 return LocationHistory.incomplete(validLocations);
             }

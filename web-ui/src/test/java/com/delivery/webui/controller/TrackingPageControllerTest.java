@@ -7,7 +7,10 @@ import com.delivery.webui.client.dto.DispatchCourierResponse;
 import com.delivery.webui.client.dto.ShipmentDetailsResponse;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
+import com.delivery.webui.client.dto.TrackingShipmentBatchResponse;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@SpringBootTest
+@SpringBootTest(properties = "dispatch.courier-lookup.enabled=true")
 @AutoConfigureMockMvc
 class TrackingPageControllerTest {
 
@@ -121,7 +124,7 @@ class TrackingPageControllerTest {
     @Test
     void showsValidationErrorForInvalidShipmentId() throws Exception {
         mockMvc.perform(get("/tracking").param("shipmentId", "not-a-number"))
-                .andExpect(status().isOk())
+                .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString(
                         "Enter a numeric shipment ID, for example 15."
                 )))
@@ -146,11 +149,11 @@ class TrackingPageControllerTest {
                 ));
         when(locationClient.getShipmentLocations(15, 0, 100))
                 .thenReturn(List.of());
-        when(shipmentClient.getShipmentDetails(15L))
-                .thenReturn(new ShipmentDetailsResponse(
+        when(shipmentClient.getShipments(15L))
+                .thenReturn(new TrackingShipmentBatchResponse(List.of(new ShipmentDetailsResponse(
                         15L,
                         "Kyiv, Delivery Street 2"
-                ));
+                )), List.of()));
         when(courierClient.getShipmentCourier(15L))
                 .thenReturn(new DispatchCourierResponse(
                         15L,
@@ -199,7 +202,7 @@ class TrackingPageControllerTest {
                 ))));
 
         verify(shipmentClient).getShipmentById(15L);
-        verify(shipmentClient).getShipmentDetails(15L);
+        verify(shipmentClient).getShipments(15L);
         verify(courierClient).getShipmentCourier(15L);
         verify(locationClient).getShipmentLocations(15, 0, 100);
     }
@@ -321,7 +324,7 @@ class TrackingPageControllerTest {
                 ));
 
         mockMvc.perform(get("/tracking").param("shipmentId", "99"))
-                .andExpect(status().isOk())
+                .andExpect(status().isNotFound())
                 .andExpect(content().string(containsString(
                         "Shipment not found. Check the ID and try again."
                 )))
@@ -341,7 +344,7 @@ class TrackingPageControllerTest {
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
         mockMvc.perform(get("/tracking").param("shipmentId", "15"))
-                .andExpect(status().isOk())
+                .andExpect(status().isServiceUnavailable())
                 .andExpect(content().string(containsString(
                         "Shipment information is temporarily unavailable."
                 )))
@@ -352,6 +355,31 @@ class TrackingPageControllerTest {
 
         verifyNoInteractions(locationClient);
         verifyNoInteractions(courierClient);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "9999999999999999999999999999"})
+    void invalidIdKeepsSearchAndModalWithoutLoadingShipment(String id) throws Exception {
+        mockMvc.perform(get("/tracking").param("shipmentId", id).param("previewRole", "CLIENT"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("data-we-modal-alert")))
+                .andExpect(content().string(containsString("data-profile-menu")))
+                .andExpect(content().string(containsString("value=\"" + id + "\"")))
+                .andExpect(content().string(not(containsString("id=\"live-map\""))));
+        verifyNoInteractions(shipmentClient, locationClient, courierClient);
+    }
+
+    @Test
+    void unavailableShipmentResponseShows503WithoutInventingShipment() throws Exception {
+        when(shipmentClient.getShipmentById(15L))
+                .thenReturn(new TrackingShipmentResponse(15L, null, "UNAVAILABLE"));
+
+        mockMvc.perform(get("/tracking").param("shipmentId", "15"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string(containsString("Shipment information is temporarily unavailable.")))
+                .andExpect(content().string(containsString("data-we-modal-alert")))
+                .andExpect(content().string(not(containsString("id=\"live-map\""))));
+        verifyNoInteractions(locationClient, courierClient);
     }
 
     private TrackingLocationResponse location(

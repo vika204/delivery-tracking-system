@@ -1,90 +1,39 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.service.TrackingViewService;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 public class TrackingPageController {
 
     private final TrackingViewService trackingViewService;
-    private final boolean trackingStreamEnabled;
 
-    public TrackingPageController(
-            TrackingViewService trackingViewService,
-            @Value("${tracking.stream.enabled:false}")
-            boolean trackingStreamEnabled
-    ) {
+    public TrackingPageController(TrackingViewService trackingViewService) {
         this.trackingViewService = trackingViewService;
-        this.trackingStreamEnabled = trackingStreamEnabled;
     }
 
     @GetMapping("/tracking")
-    public String tracking(
-            @RequestParam(required = false) String shipmentId,
-            @RequestParam(defaultValue = "GUEST") String previewRole,
-            Model model
-    ) {
-        model.addAttribute(
-                "pageTitle",
-                "Track your delivery — WEB EXPRESS"
-        );
-        model.addAttribute("activePage", "tracking");
-        // Display-only navigation preview; this does not grant access to data.
-        model.addAttribute(
-                "headerState",
-                "CLIENT".equalsIgnoreCase(previewRole) ? "CLIENT" : "GUEST"
-        );
-        model.addAttribute("trackingStreamEnabled", trackingStreamEnabled);
-
-        String trackingInput = shipmentId == null ? "" : shipmentId.trim();
-
-        model.addAttribute("trackingInput", trackingInput);
-
-        if (trackingInput.isBlank()) {
+    public String tracking(@RequestParam(required = false) String shipmentId, Model model) {
+        if (shipmentId == null || shipmentId.isBlank()) {
             return "pages/tracking";
         }
 
+        long id;
         try {
-            long id = Long.parseLong(trackingInput);
-
-            if (id <= 0) {
-                model.addAttribute(
-                        "errorMessage",
-                        "Shipment ID must be a positive number."
-                );
-                return "pages/tracking";
-            }
-
-            model.addAttribute(
-                    "tracking",
-                    trackingViewService.getLiveTracking(id)
-            );
-
+            id = Long.parseLong(shipmentId.trim());
         } catch (NumberFormatException ex) {
-            model.addAttribute(
-                    "errorMessage",
-                    "Enter a numeric shipment ID, for example 15."
-            );
-
-        } catch (HttpClientErrorException.NotFound ex) {
-            model.addAttribute(
-                    "errorMessage",
-                    "Shipment not found. Check the ID and try again."
-            );
-
-        } catch (RestClientException | IllegalStateException ex) {
-            model.addAttribute(
-                    "errorMessage",
-                    "Shipment information is temporarily unavailable."
-            );
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a numeric shipment ID, for example 15.");
+        }
+        if (id <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Shipment ID must be a positive number.");
         }
 
+        model.addAttribute("tracking", trackingViewService.getLiveTracking(id));
         return "pages/tracking";
     }
 }

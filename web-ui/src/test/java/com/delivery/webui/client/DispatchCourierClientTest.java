@@ -6,6 +6,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.client.ExpectedCount.once;
@@ -21,10 +23,8 @@ class DispatchCourierClientTest {
         MockRestServiceServer server = MockRestServiceServer
                 .bindTo(builder)
                 .build();
-        DispatchCourierClient client = new DispatchCourierClient(
-                builder.baseUrl("http://dispatch.test").build(),
-                true
-        );
+        DispatchCourierClient client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://dispatch.test").build()))
+                .build().createClient(DispatchCourierClient.class);
 
         server.expect(once(), requestTo(
                         "http://dispatch.test/dispatch/shipments/15/courier"
@@ -49,15 +49,4 @@ class DispatchCourierClientTest {
         server.verify();
     }
 
-    @Test
-    void doesNotCallDispatchWhenFeatureIsDisabled() {
-        DispatchCourierClient client = new DispatchCourierClient(
-                RestClient.builder()
-                        .baseUrl("http://dispatch.test")
-                        .build(),
-                false
-        );
-
-        assertThat(client.getShipmentCourier(15L)).isNull();
-    }
 }

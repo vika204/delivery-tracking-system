@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -57,9 +57,12 @@ public class TrackingLocationBackfillController {
 
         try {
             List<TrackingLocationResponse> locations = locationClient.getShipmentLocations(shipmentId, afterLocationId, limit);
+            if (locations == null) {
+                locations = List.of();
+            }
             validateResponse(locations, shipmentId, afterLocationId, limit);
             return locations;
-        } catch (RestClientException ex) {
+        } catch (HttpClientErrorException.NotFound ex) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
                     "GPS history is temporarily unavailable",
@@ -83,7 +86,7 @@ public class TrackingLocationBackfillController {
     }
 
     private void validateResponse(List<TrackingLocationResponse> locations, long shipmentId, long afterLocationId, int limit) {
-        if (locations == null || locations.size() > limit) {
+        if (locations.size() > limit) {
             throw invalidResponse();
         }
 

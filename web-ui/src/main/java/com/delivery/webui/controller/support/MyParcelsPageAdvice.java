@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 
@@ -20,6 +21,12 @@ public class MyParcelsPageAdvice {
         model.addAttribute("activePage", "my-parcels");
         model.addAttribute("headerState", "CLIENT");
         model.addAttribute("parcelsError", false);
+    }
+
+    @ExceptionHandler(HttpClientErrorException.NotFound.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    String shipmentNotFound() {
+        return "error/404";
     }
 
     @ExceptionHandler(RestClientException.class)

@@ -1,5 +1,6 @@
 package com.delivery.webui.client;
 
+import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.DispatchCourierStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,7 +33,8 @@ class DispatchCourierDashboardClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new DispatchCourierDashboardClient(builder.baseUrl("http://dispatch.test").build());
+        client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://dispatch.test").build()))
+                .build().createClient(DispatchCourierDashboardClient.class);
     }
 
     @Test
@@ -42,7 +46,7 @@ class DispatchCourierDashboardClientTest {
                         {"courierId": 7, "online": true, "state": "BUSY", "activeAssignments": 1, "pendingOfferId": null}
                         """, MediaType.APPLICATION_JSON));
 
-        assertThat(client.status(7)).isEqualTo(new DispatchCourierStatus(7, true, "BUSY", 1, null));
+        assertThat(client.status(7, 7)).isEqualTo(new DispatchCourierStatus(7, true, "BUSY", 1, null));
         server.verify();
     }
 
@@ -51,7 +55,7 @@ class DispatchCourierDashboardClientTest {
         server.expect(requestTo("http://dispatch.test/couriers/7/offers/current"))
                 .andRespond(withNoContent());
 
-        assertThat(client.currentOffer(7)).isNull();
+        assertThat(client.currentOffer(7, 7)).isNull();
     }
 
     @Test
@@ -63,7 +67,7 @@ class DispatchCourierDashboardClientTest {
                           "pickupAddress": "Kyiv, A", "deliveryAddress": "Kyiv, B", "price": 120.5}]
                         """, MediaType.APPLICATION_JSON));
 
-        assertThat(client.activeAssignments(7))
+        assertThat(client.activeAssignments(7, 7))
                 .containsExactly(new DispatchCourierAssignment(3, 15, "ACTIVE", false, "Kyiv, A", "Kyiv, B"));
     }
 
@@ -75,7 +79,7 @@ class DispatchCourierDashboardClientTest {
                 .andExpect(content().json("{\"online\": false}"))
                 .andRespond(withSuccess("{}", MediaType.APPLICATION_JSON));
 
-        client.setAvailability(7, false);
+        client.setAvailability(7, 7, new AvailabilityRequest(false));
         server.verify();
     }
 
@@ -89,8 +93,8 @@ class DispatchCourierDashboardClientTest {
                 .andExpect(method(HttpMethod.POST))
                 .andRespond(withNoContent());
 
-        client.acceptOffer(7, 55);
-        client.declineOffer(7, 56);
+        client.acceptOffer(7, 7, 55);
+        client.declineOffer(7, 7, 56);
         server.verify();
     }
 
@@ -99,6 +103,6 @@ class DispatchCourierDashboardClientTest {
         server.expect(requestTo("http://dispatch.test/couriers/7/offers/55/accept"))
                 .andRespond(withStatus(HttpStatus.CONFLICT));
 
-        assertThatThrownBy(() -> client.acceptOffer(7, 55)).isInstanceOf(HttpClientErrorException.Conflict.class);
+        assertThatThrownBy(() -> client.acceptOffer(7, 7, 55)).isInstanceOf(HttpClientErrorException.Conflict.class);
     }
 }

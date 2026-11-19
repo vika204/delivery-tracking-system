@@ -1,7 +1,7 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.client.ShipmentCreationClient;
-import com.delivery.webui.controller.support.UpstreamProblemAdvice;
+import com.delivery.webui.controller.support.ApiExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -11,6 +11,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -38,9 +40,10 @@ class ShipmentCreationApiControllerTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         shipmentService = MockRestServiceServer.bindTo(builder).build();
-        ShipmentCreationClient client = new ShipmentCreationClient(builder.baseUrl("http://shipment.test").build());
+        ShipmentCreationClient client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://shipment.test").build()))
+                .build().createClient(ShipmentCreationClient.class);
         mockMvc = standaloneSetup(new ShipmentCreationApiController(client, SENDER))
-                .setControllerAdvice(new UpstreamProblemAdvice())
+                .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
 

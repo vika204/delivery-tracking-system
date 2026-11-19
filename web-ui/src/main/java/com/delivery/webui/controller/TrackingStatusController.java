@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
@@ -41,35 +39,21 @@ public class TrackingStatusController {
 
         LoopbackOnly.require(request, "Shipment status");
 
-        try {
-            TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
+        TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
 
-            if (shipment == null || shipment.shipmentId() == null
-                    || shipment.shipmentId() != shipmentId
-                    || shipment.status() == null || shipment.status().isBlank()
-                    || "UNAVAILABLE".equalsIgnoreCase(shipment.status().trim())) {
-                throw new ResponseStatusException(
-                        HttpStatus.SERVICE_UNAVAILABLE,
-                        "Shipment status is temporarily unavailable"
-                );
-            }
-
-            return new TrackingShipmentStatusResponse(
-                    shipmentId,
-                    shipment.status().trim().toUpperCase(Locale.ROOT)
-            );
-        } catch (HttpClientErrorException.NotFound ex) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Shipment not found",
-                    ex
-            );
-        } catch (RestClientException ex) {
+        if (shipment == null || shipment.shipmentId() == null
+                || shipment.shipmentId() != shipmentId
+                || shipment.status() == null || shipment.status().isBlank()
+                || "UNAVAILABLE".equalsIgnoreCase(shipment.status().trim())) {
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    "Shipment status is temporarily unavailable",
-                    ex
+                    "Shipment status is temporarily unavailable"
             );
         }
+
+        return new TrackingShipmentStatusResponse(
+                shipmentId,
+                shipment.status().trim().toUpperCase(Locale.ROOT)
+        );
     }
 }

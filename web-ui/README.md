@@ -41,6 +41,28 @@ com.delivery.webui
 Приватні типи для внутрішнього стану залишаємо всередині відповідного класу.
 Тести повторюють структуру пакетів основного коду.
 
+## REST-клієнти
+
+Усі сім REST-клієнтів у `client` — інтерфейси з `@HttpExchange` та `@GetExchange` / `@PostExchange` / `@PutExchange`.
+`HttpClientConfiguration` реєструє їх через стандартний `@ImportHttpServices`; Spring створює реалізації автоматично.
+Адреси й таймаути задаються в `application.properties` через `spring.http.serviceclient.*`.
+Збережені наявні `shipment.client.base-url`, `dispatch.client.base-url`, `tracking.client.base-url` та відповідні змінні середовища.
+Connect timeout — 2 секунди, read timeout — 3 секунди; для створення посилки й розрахунку ціни — 20 секунд.
+
+Коли потрібні HTTP-статус або заголовки, клієнт повертає стандартний `ResponseEntity<DTO>`.
+`AvailabilityRequest` лежить у `client/dto`: це спільний контракт браузера та запиту до dispatch-service.
+Прапорець `dispatch.courier-lookup.enabled` перевіряє `TrackingViewService` перед викликом клієнта.
+gRPC та SSE від цього рефакторингу не змінюються.
+
+## Обробка помилок
+
+- `ApiExceptionHandler` — спільний `@RestControllerAdvice` для REST-контролерів. Наслідує стандартний Spring `ResponseEntityExceptionHandler`, який формує `ProblemDetail` для помилок JSON, параметрів та заголовків.
+- Відомі помилки бекенду 4xx зберігають HTTP-статус, публічний `type`, `detail` та помилки полів `errors`. Недоступність бекенду і його 5xx перетворюються на 503. Непередбачена помилка web-ui повертає 500 із нейтральним повідомленням; подробиці залишаються в серверних логах.
+- `TrackingPageAdvice` показує наявну сторінку пошуку з модальним повідомленням та HTML-fallback: некоректний ID — 400, посилку не знайдено — 404, сервіс недоступний — 503.
+- `MyParcelsPageAdvice` залишає оформлений стан помилки списку з HTTP 503; відсутня посилка повертає HTML 404.
+- Звичайні HTML-сторінки 404/500 обслуговує стандартний механізм Spring Boot. Stack trace, exception і внутрішні повідомлення не включаються в його відповіді, зокрема з увімкненими DevTools.
+- Очікувана відсутність GPS або імені кур'єра обробляється як часткові дані в `TrackingViewService`. Помилки вже відкритого SSE-потоку обробляє `TrackingStreamService`; вони не замінюються JSON-відповіддю.
+
 ## My Parcels
 
 `GET /my-parcels` читає `GET /shipments/mine` через `ShipmentReadClient`.

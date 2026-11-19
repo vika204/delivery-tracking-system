@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -63,12 +62,7 @@ public class MyParcelsPageController {
         if (shipmentId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
-        ClientShipmentResponse shipment;
-        try {
-            shipment = shipmentClient.getShipment(shipmentId);
-        } catch (HttpClientErrorException.NotFound ex) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found");
-        }
+        ClientShipmentResponse shipment = shipmentClient.getShipment(shipmentId);
         if (shipment == null || shipment.shipmentId() != shipmentId) {
             throw new RestClientException("Shipment service returned invalid shipment details");
         }
