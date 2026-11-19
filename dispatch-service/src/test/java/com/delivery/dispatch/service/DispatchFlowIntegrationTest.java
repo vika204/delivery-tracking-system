@@ -313,11 +313,40 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
+    void goingOfflineReleasesPendingOfferToNextCandidate() throws Exception {
+        courier(1, KYIV, "20", true, 50.45, 30.52);
+        courier(2, KYIV, "20", true, 50.55, 30.70);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long firstOffer = pendingOffer(shipmentId).getOfferId();
+
+        availability(1, false);
+
+        assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
+        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
+        mockMvc.perform(get("/couriers/1/status").header("X-User-Id", "1"))
+                .andExpect(jsonPath("$.state").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.pendingOfferId").doesNotExist());
+    }
+
+    @Test
+    void offerReleasedByGoingOfflineCanReturnWhenCourierIsBackOnline() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+
+        availability(1, false);
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+
+        availability(1, true);
+        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
+    }
+
+    @Test
     void acceptIsRejectedWhenCourierWentOffline() throws Exception {
         courier(1, KYIV, "20", true, null, null);
         long shipmentId = created(KYIV, "3", "STANDARD");
         long offerId = pendingOffer(shipmentId).getOfferId();
-        availability(1, false);
+        // перемикач вимкнено, а пропозиція лишилась (гонка з goOffline): Accept усе одно відхиляється
+        offline(1);
 
         mockMvc.perform(post("/couriers/1/offers/" + offerId + "/accept").header("X-User-Id", "1"))
                 .andExpect(status().isConflict())

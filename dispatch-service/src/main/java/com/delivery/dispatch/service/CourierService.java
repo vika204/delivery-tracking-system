@@ -42,18 +42,21 @@ public class CourierService {
     private final DispatchRequestRepository requestRepository;
     private final CourierMetrics metrics;
     private final ApplicationEventPublisher applicationEvents;
+    private final DispatchService dispatchService;
     private final Clock clock;
 
     public CourierService(CourierRepository courierRepository, DeliveryOfferRepository offerRepository,
                           AssignmentRepository assignmentRepository, DispatchRequestRepository requestRepository,
                           CourierMetrics metrics,
-                          ApplicationEventPublisher applicationEvents, Clock clock) {
+                          ApplicationEventPublisher applicationEvents, DispatchService dispatchService,
+                          Clock clock) {
         this.courierRepository = courierRepository;
         this.offerRepository = offerRepository;
         this.assignmentRepository = assignmentRepository;
         this.requestRepository = requestRepository;
         this.metrics = metrics;
         this.applicationEvents = applicationEvents;
+        this.dispatchService = dispatchService;
         this.clock = clock;
     }
 
@@ -94,20 +97,25 @@ public class CourierService {
     /**
      * SetCourierAvailability → CourierWentOnline / CourierWentOffline (US-3.5).
      * Офлайн з активною доставкою дозволено: її можна завершити, але нових пропозицій не буде.
-     * Пропозиція в кур'єра, що пішов офлайн, лишається до відмови або тайм-ауту, але прийняти її
-     * можна лише повернувшись на лінію.
+     * Пропозиція на розгляді в кур'єра, що пішов офлайн, одразу передається наступному кандидату.
      */
     @Transactional
     public CourierStatusResponse setAvailability(long courierId, boolean online) {
-        Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow(() -> notFound(courierId));
-        if (courier.isAvailable() != online) {
-            courier.setAvailable(online);
-            log.info("Courier went {}: courierId={}", online ? "online" : "offline", courierId);
-            if (online) {
-                applicationEvents.publishEvent(new CourierCapacityFreedEvent());
-            }
+        if (online) {
+            goOnline(courierId);
+        } else {
+            dispatchService.goOffline(courierId);
         }
-        return status(courier);
+        return status(get(courierId));
+    }
+
+    private void goOnline(long courierId) {
+        Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow(() -> notFound(courierId));
+        if (!courier.isAvailable()) {
+            courier.setAvailable(true);
+            log.info("Courier went online: courierId={}", courierId);
+            applicationEvents.publishEvent(new CourierCapacityFreedEvent());
+        }
     }
 
     @Transactional(readOnly = true)

@@ -35,6 +35,14 @@ public interface DeliveryOfferRepository extends JpaRepository<DeliveryOffer, Lo
             """)
     List<DeliveryOffer> findPendingByCourier(Long courierId);
 
+    /** Без join fetch: блокується лише рядок пропозиції, кур'єр — пізніше, за загальним порядком. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select o from DeliveryOffer o
+            where o.courier.userId = :courierId and o.status = com.delivery.dispatch.entity.OfferStatus.PENDING
+            """)
+    List<DeliveryOffer> findPendingByCourierForUpdate(Long courierId);
+
     @Query("select o from DeliveryOffer o join fetch o.courier where o.shipmentId = :shipmentId and o.status = :status")
     List<DeliveryOffer> findWithCourierByShipmentIdAndStatus(Long shipmentId, OfferStatus status);
 

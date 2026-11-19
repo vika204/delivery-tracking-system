@@ -425,6 +425,37 @@ public class DispatchService {
         return assignment;
     }
 
+    /**
+     * CourierWentOffline (US-3.5): пропозицію на розгляді одразу передаємо наступному кандидату,
+     * щоб посилка не чекала тайм-ауту. Активну доставку кур'єр завершує й офлайн.
+     * Порядок блокувань загальний: пропозиції → DispatchRequest → кур'єр.
+     * <p>
+     * Пропозиція, створена між вибіркою й блокуванням кур'єра, лишиться до тайм-ауту,
+     * але прийняти її офлайн не можна (див. {@link #acceptOffer}).
+     */
+    @Transactional
+    public void goOffline(long courierId) {
+        List<DeliveryOffer> pending = offerRepository.findPendingByCourierForUpdate(courierId);
+        List<DispatchRequest> offered = pending.stream()
+                .map(offer -> requestRepository.findByIdForUpdate(offer.getShipmentId()))
+                .flatMap(Optional::stream)
+                .toList();
+        Courier courier = courierRepository.findByIdForUpdate(courierId)
+                .orElseThrow(() -> new DispatchNotFoundException("Courier " + courierId + " not found"));
+
+        if (courier.isAvailable()) {
+            courier.setAvailable(false);
+            log.info("Courier went offline: courierId={}, offersReleased={}", courierId, pending.size());
+        }
+        cancelOffers(pending, "courier went offline");
+        for (DispatchRequest request : offered) {
+            if (request.getStatus() == DispatchRequestStatus.OFFERED) {
+                request.setStatus(DispatchRequestStatus.SEARCHING);
+                dispatch(request);
+            }
+        }
+    }
+
     /** RejectCourierProposal → CourierProposalRejected, пропозиція наступному кандидату (US-3.2). */
     @Transactional
     public void declineOffer(long courierId, long offerId) {
