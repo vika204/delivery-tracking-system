@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     formatValue,
+    isRetriableFailure,
     locationPayload,
     nextAction,
     sharesGps,
@@ -40,11 +41,20 @@ test('throttles GPS points', () => {
     assert.equal(shouldSendPosition(1000, 6000), true);
 });
 
-test('converts browser position to tracking payload', () => {
+test('converts browser position to tracking payload with a point id', () => {
     assert.deepEqual(locationPayload({
         coords: {latitude: 50.4501234567, longitude: 30.5234987654},
         timestamp: Date.parse('2026-11-19T10:00:00Z')
-    }), {latitude: 50.450123, longitude: 30.523499, recordedAt: '2026-11-19T10:00:00.000Z'});
+    }, 'point-1'), {pointId: 'point-1', latitude: 50.450123, longitude: 30.523499, recordedAt: '2026-11-19T10:00:00.000Z'});
+    const generated = locationPayload({coords: {latitude: 1, longitude: 2}, timestamp: 0});
+    assert.match(generated.pointId, /^[0-9a-f-]{36}$/);
+});
+
+test('retries the same point only after network or server failures', () => {
+    assert.equal(isRetriableFailure(null), true);
+    assert.equal(isRetriableFailure(503), true);
+    assert.equal(isRetriableFailure(400), false);
+    assert.equal(isRetriableFailure(409), false);
 });
 
 test('formats detail values', () => {

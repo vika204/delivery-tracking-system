@@ -44,13 +44,22 @@ export function shouldSendPosition(lastSentAtMs, nowMs, minIntervalMs = GPS_MIN_
     return lastSentAtMs === null || nowMs - lastSentAtMs >= minIntervalMs;
 }
 
-/** GeolocationPosition → тіло запиту tracking-service. */
-export function locationPayload(position) {
+/** GeolocationPosition → тіло запиту tracking-service; pointId робить повтор безпечним. */
+export function locationPayload(position, pointId = crypto.randomUUID()) {
     return {
+        pointId,
         latitude: Number(position.coords.latitude.toFixed(6)),
         longitude: Number(position.coords.longitude.toFixed(6)),
         recordedAt: new Date(position.timestamp).toISOString()
     };
+}
+
+/**
+ * Після збою мережі чи 5xx ту саму точку надсилаємо ще раз з тим самим pointId (tracking-service
+ * не створить дубля). Відхилену точку (4xx) повторювати немає сенсу.
+ */
+export function isRetriableFailure(status) {
+    return status === null || status >= 500;
 }
 
 export function formatValue(value, unit) {

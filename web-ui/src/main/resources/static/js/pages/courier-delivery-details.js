@@ -1,5 +1,6 @@
 import {
     formatValue,
+    isRetriableFailure,
     locationPayload,
     nextAction,
     sharesGps,
@@ -24,16 +25,24 @@ let current = null;
 let gpsWatch = null;
 let lastSentAt = null;
 let sending = false;
+// точка, яку не вдалося доставити через збій; надсилається повторно з тим самим pointId
+let pendingPoint = null;
 
 async function call(method, path = '', body) {
-    const response = await fetch(api + path, {
-        method,
-        headers: body ? {'Content-Type': 'application/json'} : {},
-        body: body ? JSON.stringify(body) : undefined
-    });
+    let response;
+    try {
+        response = await fetch(api + path, {
+            method,
+            headers: body ? {'Content-Type': 'application/json'} : {},
+            body: body ? JSON.stringify(body) : undefined
+        });
+    } catch (networkError) {
+        throw Object.assign(new Error('Connection lost, retrying.'), {status: null});
+    }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-        throw new Error(payload?.detail || 'Delivery data is unavailable right now.');
+        throw Object.assign(new Error(payload?.detail || 'Delivery data is unavailable right now.'),
+            {status: response.status});
     }
     return payload;
 }
@@ -73,11 +82,13 @@ async function sendPosition(position) {
     if (sending || !shouldSendPosition(lastSentAt, Date.now())) return;
     sending = true;
     lastSentAt = Date.now();
+    const point = pendingPoint ?? locationPayload(position);
     try {
-        await call('POST', '/locations', locationPayload(position));
+        await call('POST', '/locations', point);
+        pendingPoint = null;
         setGpsStatus(`GPS: sharing location · last sent ${new Date().toLocaleTimeString()}`);
     } catch (error) {
-        // наступна позиція спробує ще раз
+        pendingPoint = isRetriableFailure(error.status) ? point : null;
         setGpsStatus(`GPS: ${error.message}`, true);
     } finally {
         sending = false;

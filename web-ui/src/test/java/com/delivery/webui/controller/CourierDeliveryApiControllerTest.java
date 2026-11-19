@@ -34,7 +34,8 @@ class CourierDeliveryApiControllerTest {
 
     private static final long COURIER = 7;
     private static final String POINT = """
-            {"latitude": 50.4501, "longitude": 30.5234, "recordedAt": "2026-11-19T10:00:00Z"}
+            {"pointId": "8c7b2f9e-1d3a-4c5b-9e8f-7a6b5c4d3e2f", "latitude": 50.4501, "longitude": 30.5234,
+             "recordedAt": "2026-11-19T10:00:00Z"}
             """;
 
     private MockRestServiceServer shipmentService;
@@ -107,6 +108,21 @@ class CourierDeliveryApiControllerTest {
                 .andExpect(jsonPath("$.locationId").value(101));
         shipmentService.verify();
         trackingService.verify();
+    }
+
+    @Test
+    void reportsRepeatedPointWithoutDuplicate() throws Exception {
+        expectCourierView("IN_TRANSIT");
+        trackingService.expect(requestTo("http://tracking.test/tracking/shipments/15/locations"))
+                .andExpect(content().json(POINT))
+                .andRespond(withSuccess("""
+                        {"locationId": 101, "shipmentId": 15, "latitude": 50.4501, "longitude": 30.5234,
+                         "recordedAt": "2026-11-19T10:00:00"}
+                        """, MediaType.APPLICATION_JSON));
+
+        mockMvc.perform(point())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locationId").value(101));
     }
 
     @Test

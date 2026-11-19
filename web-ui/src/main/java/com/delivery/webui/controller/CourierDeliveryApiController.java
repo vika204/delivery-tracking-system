@@ -1,5 +1,6 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
 import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -18,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
@@ -61,10 +62,12 @@ public class CourierDeliveryApiController {
         return deliveryService.completeDelivery(courierId, shipmentId);
     }
 
+    /** 201 — нова точка, 200 — повтор тієї самої точки (pointId), дубля немає. */
     @PostMapping("/{shipmentId}/locations")
-    @ResponseStatus(HttpStatus.CREATED)
-    public TrackingLocationResponse recordLocation(@PathVariable long shipmentId, @RequestBody RecordLocationRequest point) {
-        return deliveryService.recordLocation(courierId, shipmentId, point);
+    public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
+                                                                   @RequestBody RecordLocationRequest point) {
+        TrackingLocationClient.RecordedLocation recorded = deliveryService.recordLocation(courierId, shipmentId, point);
+        return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED).body(recorded.location());
     }
 
     @ExceptionHandler(ShipmentNotInTransitException.class)
