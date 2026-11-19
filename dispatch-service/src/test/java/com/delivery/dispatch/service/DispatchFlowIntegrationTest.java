@@ -38,8 +38,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -306,6 +313,57 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
+    void acceptIsRejectedWhenCourierWentOffline() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long offerId = pendingOffer(shipmentId).getOfferId();
+        availability(1, false);
+
+        mockMvc.perform(post("/couriers/1/offers/" + offerId + "/accept").header("X-User-Id", "1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("offline")));
+
+        assertThat(assignments.count()).isZero();
+        assertThat(outbox.count()).isZero();
+        assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.PENDING);
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.OFFERED);
+    }
+
+    @Test
+    void concurrentAcceptsOfTheSameOfferCreateOneAssignment() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long offerId = pendingOffer(created(KYIV, "3", "STANDARD")).getOfferId();
+
+        List<Object> results = concurrently(
+                () -> dispatchService.acceptOffer(1, offerId),
+                () -> dispatchService.acceptOffer(1, offerId));
+
+        assertThat(results).allSatisfy(result -> assertThat(result).isInstanceOf(Assignment.class));
+        assertThat(assignments.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(1L, AssignmentStatus.ACTIVE)).hasSize(1);
+        assertThat(outbox.count()).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentAcceptsOfDifferentOffersLeaveAtMostOneActiveAssignment() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long first = created(KYIV, "3", "STANDARD");
+        long second = created(KYIV, "3", "STANDARD");
+        long firstOffer = pendingOffer(first).getOfferId();
+        // імітуємо збій інваріанту «одна пропозиція»: друга пропозиція тому самому кур'єру
+        long secondOffer = forceOffer(second, 1);
+
+        List<Object> results = concurrently(
+                () -> dispatchService.acceptOffer(1, firstOffer),
+                () -> dispatchService.acceptOffer(1, secondOffer));
+
+        assertThat(results).filteredOn(Assignment.class::isInstance).hasSize(1);
+        assertThat(results).filteredOn(DispatchConflictException.class::isInstance).singleElement()
+                .satisfies(ex -> assertThat(((Exception) ex).getMessage()).contains("active delivery"));
+        assertThat(assignments.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(1L, AssignmentStatus.ACTIVE)).hasSize(1);
+        assertThat(outbox.count()).isEqualTo(1);
+    }
+
+    @Test
     void statusEndpointReportsAvailableBusyAndUnavailable() throws Exception {
         courier(1, KYIV, "20", true, null, null);
         assertState(1, "AVAILABLE", true);
@@ -532,6 +590,43 @@ class DispatchFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value(state))
                 .andExpect(jsonPath("$.online").value(online));
+    }
+
+    /** Пропозиція в обхід пошуку — лише щоб перевірити захист Accept від гонок. */
+    private long forceOffer(long shipmentId, long courierId) {
+        var request = requests.findById(shipmentId).orElseThrow();
+        request.setStatus(DispatchRequestStatus.OFFERED);
+        requests.save(request);
+        return offers.save(DeliveryOffer.builder()
+                .shipmentId(shipmentId)
+                .courier(couriers.findById(courierId).orElseThrow())
+                .status(OfferStatus.PENDING)
+                .createdAt(Instant.now())
+                .expiresAt(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(1))
+                .build()).getOfferId();
+    }
+
+    /** Запускає дії одночасно; повертає результат або виняток кожної. */
+    private static List<Object> concurrently(Callable<?>... actions) throws Exception {
+        CyclicBarrier start = new CyclicBarrier(actions.length);
+        try (ExecutorService executor = Executors.newFixedThreadPool(actions.length)) {
+            List<Future<Object>> futures = new ArrayList<>();
+            for (Callable<?> action : actions) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    try {
+                        return action.call();
+                    } catch (RuntimeException ex) {
+                        return ex;
+                    }
+                }));
+            }
+            List<Object> results = new ArrayList<>();
+            for (Future<Object> future : futures) {
+                results.add(future.get(30, TimeUnit.SECONDS));
+            }
+            return results;
+        }
     }
 
     private long created(String pickupCode, String weight, String type) {

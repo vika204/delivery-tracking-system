@@ -94,7 +94,8 @@ public class CourierService {
     /**
      * SetCourierAvailability → CourierWentOnline / CourierWentOffline (US-3.5).
      * Офлайн з активною доставкою дозволено: її можна завершити, але нових пропозицій не буде.
-     * Активна пропозиція в кур'єра, що пішов офлайн, лишається до відповіді або тайм-ауту.
+     * Пропозиція в кур'єра, що пішов офлайн, лишається до відмови або тайм-ауту, але прийняти її
+     * можна лише повернувшись на лінію.
      */
     @Transactional
     public CourierStatusResponse setAvailability(long courierId, boolean online) {

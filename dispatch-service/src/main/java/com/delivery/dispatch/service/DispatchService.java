@@ -372,7 +372,11 @@ public class DispatchService {
     // Відповідь кур'єра на пропозицію
     // =====================================================================
 
-    /** AcceptCourierProposal → CourierProposalAccepted, CourierAssigned (US-3.2). */
+    /**
+     * AcceptCourierProposal → CourierProposalAccepted, CourierAssigned (US-3.2).
+     * Пропозиція, призначення й подія COURIER_ASSIGNED в outbox фіксуються в одній транзакції.
+     * Відхиляється, якщо пропозиція чужа, прострочена, кур'єр офлайн або вже має активну доставку.
+     */
     @Transactional
     public Assignment acceptOffer(long courierId, long offerId) {
         DeliveryOffer offer = lockOwnOffer(courierId, offerId);
@@ -398,6 +402,7 @@ public class DispatchService {
         }
 
         Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow();
+        requireCanTakeDelivery(courier);
         Instant now = Instant.now(clock);
         Assignment assignment = assignmentRepository.save(Assignment.builder()
                 .shipmentId(offer.getShipmentId())
@@ -525,6 +530,16 @@ public class DispatchService {
             throw new DispatchAccessDeniedException("Offer " + offerId + " belongs to another courier");
         }
         return offer;
+    }
+
+    /** Викликається під блокуванням кур'єра, тож паралельний Accept побачить уже створене призначення. */
+    private void requireCanTakeDelivery(Courier courier) {
+        if (!courier.isAvailable()) {
+            throw new DispatchConflictException("Courier " + courier.getUserId() + " is offline: go online to accept offers");
+        }
+        if (hasActiveAssignment(courier.getUserId())) {
+            throw new DispatchConflictException("Courier " + courier.getUserId() + " already has an active delivery");
+        }
     }
 
     private static void requirePending(DeliveryOffer offer) {
