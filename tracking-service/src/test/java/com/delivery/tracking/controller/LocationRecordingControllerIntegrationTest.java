@@ -21,11 +21,16 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -126,6 +131,64 @@ class LocationRecordingControllerIntegrationTest {
     }
 
     @Test
+    void repeatedPointIdReturnsStoredPointWithoutDuplicate() throws Exception {
+        UUID pointId = UUID.randomUUID();
+        Instant recordedAt = Instant.now();
+
+        record(15, pointId, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+        long storedId = trackingRepository.findAll().getFirst().getLocationId();
+
+        record(15, pointId, "50.4501", "30.5234", recordedAt)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.locationId").value(storedId));
+
+        assertThat(trackingRepository.count()).isEqualTo(1);
+        verify(publisher, times(1)).onLocationSaved(any());
+    }
+
+    @Test
+    void samePointIdOnAnotherShipmentIsSeparatePoint() throws Exception {
+        UUID pointId = UUID.randomUUID();
+
+        record(15, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
+        record(16, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
+
+        assertThat(trackingRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void concurrentRetriesOfSamePointStoreItOnce() {
+        UUID pointId = UUID.randomUUID();
+        Instant recordedAt = Instant.now();
+        CyclicBarrier start = new CyclicBarrier(2);
+
+        List<CompletableFuture<Integer>> attempts = List.of(1, 2).stream()
+                .map(attempt -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        start.await();
+                        return record(15, pointId, "50.4501", "30.5234", recordedAt)
+                                .andReturn().getResponse().getStatus();
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }))
+                .toList();
+
+        assertThat(attempts.stream().map(CompletableFuture::join)).containsExactlyInAnyOrder(201, 200);
+        assertThat(trackingRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void pointsWithoutPointIdAreNotDeduplicated() throws Exception {
+        Instant recordedAt = Instant.now();
+
+        record(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+        record(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+
+        assertThat(trackingRepository.count()).isEqualTo(2);
+    }
+
+    @Test
     void rawLocationWriteWithoutValidationIsGone() throws Exception {
         mockMvc.perform(post("/tracking").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"shipmentId\": 15, \"latitude\": 999, \"longitude\": 999, \"recordedAt\": \"2026-11-19T10:00:00\"}"))
@@ -135,11 +198,16 @@ class LocationRecordingControllerIntegrationTest {
     }
 
     private ResultActions record(long shipmentId, String latitude, String longitude, Instant recordedAt) throws Exception {
+        return record(shipmentId, null, latitude, longitude, recordedAt);
+    }
+
+    private ResultActions record(long shipmentId, UUID pointId, String latitude, String longitude, Instant recordedAt)
+            throws Exception {
+        String point = pointId == null ? "" : "\"pointId\": \"" + pointId + "\", ";
         return mockMvc.perform(post("/tracking/shipments/" + shipmentId + "/locations")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                        {"latitude": %s, "longitude": %s, "recordedAt": "%s"}
-                        """.formatted(latitude, longitude, recordedAt)));
+                .content("{" + point + "\"latitude\": " + latitude + ", \"longitude\": " + longitude
+                        + ", \"recordedAt\": \"" + recordedAt + "\"}"));
     }
 
     private void assertNothingSaved() {

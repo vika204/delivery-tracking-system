@@ -4,11 +4,11 @@ import com.delivery.tracking.dto.RecordLocationRequest;
 import com.delivery.tracking.dto.ShipmentLocationResponse;
 import com.delivery.tracking.service.LocationRecordingService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -25,9 +25,11 @@ public class LocationRecordingController {
         this.recordingService = recordingService;
     }
 
+    /** 201 — нова точка, 200 — повтор з тим самим pointId (точку вже збережено). */
     @PostMapping("/{shipmentId}/locations")
-    @ResponseStatus(HttpStatus.CREATED)
-    public ShipmentLocationResponse record(@PathVariable long shipmentId, @RequestBody RecordLocationRequest request) {
-        return recordingService.record(shipmentId, request);
+    public ResponseEntity<ShipmentLocationResponse> record(@PathVariable long shipmentId,
+                                                           @RequestBody RecordLocationRequest request) {
+        LocationRecordingService.Recorded recorded = recordingService.record(shipmentId, request);
+        return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED).body(recorded.location());
     }
 }

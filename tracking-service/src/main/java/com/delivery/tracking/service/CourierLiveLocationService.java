@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Locale;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class CourierLiveLocationService {
@@ -29,6 +30,11 @@ public class CourierLiveLocationService {
     }
 
     public LiveLocationDecisionResult processPoint(long shipmentId, RoutePoint point) {
+        return processPoint(shipmentId, point, null);
+    }
+
+    /** @param clientPointId ідентифікатор точки від клієнта або null */
+    public LiveLocationDecisionResult processPoint(long shipmentId, RoutePoint point, UUID clientPointId) {
         Optional<Location> previousOpt = locationService.findLatestLocation(shipmentId);
         double distanceMeters = 0.0;
 
@@ -55,7 +61,8 @@ public class CourierLiveLocationService {
                 shipmentId,
                 point.latitude(),
                 point.longitude(),
-                point.recordedAt()
+                point.recordedAt(),
+                clientPointId
         ));
 
         log.info("Live courier location accepted: shipmentId={}, locationId={}, distanceMeters={}",
