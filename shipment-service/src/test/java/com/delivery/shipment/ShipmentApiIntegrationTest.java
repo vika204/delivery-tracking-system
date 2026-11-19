@@ -207,6 +207,18 @@ class ShipmentApiIntegrationTest {
     }
 
     @Test
+    void sameKeyOfAnotherSenderCreatesSeparateShipment() throws Exception {
+        long first = id(json(create(SENDER, quote(SENDER, "1", "STANDARD"), "shared-key").andExpect(status().isOk())));
+
+        long second = id(json(create(43, quote(43, "1", "STANDARD"), "shared-key")
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist("Idempotent-Replayed"))));
+
+        assertThat(second).isNotEqualTo(first);
+        assertThat(events(ShipmentCreatedEvent.TYPE, ShipmentCreatedEvent.class)).hasSize(2);
+    }
+
+    @Test
     void replayStillReturnsShipmentAfterQuoteExpired() throws Exception {
         JsonNode quote = quote(SENDER, "1", "STANDARD");
         long first = id(json(create(SENDER, quote, "key-late-retry")));

@@ -95,7 +95,7 @@ public class ShipmentService {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
         } catch (DataIntegrityViolationException concurrentDuplicate) {
             // інший запит із тим самим ключем, але іншою пропозицією закомітився першим
-            return transactionTemplate.execute(status -> replay(idempotencyKey, requestHash));
+            return transactionTemplate.execute(status -> replay(userId, idempotencyKey, requestHash));
         }
     }
 
@@ -107,8 +107,8 @@ public class ShipmentService {
     private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
                                           CreateShipmentRequest request) {
         PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
-        if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
-            return replay(idempotencyKey, requestHash);
+        if (idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).isPresent()) {
+            return replay(userId, idempotencyKey, requestHash);
         }
         pricingService.requireUsable(quote);
 
@@ -140,6 +140,7 @@ public class ShipmentService {
         quote.setShipmentId(shipment.getShipmentId());
 
         idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
+                .userId(userId)
                 .idempotencyKey(idempotencyKey)
                 .requestHash(requestHash)
                 .shipmentId(shipment.getShipmentId())
@@ -158,8 +159,8 @@ public class ShipmentService {
         return new CreationResult(shipment, false);
     }
 
-    private CreationResult replay(String idempotencyKey, String requestHash) {
-        IdempotencyRecord record = idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey)
+    private CreationResult replay(long userId, String idempotencyKey, String requestHash) {
+        IdempotencyRecord record = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                 .orElseThrow();
         if (!record.getRequestHash().equals(requestHash)) {
             throw new IdempotencyKeyReuseException(idempotencyKey);

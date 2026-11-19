@@ -7,7 +7,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "idempotency_records")
+/** Idempotency-Key створення доставки; унікальний у межах відправника. */
+@Table(name = "idempotency_records", uniqueConstraints = @UniqueConstraint(
+        name = "uq_idempotency_sender_key", columnNames = {"user_id", "idempotency_key"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,7 +22,10 @@ public class IdempotencyRecord {
     @Column(name = "record_id")
     private Long recordId;
 
-    @Column(name = "idempotency_key", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "idempotency_key", nullable = false)
     private String idempotencyKey;
 
     @Column(name = "request_hash", nullable = false, length = 64)
