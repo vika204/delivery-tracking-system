@@ -18,7 +18,7 @@
     <link rel="stylesheet" th:href="@{/css/pages/courier-dashboard.css}">
     <script defer th:src="@{/js/components/header.js}"></script>
     <script defer th:src="@{/js/components/cursor-webs.js}"></script>
-    <script defer th:src="@{/js/pages/courier-dashboard.js}"></script>
+    <script type="module" th:src="@{/js/pages/courier-dashboard.js}"></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
@@ -34,7 +34,7 @@
                              alt="Courier portrait"
                              draggable="false">
                     </figure>
-                    <p class="courier-name">Olena Kovalenko</p>
+                    <p id="courier-name" class="courier-name">&nbsp;</p>
                     <p class="courier-role">COURIER</p>
 
                     <div class="aside-overview">
@@ -46,9 +46,10 @@
                                         class="status-toggle"
                                         type="button"
                                         role="switch"
-                                        aria-checked="true"
-                                        aria-label="Courier availability"></button>
-                                <span id="availability-text" class="status-label">AVAILABLE</span>
+                                        aria-checked="false"
+                                        aria-label="Courier availability"
+                                        disabled></button>
+                                <span id="availability-text" class="status-label">&mdash;</span>
                             </div>
                         </div>
                     </div>
@@ -60,25 +61,26 @@
                             <h2 id="offers-title">DELIVERY OFFER</h2>
                         </div>
 
-                        <div id="offer-card" class="offer-card">
+                        <div id="offer-card" class="offer-card" hidden>
                             <div class="offer-info">
-                                <h3 class="shipment-id">SHIPMENT #2187</h3>
+                                <h3 class="shipment-id">SHIPMENT #<span id="offer-shipment"></span></h3>
                                 <p class="address">
                                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
                                     </svg>
-                                    <span><strong>Pickup:</strong> Kyiv, Lva Tolstoho St, 15</span>
+                                    <span><strong>Pickup:</strong> <span id="offer-pickup"></span></span>
                                 </p>
                                 <p class="address">
                                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
                                     </svg>
-                                    <span><strong>Delivery:</strong> Kyiv, Lypova St, 8</span>
+                                    <span><strong>Delivery:</strong> <span id="offer-delivery"></span></span>
                                 </p>
                                 <div class="offer-meta">
-                                    <span><strong>Weight:</strong> 4.2 kg</span>
-                                    <span><strong>Distance:</strong> 7.3 km</span>
-                                    <span><strong>Price:</strong> ₴142</span>
+                                    <span><strong>Weight:</strong> <span id="offer-weight"></span></span>
+                                    <span><strong>Distance:</strong> <span id="offer-distance"></span></span>
+                                    <span><strong>Price:</strong> <span id="offer-price"></span></span>
+                                    <span><strong>Expires in:</strong> <span id="offer-countdown"></span></span>
                                 </div>
                             </div>
 
@@ -91,7 +93,7 @@
                             </div>
                         </div>
 
-                        <div id="no-offer" class="no-offer" hidden>
+                        <div id="no-offer" class="no-offer">
                             No active delivery offers right now.
                         </div>
                     </section>
@@ -101,29 +103,30 @@
                             <h2 id="deliveries-title">ACTIVE DELIVERIES</h2>
                         </div>
 
-                        <div id="deliveries-list">
+                        <div id="deliveries-list"></div>
+                        <div id="no-deliveries" class="no-offer">No active deliveries.</div>
+
+                        <template id="delivery-template">
                             <article class="delivery-card">
                                 <div>
-                                    <h3 class="shipment-id">SHIPMENT #2154</h3>
+                                    <h3 class="shipment-id"></h3>
                                     <p class="address">
                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                             <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
                                         </svg>
-                                        <span><strong>From:</strong> Kyiv, Volodymyrska St, 12</span>
+                                        <span><strong>From:</strong> <span class="delivery-from"></span></span>
                                     </p>
                                     <p class="address">
                                         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                             <path d="M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8Zm0 11.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4Z"></path>
                                         </svg>
-                                        <span><strong>To:</strong> Kyiv, Khreshchatyk St, 27</span>
+                                        <span><strong>To:</strong> <span class="delivery-to"></span></span>
                                     </p>
                                 </div>
 
                                 <div class="delivery-action">
-                                    <span class="status-chip">TO PICK UP</span>
-                                    <a href="/courier/deliveries/2154"
-                                       class="details-link"
-                                       aria-label="Open shipment 2154 details">
+                                    <span class="status-chip"></span>
+                                    <a class="details-link">
                                         <svg viewBox="0 0 24 24"
                                              fill="none"
                                              stroke="currentColor"
@@ -136,7 +139,7 @@
                                     </a>
                                 </div>
                             </article>
-                        </div>
+                        </template>
                     </section>
 
                     <p id="action-notice" class="action-notice" role="status" aria-live="polite"></p>

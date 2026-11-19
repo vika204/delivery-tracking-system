@@ -168,6 +168,11 @@ p {
     transform: translateX(0);
 }
 
+.status-toggle:disabled {
+    cursor: progress;
+    opacity: .7;
+}
+
 .content-column {
     min-width: 0;
 }
