@@ -10,6 +10,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
@@ -144,6 +145,24 @@ class LocationSubscriptionTest {
 
         verify(stub, after(350).times(1))
                 .subscribeToShipmentLocations(any(SubscribeToShipmentLocationsRequest.class), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void completedStreamIgnoresLateErrorsAndAllowsANewSubscription() {
+        client = client(10, 100);
+        assertThat(client.subscribe(15L)).isTrue();
+        assertThat(client.subscribe(15L)).isFalse();
+        ArgumentCaptor<StreamObserver<ShipmentLocationUpdate>> observer = ArgumentCaptor.forClass(StreamObserver.class);
+        verify(stub).subscribeToShipmentLocations(any(), observer.capture());
+
+        observer.getValue().onCompleted();
+        observer.getValue().onCompleted();
+        observer.getValue().onError(Status.UNAVAILABLE.asRuntimeException());
+
+        verify(stub, after(100).times(1)).subscribeToShipmentLocations(any(), any());
+        assertThat(client.unsubscribe(15L)).isFalse();
+        assertThat(client.subscribe(15L)).isTrue();
     }
 
     private TrackingGrpcClient client(long initialBackoffMs, long maxBackoffMs) {

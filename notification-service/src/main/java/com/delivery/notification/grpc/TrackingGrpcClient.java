@@ -94,10 +94,7 @@ public class TrackingGrpcClient {
         );
     }
 
-    /**
-     * Підписка не має deadline. До першого оновлення її повторює сам канал; потік, що обірвався
-     * пізніше, перевідкривається тут із тим самим backoff, доки клієнт не відпишеться.
-     */
+    // Після першого повідомлення канал уже не повторює стрім — його перевідкриває підписка.
     private final class Subscription implements StreamObserver<ShipmentLocationUpdate> {
 
         private final long shipmentId;
@@ -123,6 +120,9 @@ public class TrackingGrpcClient {
         }
 
         synchronized void close() {
+            if (closed) {
+                return;
+            }
             closed = true;
             if (reconnect != null) {
                 reconnect.cancel(false);
@@ -134,10 +134,11 @@ public class TrackingGrpcClient {
         }
 
         @Override
-        public void onNext(ShipmentLocationUpdate update) {
-            synchronized (this) {
-                failedAttempts = 0;
+        public synchronized void onNext(ShipmentLocationUpdate update) {
+            if (closed) {
+                return;
             }
+            failedAttempts = 0;
             log.info("gRPC location received: shipmentId={}, locationId={}, latitude={}, longitude={}, recordedAt={}",
                     update.getShipmentId(), update.getLocationId(), update.getLatitude(), update.getLongitude(),
                     ProtoTimestamps.toInstant(update.getRecordedAt()));
@@ -162,13 +163,15 @@ public class TrackingGrpcClient {
 
         @Override
         public synchronized void onCompleted() {
+            if (closed) {
+                return;
+            }
             log.info("gRPC subscription completed by server: shipmentId={}", shipmentId);
             finish();
         }
 
         private void finish() {
-            closed = true;
-            context.cancel(null);
+            close();
             subscriptions.remove(shipmentId, this);
         }
     }

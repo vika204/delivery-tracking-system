@@ -36,12 +36,12 @@
                 <h1 class="parcel-number"
                     th:classappend="${parcel.delivered()} ? 'special' : ''"
                     th:text="|SHIPMENT #${parcel.shipmentId()}|">
-                    SHIPMENT #15
+                    SHIPMENT
                 </h1>
                 <span class="status"
                       th:classappend="${parcel.statusClass()}"
                       th:text="${parcel.statusLabel()}">
-                    IN TRANSIT
+                    STATUS
                 </span>
             </div>
 

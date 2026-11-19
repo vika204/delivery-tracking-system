@@ -2,7 +2,7 @@ package com.delivery.webui.service;
 
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.webui.grpc.ShipmentLocationGrpcClient;
-import com.delivery.webui.grpc.TrackingLocationEventMapper;
+import com.delivery.tracking.api.ProtoTimestamps;
 import com.delivery.webui.grpc.dto.TrackingLocationEvent;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,16 +40,13 @@ import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class TrackingStreamServiceTest {
 
     @Mock
     private ShipmentLocationGrpcClient grpcClient;
-
-    @Mock
-    private TrackingLocationEventMapper eventMapper;
 
     @Mock
     private TaskScheduler taskScheduler;
@@ -90,7 +88,6 @@ class TrackingStreamServiceTest {
 
         service = new TrackingStreamService(
                 grpcClient,
-                eventMapper,
                 taskScheduler,
                 Duration.ofMinutes(5),
                 Duration.ofSeconds(15)
@@ -108,6 +105,9 @@ class TrackingStreamServiceTest {
         ShipmentLocationUpdate update = ShipmentLocationUpdate.newBuilder()
                 .setLocationId(11)
                 .setShipmentId(15)
+                .setLatitude(50.455)
+                .setLongitude(30.53)
+                .setRecordedAt(ProtoTimestamps.toTimestamp(Instant.parse("2026-11-12T13:00:00Z")))
                 .build();
         TrackingLocationEvent event = new TrackingLocationEvent(
                 11,
@@ -116,8 +116,6 @@ class TrackingStreamServiceTest {
                 30.53,
                 LocalDateTime.of(2026, 11, 12, 13, 0)
         );
-        when(eventMapper.toEvent(15, update)).thenReturn(event);
-
         service.subscribe(15);
         grpcObserver(0).onNext(update);
 
@@ -194,6 +192,36 @@ class TrackingStreamServiceTest {
         verify(heartbeatTask, times(1)).cancel(false);
         verify(emitter(0), times(1)).complete();
         verify(emitter(0), never()).completeWithError(any());
+    }
+
+    @Test
+    void cancelsGrpcIfItCompletesBeforeItsContextIsAttached() {
+        Context.CancellableContext context = Context.current().withCancellation();
+        doAnswer(invocation -> {
+            StreamObserver<ShipmentLocationUpdate> observer = invocation.getArgument(1);
+            observer.onCompleted();
+            return context;
+        }).when(grpcClient).subscribe(eq(15L), any());
+
+        service.subscribe(15);
+
+        assertThat(context.isCancelled()).isTrue();
+        verify(heartbeatTask).cancel(false);
+        verify(emitter(0)).complete();
+    }
+
+    @Test
+    void cancelsHeartbeatIfTimeoutHappensWhileItIsBeingScheduled() {
+        doAnswer(invocation -> {
+            callbacks(0).timeout.run();
+            return heartbeatTask;
+        }).when(taskScheduler).scheduleAtFixedRate(any(), eq(Duration.ofSeconds(15)));
+
+        service.subscribe(15);
+
+        verify(heartbeatTask).cancel(false);
+        verifyNoInteractions(grpcClient);
+        verify(emitter(0)).complete();
     }
 
     @Test

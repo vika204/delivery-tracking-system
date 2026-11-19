@@ -4,6 +4,7 @@ import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
 import com.delivery.webui.client.dto.RecordLocationRequest;
+import com.delivery.webui.client.dto.RecordedLocationResult;
 import org.springframework.stereotype.Service;
 
 /**
@@ -35,7 +36,7 @@ public class CourierDeliveryService {
         return view(courierId, shipmentId);
     }
 
-    public TrackingLocationClient.RecordedLocation recordLocation(long courierId, long shipmentId, RecordLocationRequest point) {
+    public RecordedLocationResult recordLocation(long courierId, long shipmentId, RecordLocationRequest point) {
         CourierShipmentResponse shipment = view(courierId, shipmentId);
         if (!shipment.inTransit()) {
             throw new ShipmentNotInTransitException(shipmentId, shipment.status());

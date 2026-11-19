@@ -2,7 +2,6 @@ package com.delivery.webui.service;
 
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
 import com.delivery.webui.grpc.ShipmentLocationGrpcClient;
-import com.delivery.webui.grpc.TrackingLocationEventMapper;
 import com.delivery.webui.grpc.dto.TrackingLocationEvent;
 import io.grpc.Context;
 import io.grpc.stub.StreamObserver;
@@ -25,20 +24,17 @@ import java.util.concurrent.ScheduledFuture;
 public class TrackingStreamService {
 
     private final ShipmentLocationGrpcClient grpcClient;
-    private final TrackingLocationEventMapper eventMapper;
     private final TaskScheduler taskScheduler;
     private final Duration timeout;
     private final Duration heartbeat;
 
     public TrackingStreamService(
             ShipmentLocationGrpcClient grpcClient,
-            TrackingLocationEventMapper eventMapper,
             TaskScheduler taskScheduler,
             @Value("${tracking.stream.timeout}") Duration timeout,
             @Value("${tracking.stream.heartbeat}") Duration heartbeat
     ) {
         this.grpcClient = grpcClient;
-        this.eventMapper = eventMapper;
         this.taskScheduler = taskScheduler;
         this.timeout = timeout;
         this.heartbeat = heartbeat;
@@ -141,7 +137,7 @@ public class TrackingStreamService {
             }
 
             try {
-                TrackingLocationEvent event = eventMapper.toEvent(shipmentId, update);
+                TrackingLocationEvent event = TrackingLocationEvent.fromProto(shipmentId, update);
                 emitter.send(SseEmitter.event()
                         .name("location")
                         .data(event));
@@ -176,7 +172,6 @@ public class TrackingStreamService {
                         .name(eventName)
                         .data(message));
             } catch (IOException ignored) {
-                // The connection may already be gone; cleanup still continues.
             } finally {
                 emitter.complete();
             }

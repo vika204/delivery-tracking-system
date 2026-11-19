@@ -235,6 +235,16 @@ body::after {
     margin-top: 22px;
 }
 
+.parcel-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 23px;
+    font: 800 18px var(--font-condensed);
+}
+
 @media (max-width: 650px) {
     .parcels-page {
         margin-top: 29px;

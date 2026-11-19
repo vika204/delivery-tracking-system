@@ -1,9 +1,10 @@
-package com.delivery.webui.grpc;
+package com.delivery.webui.grpc.dto;
 
 import com.delivery.tracking.grpc.ShipmentLocationUpdate;
-import com.delivery.webui.grpc.dto.TrackingLocationEvent;
 import com.google.protobuf.Timestamp;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
@@ -11,10 +12,7 @@ import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class TrackingLocationEventMapperTest {
-
-    private final TrackingLocationEventMapper mapper =
-            new TrackingLocationEventMapper();
+class TrackingLocationEventTest {
 
     @Test
     void mapsProtobufUpdateToSseDtoAndJson() throws Exception {
@@ -28,7 +26,7 @@ class TrackingLocationEventMapperTest {
                         .build())
                 .build();
 
-        TrackingLocationEvent event = mapper.toEvent(15, update);
+        TrackingLocationEvent event = TrackingLocationEvent.fromProto(15, update);
 
         assertThat(event.locationId()).isEqualTo(11);
         assertThat(event.shipmentId()).isEqualTo(15);
@@ -64,9 +62,21 @@ class TrackingLocationEventMapperTest {
                         .setLongitude(30.53)
                         .build();
 
-        assertThatThrownBy(() -> mapper.toEvent(15, anotherShipment))
+        assertThatThrownBy(() -> TrackingLocationEvent.fromProto(15, anotherShipment))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> mapper.toEvent(15, invalidCoordinates))
+        assertThatThrownBy(() -> TrackingLocationEvent.fromProto(15, invalidCoordinates))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY})
+    void rejectsNonFiniteCoordinates(double coordinate) {
+        ShipmentLocationUpdate.Builder update = ShipmentLocationUpdate.newBuilder()
+                .setLocationId(11).setShipmentId(15).setLatitude(50.45).setLongitude(30.52);
+
+        assertThatThrownBy(() -> TrackingLocationEvent.fromProto(15, update.setLatitude(coordinate).build()))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> TrackingLocationEvent.fromProto(15, update.setLatitude(50.45).setLongitude(coordinate).build()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

@@ -1,6 +1,7 @@
 package com.delivery.webui.client;
 
 import com.delivery.webui.client.dto.RecordLocationRequest;
+import com.delivery.webui.client.dto.RecordedLocationResult;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,16 +70,13 @@ public class TrackingLocationClient {
      * Запис GPS-точки; tracking-service перевіряє координати й публікує точку підписникам стріму.
      * 200 замість 201 означає, що точку з цим pointId уже було збережено.
      */
-    public RecordedLocation recordLocation(long shipmentId, RecordLocationRequest request) {
+    public RecordedLocationResult recordLocation(long shipmentId, RecordLocationRequest request) {
         ResponseEntity<TrackingLocationResponse> response = restClient.post()
                 .uri("/tracking/shipments/{shipmentId}/locations", shipmentId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve()
                 .toEntity(TrackingLocationResponse.class);
-        return new RecordedLocation(response.getBody(), response.getStatusCode().value() == 200);
-    }
-
-    public record RecordedLocation(TrackingLocationResponse location, boolean replayed) {
+        return new RecordedLocationResult(response.getBody(), response.getStatusCode().value() == 200);
     }
 }

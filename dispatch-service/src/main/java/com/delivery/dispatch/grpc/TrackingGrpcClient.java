@@ -12,7 +12,6 @@ import com.delivery.tracking.grpc.ShipmentTrackingServiceGrpc;
 import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpcclient.TrackingGrpcProperties;
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.springframework.stereotype.Component;
 
@@ -65,11 +64,7 @@ public class TrackingGrpcClient {
         }
         requests.onCompleted();
 
-        try {
-            return toResponse(await(summary));
-        } catch (StatusRuntimeException ex) {
-            throw new TrackingGrpcException(ex);
-        }
+        return toResponse(await(summary));
     }
 
     public List<LiveLocationDecisionResponse> streamLiveLocations(long shipmentId, List<LocationPointRequest> points) {
@@ -105,12 +100,8 @@ public class TrackingGrpcClient {
         }
         requests.onCompleted();
 
-        try {
-            await(completed);
-            return List.copyOf(decisions);
-        } catch (StatusRuntimeException ex) {
-            throw new TrackingGrpcException(ex);
-        }
+        await(completed);
+        return List.copyOf(decisions);
     }
 
     private ShipmentTrackingServiceGrpc.ShipmentTrackingServiceStub deadlineStub() {
@@ -121,10 +112,10 @@ public class TrackingGrpcClient {
         try {
             return future.get();
         } catch (ExecutionException ex) {
-            throw Status.fromThrowable(ex.getCause()).asRuntimeException();
+            throw new TrackingGrpcException(ex.getCause());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw Status.CANCELLED.withCause(ex).asRuntimeException();
+            throw new TrackingGrpcException(Status.CANCELLED.withCause(ex).asRuntimeException());
         }
     }
 

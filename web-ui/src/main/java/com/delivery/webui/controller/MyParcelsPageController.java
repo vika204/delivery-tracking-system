@@ -1,11 +1,22 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.client.ShipmentReadClient;
+import com.delivery.webui.client.dto.ClientShipmentResponse;
+import com.delivery.webui.controller.support.LoopbackOnly;
+import com.delivery.webui.viewmodel.ParcelViewModel;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -13,142 +24,60 @@ import java.util.List;
 @Controller
 public class MyParcelsPageController {
 
-    private static final List<ParcelPreview> DEMO_PARCELS = List.of(
-            new ParcelPreview(
-                    15,
-                    "IN_TRANSIT",
-                    "Kharkiv, Sumska 10",
-                    "Kyiv, Khreshchatyk 12",
-                    "Marta Shevchenko",
-                    "+380 67 123 45 67",
-                    "12 Nov 2026, 09:42",
-                    "460 km",
-                    "2.40 kg",
-                    "40 cm",
-                    "30 cm",
-                    "20 cm",
-                    "250 UAH",
-                    "Andrii Kovalenko",
-                    "Not available"
-            ),
-            new ParcelPreview(
-                    16,
-                    "DELIVERED",
-                    "Kyiv, Saksahanskoho 28",
-                    "Lviv, Svobody 10",
-                    "Ivan Bondarenko",
-                    "+380 67 222 33 44",
-                    "08 Nov 2026, 13:15",
-                    "540 km",
-                    "1.75 kg",
-                    "35 cm",
-                    "25 cm",
-                    "15 cm",
-                    "210 UAH",
-                    "Olena Melnyk",
-                    "Not available"
-            ),
-            new ParcelPreview(
-                    17,
-                    "WAITING_FOR_COURIER",
-                    "Dnipro, Yavornytskoho 40",
-                    "Odesa, Derybasivska 5",
-                    "Sofia Petrenko",
-                    "+380 67 555 44 33",
-                    "12 Nov 2026, 11:05",
-                    "450 km",
-                    "3.10 kg",
-                    "45 cm",
-                    "32 cm",
-                    "25 cm",
-                    "290 UAH",
-                    "Not assigned",
-                    "Not available"
-            )
-    );
+    static final int PAGE_SIZE = 20;
+
+    private final ShipmentReadClient shipmentClient;
+    private final long senderId;
+
+    public MyParcelsPageController(ShipmentReadClient shipmentClient,
+                                  @Value("${shipment.creation.sender-id}") long senderId) {
+        this.shipmentClient = shipmentClient;
+        this.senderId = senderId;
+    }
+
+    @ModelAttribute
+    void requireLocalAccess(HttpServletRequest request, HttpServletResponse response) {
+        LoopbackOnly.require(request, "My Parcels");
+        response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+    }
 
     @GetMapping("/my-parcels")
-    public String myParcels(
-            @RequestParam(defaultValue = "demo") String state,
-            Model model
-    ) {
-        boolean loading = "loading".equalsIgnoreCase(state);
-        boolean error = "error".equalsIgnoreCase(state);
-        boolean empty = "empty".equalsIgnoreCase(state);
+    public String myParcels(@RequestParam(defaultValue = "0") int page, Model model) {
+        if (page < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must not be negative");
+        }
+        List<ClientShipmentResponse> shipments = shipmentClient.getMyShipments(senderId, page, PAGE_SIZE);
+        if (shipments == null || shipments.size() > PAGE_SIZE || shipments.stream().anyMatch(
+                shipment -> shipment == null || shipment.shipmentId() <= 0 || shipment.userId() != senderId)) {
+            throw new RestClientException("Shipment service returned an invalid parcel list");
+        }
 
-        addSharedPageAttributes(model, "My parcels — WEB EXPRESS");
-        model.addAttribute("parcelsLoading", loading);
-        model.addAttribute("parcelsError", error);
-        model.addAttribute(
-                "parcels",
-                loading || error || empty ? List.of() : DEMO_PARCELS
-        );
-
+        model.addAttribute("parcels", shipments.stream().map(ParcelViewModel::from).toList());
+        model.addAttribute("page", page);
+        model.addAttribute("hasNext", shipments.size() == PAGE_SIZE);
         return "pages/my-parcels";
     }
 
     @GetMapping("/my-parcels/{shipmentId}")
-    public String parcelDetails(
-            @PathVariable long shipmentId,
-            Model model
-    ) {
-        ParcelPreview parcel = DEMO_PARCELS.stream()
-                .filter(candidate -> candidate.shipmentId() == shipmentId)
-                .findFirst()
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Shipment preview not found"
-                ));
+    public String parcelDetails(@PathVariable long shipmentId, Model model) {
+        if (shipmentId <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
+        }
+        ClientShipmentResponse shipment;
+        try {
+            shipment = shipmentClient.getShipment(shipmentId);
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found");
+        }
+        if (shipment == null || shipment.shipmentId() != shipmentId) {
+            throw new RestClientException("Shipment service returned invalid shipment details");
+        }
+        if (shipment.userId() != senderId) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found");
+        }
 
-        addSharedPageAttributes(
-                model,
-                "Shipment #" + shipmentId + " — WEB EXPRESS"
-        );
-        model.addAttribute("parcel", parcel);
-
+        model.addAttribute("pageTitle", "Shipment #" + shipmentId + " — WEB EXPRESS");
+        model.addAttribute("parcel", ParcelViewModel.from(shipment));
         return "pages/shipment-details";
-    }
-
-    private void addSharedPageAttributes(Model model, String pageTitle) {
-        model.addAttribute("pageTitle", pageTitle);
-        model.addAttribute("activePage", "my-parcels");
-        // Display-only navigation state; access control will be provided by Keycloak.
-        model.addAttribute("headerState", "CLIENT");
-    }
-
-    public record ParcelPreview(
-            long shipmentId,
-            String status,
-            String pickupAddress,
-            String deliveryAddress,
-            String recipientName,
-            String recipientPhone,
-            String createdAt,
-            String distance,
-            String weight,
-            String length,
-            String width,
-            String height,
-            String price,
-            String courierName,
-            String courierPhone
-    ) {
-        public String statusLabel() {
-            return status.replace('_', ' ');
-        }
-
-        public String statusClass() {
-            return switch (status) {
-                case "IN_TRANSIT" -> "transit";
-                case "DELIVERED" -> "delivered";
-                case "WAITING_FOR_COURIER" -> "waiting";
-                case "CANCELLED" -> "cancelled";
-                default -> "";
-            };
-        }
-
-        public boolean delivered() {
-            return "DELIVERED".equals(status);
-        }
     }
 }

@@ -1,8 +1,8 @@
 package com.delivery.webui.controller;
 
-import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
 import com.delivery.webui.client.dto.RecordLocationRequest;
+import com.delivery.webui.client.dto.RecordedLocationResult;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.controller.support.LoopbackOnly;
 import com.delivery.webui.service.CourierDeliveryService;
@@ -66,7 +66,7 @@ public class CourierDeliveryApiController {
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                                    @RequestBody RecordLocationRequest point) {
-        TrackingLocationClient.RecordedLocation recorded = deliveryService.recordLocation(courierId, shipmentId, point);
+        RecordedLocationResult recorded = deliveryService.recordLocation(courierId, shipmentId, point);
         return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED).body(recorded.location());
     }
 

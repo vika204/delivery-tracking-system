@@ -2,6 +2,7 @@ package com.delivery.webui.client;
 
 import com.delivery.webui.client.dto.CreateShipmentRequest;
 import com.delivery.webui.client.dto.CreatedShipmentResponse;
+import com.delivery.webui.client.dto.ShipmentCreationResult;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import com.delivery.webui.client.dto.ShipmentQuoteResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,16 +45,13 @@ public class ShipmentCreationClient {
                 .retrieve().body(ShipmentQuoteResponse.class);
     }
 
-    public Creation create(long senderId, String idempotencyKey, CreateShipmentRequest request) {
+    public ShipmentCreationResult create(long senderId, String idempotencyKey, CreateShipmentRequest request) {
         ResponseEntity<CreatedShipmentResponse> response = restClient.post().uri("/shipments")
                 .header(USER_ID, String.valueOf(senderId))
                 .header(IDEMPOTENCY_KEY, idempotencyKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(request)
                 .retrieve().toEntity(CreatedShipmentResponse.class);
-        return new Creation(response.getBody(), "true".equals(response.getHeaders().getFirst(REPLAYED)));
-    }
-
-    public record Creation(CreatedShipmentResponse shipment, boolean replayed) {
+        return new ShipmentCreationResult(response.getBody(), "true".equals(response.getHeaders().getFirst(REPLAYED)));
     }
 }

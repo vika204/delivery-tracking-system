@@ -2,6 +2,7 @@ package com.delivery.webui.client;
 
 import com.delivery.webui.client.dto.CreateShipmentRequest;
 import com.delivery.webui.client.dto.CreatedShipmentResponse;
+import com.delivery.webui.client.dto.ShipmentCreationResult;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,7 +72,7 @@ class ShipmentCreationClientTest {
                         {"shipmentId": 15, "status": "WAITING_FOR_COURIER", "price": 120.50, "userId": 42}
                         """, MediaType.APPLICATION_JSON).headers(replayed));
 
-        ShipmentCreationClient.Creation creation = client.create(42, "key-1", request());
+        ShipmentCreationResult creation = client.create(42, "key-1", request());
 
         assertThat(creation.shipment()).isEqualTo(new CreatedShipmentResponse(15, "WAITING_FOR_COURIER", new BigDecimal("120.50")));
         assertThat(creation.replayed()).isTrue();

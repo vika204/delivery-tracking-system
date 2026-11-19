@@ -147,20 +147,14 @@ export async function loadLocationBackfill({
         locations.push(...page);
 
         if (page.length < limit) {
-            return Object.freeze({
-                locations: Object.freeze([...locations]),
-                complete: true
-            });
+            return {locations, complete: true};
         }
     }
 
     const probe = await fetchPage(validShipment, cursor, 1);
     validateLocationPage(probe, validShipment, cursor, 1);
 
-    return Object.freeze({
-        locations: Object.freeze([...locations]),
-        complete: probe.length === 0
-    });
+    return {locations, complete: probe.length === 0};
 }
 
 function orderedUniqueLocations(locations, shipmentId) {
@@ -475,32 +469,19 @@ export function startLiveTracking({
                         throw new Error("GPS backfill returned an invalid result");
                     }
 
-                    if (!result.complete) {
-                        mapApi.appendLocations(result.locations, {
-                            updateCurrentPosition: false
-                        });
-                        mapApi.setLocationHistoryComplete(false);
-                        return recover(source);
-                    }
-
-                    const merged = orderedUniqueLocations(
-                        [...result.locations, ...bufferedLocations],
-                        shipmentId
-                    );
-
-                    if (bufferOverflow) {
-                        mapApi.appendLocations(merged, {
-                            updateCurrentPosition: false
-                        });
-                        mapApi.setLocationHistoryComplete(false);
+                    const locations = result.complete
+                        ? orderedUniqueLocations([...result.locations, ...bufferedLocations], shipmentId)
+                        : result.locations;
+                    const historyComplete = result.complete && !bufferOverflow;
+                    const appendedCount = mapApi.appendLocations(locations, {
+                        updateCurrentPosition: false
+                    });
+                    mapApi.setLocationHistoryComplete(historyComplete);
+                    if (!historyComplete) {
                         return recover(source);
                     }
 
                     synchronizing = false;
-                    const appendedCount = mapApi.appendLocations(merged, {
-                        updateCurrentPosition: false
-                    });
-                    mapApi.setLocationHistoryComplete(true);
                     updateStatusElement(statusElement, STATUS.LIVE);
 
                     if (appendedCount > 0) {
