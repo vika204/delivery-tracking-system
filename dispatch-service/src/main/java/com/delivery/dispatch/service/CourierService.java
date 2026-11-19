@@ -1,6 +1,5 @@
 package com.delivery.dispatch.service;
 
-import com.delivery.dispatch.config.DispatchProperties;
 import com.delivery.dispatch.dto.AssignmentResponse;
 import com.delivery.dispatch.dto.CourierStatusResponse;
 import com.delivery.dispatch.dto.OfferResponse;
@@ -9,6 +8,7 @@ import com.delivery.dispatch.dto.UpdateCourierRequest;
 import com.delivery.dispatch.entity.Assignment;
 import com.delivery.dispatch.entity.AssignmentStatus;
 import com.delivery.dispatch.entity.Courier;
+import com.delivery.dispatch.entity.CourierAvailability;
 import com.delivery.dispatch.entity.DeliveryOffer;
 import com.delivery.dispatch.entity.DispatchRequest;
 import com.delivery.dispatch.exception.DispatchConflictException;
@@ -40,22 +40,23 @@ public class CourierService {
     private final DeliveryOfferRepository offerRepository;
     private final AssignmentRepository assignmentRepository;
     private final DispatchRequestRepository requestRepository;
-    private final DispatchProperties properties;
     private final CourierMetrics metrics;
     private final ApplicationEventPublisher applicationEvents;
+    private final DispatchService dispatchService;
     private final Clock clock;
 
     public CourierService(CourierRepository courierRepository, DeliveryOfferRepository offerRepository,
                           AssignmentRepository assignmentRepository, DispatchRequestRepository requestRepository,
-                          DispatchProperties properties, CourierMetrics metrics,
-                          ApplicationEventPublisher applicationEvents, Clock clock) {
+                          CourierMetrics metrics,
+                          ApplicationEventPublisher applicationEvents, DispatchService dispatchService,
+                          Clock clock) {
         this.courierRepository = courierRepository;
         this.offerRepository = offerRepository;
         this.assignmentRepository = assignmentRepository;
         this.requestRepository = requestRepository;
-        this.properties = properties;
         this.metrics = metrics;
         this.applicationEvents = applicationEvents;
+        this.dispatchService = dispatchService;
         this.clock = clock;
     }
 
@@ -96,19 +97,25 @@ public class CourierService {
     /**
      * SetCourierAvailability → CourierWentOnline / CourierWentOffline (US-3.5).
      * Офлайн з активною доставкою дозволено: її можна завершити, але нових пропозицій не буде.
-     * Активна пропозиція в кур'єра, що пішов офлайн, лишається до відповіді або тайм-ауту.
+     * Пропозиція на розгляді в кур'єра, що пішов офлайн, одразу передається наступному кандидату.
      */
     @Transactional
     public CourierStatusResponse setAvailability(long courierId, boolean online) {
-        Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow(() -> notFound(courierId));
-        if (courier.isAvailable() != online) {
-            courier.setAvailable(online);
-            log.info("Courier went {}: courierId={}", online ? "online" : "offline", courierId);
-            if (online) {
-                applicationEvents.publishEvent(new CourierCapacityFreedEvent());
-            }
+        if (online) {
+            goOnline(courierId);
+        } else {
+            dispatchService.goOffline(courierId);
         }
-        return status(courier);
+        return status(get(courierId));
+    }
+
+    private void goOnline(long courierId) {
+        Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow(() -> notFound(courierId));
+        if (!courier.isAvailable()) {
+            courier.setAvailable(true);
+            log.info("Courier went online: courierId={}", courierId);
+            applicationEvents.publishEvent(new CourierCapacityFreedEvent());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -153,9 +160,9 @@ public class CourierService {
         return new CourierStatusResponse(
                 courier.getUserId(),
                 courier.isAvailable(),
+                CourierAvailability.of(courier.isAvailable(), active > 0),
                 active,
-                pendingOfferId,
-                courier.isAvailable() && active < properties.maxActiveAssignments()
+                pendingOfferId
         );
     }
 
@@ -176,6 +183,12 @@ public class CourierService {
                 request == null ? null : request.getDeliveryType(),
                 offer.getCreatedAt()
         );
+    }
+
+    /** Призначення з адресами й винагородою для застосунку кур'єра. */
+    @Transactional(readOnly = true)
+    public AssignmentResponse describe(Assignment assignment) {
+        return toResponse(assignment);
     }
 
     private AssignmentResponse toResponse(Assignment assignment) {

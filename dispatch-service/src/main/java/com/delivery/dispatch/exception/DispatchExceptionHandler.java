@@ -2,6 +2,7 @@ package com.delivery.dispatch.exception;
 
 import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import com.delivery.tracking.grpcclient.TrackingGrpcProblems;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,16 @@ public class DispatchExceptionHandler {
     @ExceptionHandler(DispatchConflictException.class)
     public ProblemDetail conflict(DispatchConflictException ex) {
         return problem(HttpStatus.CONFLICT, "dispatch-conflict", "Action not available in current state", ex);
+    }
+
+    /** Спрацювало обмеження БД (наприклад, друге ACTIVE-призначення кур'єра), яке обійшло перевірки в коді. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail constraintViolated(DataIntegrityViolationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "The action conflicts with the current state, please retry");
+        problem.setType(URI.create("urn:delivery:problem:dispatch-conflict"));
+        problem.setTitle("Action not available in current state");
+        return problem;
     }
 
     @ExceptionHandler(DispatchAccessDeniedException.class)

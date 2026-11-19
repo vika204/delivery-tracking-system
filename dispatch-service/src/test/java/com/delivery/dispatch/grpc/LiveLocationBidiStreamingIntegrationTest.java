@@ -56,6 +56,8 @@ class LiveLocationBidiStreamingIntegrationTest {
         registry.add("spring.datasource.username", () -> "sa");
         registry.add("spring.datasource.password", () -> "");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        // H2 без Flyway: міграції написані для Postgres і перевіряються в DispatchFlowIntegrationTest
+        registry.add("spring.flyway.enabled", () -> "false");
         registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9999");
         registry.add("spring.kafka.listener.auto-startup", () -> "false");
         registry.add("spring.kafka.admin.auto-create", () -> "false");

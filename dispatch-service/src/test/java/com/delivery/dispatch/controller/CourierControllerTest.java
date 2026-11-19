@@ -1,17 +1,25 @@
 package com.delivery.dispatch.controller;
 
+import com.delivery.dispatch.dto.AssignmentResponse;
 import com.delivery.dispatch.dto.RegisterCourierRequest;
+import com.delivery.dispatch.entity.Assignment;
+import com.delivery.dispatch.entity.AssignmentStatus;
 import com.delivery.dispatch.entity.Courier;
 import com.delivery.dispatch.exception.DispatchExceptionHandler;
 import com.delivery.dispatch.service.CourierService;
 import com.delivery.dispatch.service.DispatchService;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -59,6 +67,31 @@ class CourierControllerTest {
                 .andExpect(jsonPath("$.userId").value(10))
                 .andExpect(jsonPath("$.displayName").value("Andrii Kovalenko"))
                 .andExpect(jsonPath("$.maxPackageWeight").value(new BigDecimal("15.5")));
+    }
+
+    @Test
+    void acceptReturnsTheCreatedAssignment() throws Exception {
+        Assignment assignment = Assignment.builder().assignmentId(3L).shipmentId(15L).status(AssignmentStatus.ACTIVE).build();
+        when(dispatchService.acceptOffer(10, 55)).thenReturn(assignment);
+        when(courierService.describe(assignment)).thenReturn(new AssignmentResponse(
+                3, 15, AssignmentStatus.ACTIVE, false, null, null, null, null,
+                "Kyiv, A", "Kyiv, B", null, null, null, "STANDARD"));
+
+        mockMvc.perform(post("/couriers/10/offers/55/accept").header("X-User-Id", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignmentId").value(3))
+                .andExpect(jsonPath("$.pickupAddress").value("Kyiv, A"));
+
+        verify(courierService, never()).assignments(anyLong(), anyBoolean());
+    }
+
+    @Test
+    void mapsDatabaseConstraintViolationToConflict() throws Exception {
+        when(dispatchService.acceptOffer(10, 55)).thenThrow(new DataIntegrityViolationException("uq_assignment_active_courier"));
+
+        mockMvc.perform(post("/couriers/10/offers/55/accept").header("X-User-Id", "10"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("The action conflicts with the current state, please retry"));
     }
 
     @Test

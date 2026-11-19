@@ -12,6 +12,7 @@ import com.delivery.dispatch.events.ShipmentSnapshot;
 import com.delivery.dispatch.exception.DispatchAccessDeniedException;
 import com.delivery.dispatch.exception.DispatchConflictException;
 import com.delivery.dispatch.exception.DispatchNotFoundException;
+import com.delivery.dispatch.exception.OfferNoLongerAvailableException;
 import com.delivery.dispatch.geo.ServiceZones;
 import com.delivery.dispatch.metrics.DispatchMetrics;
 import com.delivery.dispatch.outbox.DispatchEventOutbox;
@@ -38,9 +39,12 @@ import java.util.Set;
 /**
  * Dispatch Context: пошук кур'єра, пропозиції, призначення та їх завершення.
  * <p>
+ * Кур'єр має або одну пропозицію на розгляді, або одне активне призначення — не більше.
+ * <p>
  * Порядок блокувань однаковий у всіх операціях — пропозиція → DispatchRequest → призначення → кур'єр,
  * тож паралельні операції (Kafka-споживачі, планувальники, HTTP) не взаємоблокуються.
- * Блокування рядка кур'єра гарантує правило «не більше однієї активної пропозиції на кур'єра».
+ * Блокування рядка кур'єра серіалізує видачу пропозицій і прийняття: перевірки «немає пропозиції»
+ * та «немає активної доставки» виконуються вже під ним.
  */
 @Service
 public class DispatchService {
@@ -255,7 +259,7 @@ public class DispatchService {
 
     /**
      * FindCourier → SendCourierProposal. Викликається з уже заблокованим DispatchRequest.
-     * Ранжування: менша відстань до точки забору → менше активних доставок → довше без замовлень.
+     * Ранжування: менша відстань до точки забору → довше без замовлень.
      */
     private DispatchRequestStatus dispatch(DispatchRequest request) {
         if (!request.isSearchable()) {
@@ -270,17 +274,13 @@ public class DispatchService {
 
         Set<Long> excluded = excludedCouriers(request.getShipmentId());
         List<Candidate> candidates = courierRepository
-                .findEligible(request.getParcelWeight(), properties.maxActiveAssignments())
+                .findFree(request.getParcelWeight())
                 .stream()
                 .filter(courier -> !excluded.contains(courier.getUserId()))
                 .filter(courier -> zones.sameZone(courier.getWorkZoneCode(), request.getPickupCityCode()))
-                .map(courier -> new Candidate(
-                        courier,
-                        distanceToPickup(courier, request),
-                        assignmentRepository.countByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)))
+                .map(courier -> new Candidate(courier, distanceToPickup(courier, request)))
                 .sorted(Comparator
                         .comparingDouble(Candidate::distanceToPickupKm)
-                        .thenComparingLong(Candidate::activeAssignments)
                         .thenComparing(c -> c.courier().getLastAssignedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(c -> c.courier().getUserId()))
                 .toList();
@@ -290,7 +290,7 @@ public class DispatchService {
 
         for (Candidate candidate : candidates) {
             Courier courier = courierRepository.findByIdForUpdate(candidate.courier().getUserId()).orElse(null);
-            if (courier == null || !stillEligible(courier, request)) {
+            if (courier == null || !stillFree(courier, request)) {
                 continue;
             }
 
@@ -341,12 +341,16 @@ public class DispatchService {
         return excluded;
     }
 
-    private boolean stillEligible(Courier courier, DispatchRequest request) {
+    /** Повторна перевірка вже під блокуванням кур'єра: стан міг змінитися після вибірки кандидатів. */
+    private boolean stillFree(Courier courier, DispatchRequest request) {
         return courier.isAvailable()
                 && courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) >= 0
                 && offerRepository.findPendingByCourier(courier.getUserId()).isEmpty()
-                && assignmentRepository.countByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)
-                < properties.maxActiveAssignments();
+                && !hasActiveAssignment(courier.getUserId());
+    }
+
+    private boolean hasActiveAssignment(long courierId) {
+        return assignmentRepository.existsByCourierUserIdAndStatus(courierId, AssignmentStatus.ACTIVE);
     }
 
     private double distanceToPickup(Courier courier, DispatchRequest request) {
@@ -369,8 +373,12 @@ public class DispatchService {
     // Відповідь кур'єра на пропозицію
     // =====================================================================
 
-    /** AcceptCourierProposal → CourierProposalAccepted, CourierAssigned (US-3.2). */
-    @Transactional
+    /**
+     * AcceptCourierProposal → CourierProposalAccepted, CourierAssigned (US-3.2).
+     * Пропозиція, призначення й подія COURIER_ASSIGNED в outbox фіксуються в одній транзакції.
+     * Відхиляється, якщо пропозиція чужа, прострочена, кур'єр офлайн або вже має активну доставку.
+     */
+    @Transactional(noRollbackFor = OfferNoLongerAvailableException.class)
     public Assignment acceptOffer(long courierId, long offerId) {
         DeliveryOffer offer = lockOwnOffer(courierId, offerId);
 
@@ -389,12 +397,13 @@ public class DispatchService {
         DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId())
                 .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + " not found"));
         if (request.getStatus() != DispatchRequestStatus.OFFERED) {
-            offer.setStatus(OfferStatus.CANCELLED);
-            offer.setRespondedAt(Instant.now(clock));
-            throw new DispatchConflictException("Shipment " + offer.getShipmentId() + " is no longer available");
+            // зміна зберігається: виняток не відкочує транзакцію (noRollbackFor)
+            cancelOffers(List.of(offer), "shipment no longer waits for this offer");
+            throw new OfferNoLongerAvailableException("Shipment " + offer.getShipmentId() + " is no longer available");
         }
 
         Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow();
+        requireCanTakeDelivery(courier);
         Instant now = Instant.now(clock);
         Assignment assignment = assignmentRepository.save(Assignment.builder()
                 .shipmentId(offer.getShipmentId())
@@ -414,6 +423,37 @@ public class DispatchService {
         log.info("Courier proposal accepted: shipmentId={}, offerId={}, courierId={}, assignmentId={}",
                 offer.getShipmentId(), offerId, courierId, assignment.getAssignmentId());
         return assignment;
+    }
+
+    /**
+     * CourierWentOffline (US-3.5): пропозицію на розгляді одразу передаємо наступному кандидату,
+     * щоб посилка не чекала тайм-ауту. Активну доставку кур'єр завершує й офлайн.
+     * Порядок блокувань загальний: пропозиції → DispatchRequest → кур'єр.
+     * <p>
+     * Пропозиція, створена між вибіркою й блокуванням кур'єра, лишиться до тайм-ауту,
+     * але прийняти її офлайн не можна (див. {@link #acceptOffer}).
+     */
+    @Transactional
+    public void goOffline(long courierId) {
+        List<DeliveryOffer> pending = offerRepository.findPendingByCourierForUpdate(courierId);
+        List<DispatchRequest> offered = pending.stream()
+                .map(offer -> requestRepository.findByIdForUpdate(offer.getShipmentId()))
+                .flatMap(Optional::stream)
+                .toList();
+        Courier courier = courierRepository.findByIdForUpdate(courierId)
+                .orElseThrow(() -> new DispatchNotFoundException("Courier " + courierId + " not found"));
+
+        if (courier.isAvailable()) {
+            courier.setAvailable(false);
+            log.info("Courier went offline: courierId={}, offersReleased={}", courierId, pending.size());
+        }
+        cancelOffers(pending, "courier went offline");
+        for (DispatchRequest request : offered) {
+            if (request.getStatus() == DispatchRequestStatus.OFFERED) {
+                request.setStatus(DispatchRequestStatus.SEARCHING);
+                dispatch(request);
+            }
+        }
     }
 
     /** RejectCourierProposal → CourierProposalRejected, пропозиція наступному кандидату (US-3.2). */
@@ -524,6 +564,16 @@ public class DispatchService {
         return offer;
     }
 
+    /** Викликається під блокуванням кур'єра, тож паралельний Accept побачить уже створене призначення. */
+    private void requireCanTakeDelivery(Courier courier) {
+        if (!courier.isAvailable()) {
+            throw new DispatchConflictException("Courier " + courier.getUserId() + " is offline: go online to accept offers");
+        }
+        if (hasActiveAssignment(courier.getUserId())) {
+            throw new DispatchConflictException("Courier " + courier.getUserId() + " already has an active delivery");
+        }
+    }
+
     private static void requirePending(DeliveryOffer offer) {
         if (offer.getStatus() != OfferStatus.PENDING) {
             throw new DispatchConflictException("Offer " + offer.getOfferId() + " is already " + offer.getStatus());
@@ -598,6 +648,6 @@ public class DispatchService {
         request.setUpdatedAt(Instant.now(clock));
     }
 
-    private record Candidate(Courier courier, double distanceToPickupKm, long activeAssignments) {
+    private record Candidate(Courier courier, double distanceToPickupKm) {
     }
 }

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -38,8 +39,15 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,17 +59,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Сценарії Dispatch на реальному Postgres: пошук, пропозиції, призначення, відмови, скасування.
+ * Схему створюють міграції Flyway, а Hibernate звіряє її з сутностями (ddl-auto=validate).
  * Kafka-споживачі та планувальники вимкнені: події подаються через {@link ShipmentEventProcessor},
  * а тайм-аути пропозицій — через {@link DispatchQueueProcessor#expireOffers()}.
  */
 @SpringBootTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.kafka.bootstrap-servers=localhost:9999",
         "spring.kafka.listener.auto-startup=false",
         "spring.kafka.admin.auto-create=false",
         "outbox.relay.enabled=false",
-        "dispatch.scheduling.enabled=false",
-        "dispatch.max-active-assignments=2"
+        "dispatch.scheduling.enabled=false"
 })
 @AutoConfigureMockMvc
 @Testcontainers
@@ -197,14 +204,25 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
-    void courierAtCapacityGetsNoNewOffers() {
+    void courierWithActiveDeliveryGetsNoNewOffers() {
         courier(1, KYIV, "20", true, null, null);
         acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
+
+        long second = created(KYIV, "1", "STANDARD");
+
+        assertThat(request(second)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+        assertThat(offers.findPendingByCourier(1L)).isEmpty();
+    }
+
+    @Test
+    void busyCourierIsSkippedInFavourOfFartherFreeCourier() {
+        courier(1, KYIV, "20", true, 50.45, 30.52);   // найближчий, але зайнятий
+        courier(2, KYIV, "20", true, 50.55, 30.70);
         acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
 
-        long third = created(KYIV, "1", "STANDARD");
+        long next = created(KYIV, "1", "STANDARD");
 
-        assertThat(request(third)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+        assertThat(pendingOffer(next).getCourier().getUserId()).isEqualTo(2L);
     }
 
     // ---------------------------------------------------------------- відповідь на пропозицію
@@ -293,6 +311,135 @@ class DispatchFlowIntegrationTest {
                 .isInstanceOf(DispatchConflictException.class)
                 .hasMessageContaining("expired");
         assertThat(assignments.count()).isZero();
+    }
+
+    @Test
+    void goingOfflineReleasesPendingOfferToNextCandidate() throws Exception {
+        courier(1, KYIV, "20", true, 50.45, 30.52);
+        courier(2, KYIV, "20", true, 50.55, 30.70);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long firstOffer = pendingOffer(shipmentId).getOfferId();
+
+        availability(1, false);
+
+        assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
+        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
+        mockMvc.perform(get("/couriers/1/status").header("X-User-Id", "1"))
+                .andExpect(jsonPath("$.state").value("UNAVAILABLE"))
+                .andExpect(jsonPath("$.pendingOfferId").doesNotExist());
+    }
+
+    @Test
+    void offerReleasedByGoingOfflineCanReturnWhenCourierIsBackOnline() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+
+        availability(1, false);
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+
+        availability(1, true);
+        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
+    }
+
+    @Test
+    void acceptIsRejectedWhenCourierWentOffline() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long offerId = pendingOffer(shipmentId).getOfferId();
+        // перемикач вимкнено, а пропозиція лишилась (гонка з goOffline): Accept усе одно відхиляється
+        offline(1);
+
+        mockMvc.perform(post("/couriers/1/offers/" + offerId + "/accept").header("X-User-Id", "1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("offline")));
+
+        assertThat(assignments.count()).isZero();
+        assertThat(outbox.count()).isZero();
+        assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.PENDING);
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.OFFERED);
+    }
+
+    @Test
+    void acceptOfOfferForShipmentThatNoLongerWaitsCancelsTheOffer() {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long offerId = pendingOffer(shipmentId).getOfferId();
+        var request = requests.findById(shipmentId).orElseThrow();
+        request.setStatus(DispatchRequestStatus.CANCELLED);
+        requests.save(request);
+
+        assertThatThrownBy(() -> dispatchService.acceptOffer(1, offerId))
+                .isInstanceOf(DispatchConflictException.class)
+                .hasMessageContaining("no longer available");
+
+        // скасування пропозиції закомічене, хоча Accept завершився винятком
+        assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
+        assertThat(assignments.count()).isZero();
+        assertThat(outbox.count()).isZero();
+    }
+
+    @Test
+    void databaseAllowsOnlyOneActiveAssignmentPerCourier() {
+        courier(1, KYIV, "20", true, null, null);
+        Courier courier = couriers.findById(1L).orElseThrow();
+        assignments.save(Assignment.builder().shipmentId(1L).courier(courier).status(AssignmentStatus.ACTIVE).build());
+        assignments.save(Assignment.builder().shipmentId(2L).courier(courier).status(AssignmentStatus.COMPLETED).build());
+
+        assertThatThrownBy(() -> assignments.save(
+                Assignment.builder().shipmentId(3L).courier(courier).status(AssignmentStatus.ACTIVE).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void concurrentAcceptsOfTheSameOfferCreateOneAssignment() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long offerId = pendingOffer(created(KYIV, "3", "STANDARD")).getOfferId();
+
+        List<Object> results = concurrently(
+                () -> dispatchService.acceptOffer(1, offerId),
+                () -> dispatchService.acceptOffer(1, offerId));
+
+        assertThat(results).allSatisfy(result -> assertThat(result).isInstanceOf(Assignment.class));
+        assertThat(assignments.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(1L, AssignmentStatus.ACTIVE)).hasSize(1);
+        assertThat(outbox.count()).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentAcceptsOfDifferentOffersLeaveAtMostOneActiveAssignment() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long first = created(KYIV, "3", "STANDARD");
+        long second = created(KYIV, "3", "STANDARD");
+        long firstOffer = pendingOffer(first).getOfferId();
+        // імітуємо збій інваріанту «одна пропозиція»: друга пропозиція тому самому кур'єру
+        long secondOffer = forceOffer(second, 1);
+
+        List<Object> results = concurrently(
+                () -> dispatchService.acceptOffer(1, firstOffer),
+                () -> dispatchService.acceptOffer(1, secondOffer));
+
+        assertThat(results).filteredOn(Assignment.class::isInstance).hasSize(1);
+        assertThat(results).filteredOn(DispatchConflictException.class::isInstance).singleElement()
+                .satisfies(ex -> assertThat(((Exception) ex).getMessage()).contains("active delivery"));
+        assertThat(assignments.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(1L, AssignmentStatus.ACTIVE)).hasSize(1);
+        assertThat(outbox.count()).isEqualTo(1);
+    }
+
+    @Test
+    void statusEndpointReportsAvailableBusyAndUnavailable() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        assertState(1, "AVAILABLE", true);
+
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        acceptCurrent(shipmentId, 1);
+        assertState(1, "BUSY", true);
+
+        // перемикач можна вимкнути під час доставки: стан лишається BUSY, положення перемикача — збережене
+        availability(1, false);
+        assertState(1, "BUSY", false);
+
+        events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
+        events.process(statusEvent(shipmentId, "DELIVERED", 1L));
+        assertState(1, "UNAVAILABLE", false);
     }
 
     @Test
@@ -390,7 +537,6 @@ class DispatchFlowIntegrationTest {
     @Test
     void cancellationAfterAssignmentReleasesCourierForWaitingShipment() {
         courier(1, KYIV, "20", true, null, null);
-        dispatchCapacity(1);
         long assigned = created(KYIV, "3", "STANDARD");
         Assignment assignment = acceptCurrent(assigned, 1);
         long waiting = created(KYIV, "3", "STANDARD");
@@ -492,9 +638,56 @@ class DispatchFlowIntegrationTest {
         couriers.save(courier);
     }
 
-    /** Займає одне з двох місць кур'єра (dispatch.max-active-assignments=2) іншою доставкою. */
-    private void dispatchCapacity(long courierId) {
-        acceptCurrent(created(KYIV, "1", "STANDARD"), courierId);
+    private void availability(long courierId, boolean online) throws Exception {
+        mockMvc.perform(put("/couriers/" + courierId + "/availability")
+                        .header("X-User-Id", String.valueOf(courierId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"online\": " + online + "}"))
+                .andExpect(status().isOk());
+    }
+
+    private void assertState(long courierId, String state, boolean online) throws Exception {
+        mockMvc.perform(get("/couriers/" + courierId + "/status").header("X-User-Id", String.valueOf(courierId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value(state))
+                .andExpect(jsonPath("$.online").value(online));
+    }
+
+    /** Пропозиція в обхід пошуку — лише щоб перевірити захист Accept від гонок. */
+    private long forceOffer(long shipmentId, long courierId) {
+        var request = requests.findById(shipmentId).orElseThrow();
+        request.setStatus(DispatchRequestStatus.OFFERED);
+        requests.save(request);
+        return offers.save(DeliveryOffer.builder()
+                .shipmentId(shipmentId)
+                .courier(couriers.findById(courierId).orElseThrow())
+                .status(OfferStatus.PENDING)
+                .createdAt(Instant.now())
+                .expiresAt(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(1))
+                .build()).getOfferId();
+    }
+
+    /** Запускає дії одночасно; повертає результат або виняток кожної. */
+    private static List<Object> concurrently(Callable<?>... actions) throws Exception {
+        CyclicBarrier start = new CyclicBarrier(actions.length);
+        try (ExecutorService executor = Executors.newFixedThreadPool(actions.length)) {
+            List<Future<Object>> futures = new ArrayList<>();
+            for (Callable<?> action : actions) {
+                futures.add(executor.submit(() -> {
+                    start.await();
+                    try {
+                        return action.call();
+                    } catch (RuntimeException ex) {
+                        return ex;
+                    }
+                }));
+            }
+            List<Object> results = new ArrayList<>();
+            for (Future<Object> future : futures) {
+                results.add(future.get(30, TimeUnit.SECONDS));
+            }
+            return results;
+        }
     }
 
     private long created(String pickupCode, String weight, String type) {
