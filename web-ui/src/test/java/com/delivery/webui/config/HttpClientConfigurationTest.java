@@ -8,6 +8,7 @@ import com.delivery.webui.client.ShipmentReadClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.NotificationClient;
+import com.delivery.webui.client.UserProfileClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.http.client.autoconfigure.service.HttpServiceClientProperties;
@@ -24,7 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "shipment.client.base-url=http://shipment.test",
         "dispatch.client.base-url=http://dispatch.test",
         "tracking.client.base-url=http://tracking.test",
-        "notification.client.base-url=http://notification.test"
+        "notification.client.base-url=http://notification.test",
+        "auth.client.base-url=http://auth.test"
 })
 class HttpClientConfigurationTest {
 
@@ -41,7 +43,7 @@ class HttpClientConfigurationTest {
     void registersAllClientsAsInjectableHttpServiceProxies() {
         for (Class<?> type : List.of(ShipmentReadClient.class, ShipmentCreationClient.class,
                 CourierShipmentClient.class, DispatchCourierClient.class, DispatchCourierDashboardClient.class,
-                TrackingShipmentClient.class, TrackingLocationClient.class, NotificationClient.class)) {
+                TrackingShipmentClient.class, TrackingLocationClient.class, NotificationClient.class, UserProfileClient.class)) {
             assertThat(context.getBean(type)).isSameAs(registry.getClient(type));
         }
     }
@@ -53,7 +55,8 @@ class HttpClientConfigurationTest {
         assertThat(properties.get("dispatch").getBaseUrl()).isEqualTo("http://dispatch.test");
         assertThat(properties.get("tracking").getBaseUrl()).isEqualTo("http://tracking.test");
         assertThat(properties.get("notification").getBaseUrl()).isEqualTo("http://notification.test");
-        for (String group : List.of("shipment", "shipment-creation", "dispatch", "tracking", "notification")) {
+        assertThat(properties.get("auth").getBaseUrl()).isEqualTo("http://auth.test");
+        for (String group : List.of("shipment", "shipment-creation", "dispatch", "tracking", "notification", "auth")) {
             assertThat(properties.get(group).getConnectTimeout()).isEqualTo(Duration.ofSeconds(2));
             assertThat(properties.get(group).getReadTimeout())
                     .isEqualTo(Duration.ofSeconds(group.equals("shipment-creation") ? 20 : 3));

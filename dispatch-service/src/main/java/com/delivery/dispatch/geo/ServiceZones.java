@@ -8,13 +8,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 
-/**
- * Anti-Corruption Layer Dispatch до Maps/Routing API (офлайн-реалізація).
- * <p>
- * Зона обслуговування — область за KATOTTG-кодом (перші дві цифри після "UA");
- * м. Київ і Київська область вважаються однією зоною. Відстань — haversine × коефіцієнт доріг.
- * Алгоритм координат збігається з shipment-service, тож положення населених пунктів однакові.
- */
 @Component
 public class ServiceZones {
 
@@ -59,26 +52,20 @@ public class ServiceZones {
         return code != null && KATOTTG.matcher(code).matches() && REGION_CENTRES.containsKey(code.substring(2, 4));
     }
 
-    /** Чи обслуговує кур'єр із зоною {@code courierZoneCode} точку забору {@code pickupCityCode}. */
     public boolean sameZone(String courierZoneCode, String pickupCityCode) {
         if (!isValidCode(courierZoneCode) || !isValidCode(pickupCityCode)) {
             return false;
         }
         String courierRegion = courierZoneCode.substring(2, 4);
         String pickupRegion = pickupCityCode.substring(2, 4);
-        return courierRegion.equals(pickupRegion)
-                || (KYIV_ZONE.contains(courierRegion) && KYIV_ZONE.contains(pickupRegion));
+        return courierRegion.equals(pickupRegion) || (KYIV_ZONE.contains(courierRegion) && KYIV_ZONE.contains(pickupRegion));
     }
 
-    /** Орієнтовна позиція центру населеного пункту зони — коли актуальної геопозиції кур'єра немає. */
     public double[] zoneLocation(String zoneCode) {
         String region = zoneCode.substring(2, 4);
         double[] centre = REGION_CENTRES.get(region);
         double spread = REGION_SPREAD_DEGREES.getOrDefault(region, DEFAULT_REGION_SPREAD_DEGREES);
-        return new double[]{
-                centre[0] + offset(zoneCode, "lat") * spread,
-                centre[1] + offset(zoneCode, "lon") * spread * 1.5
-        };
+        return new double[]{centre[0] + offset(zoneCode, "lat") * spread, centre[1] + offset(zoneCode, "lon") * spread * 1.5};
     }
 
     public double distanceKm(double lat1, double lon1, double lat2, double lon2) {

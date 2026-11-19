@@ -70,7 +70,7 @@ class CourierDashboardServiceTest {
     }
 
     private void stubView(DispatchCourierStatus status, List<DispatchCourierAssignment> deliveries) {
-        when(client.profile(7)).thenReturn(new DispatchCourierProfile(7L, "Olena"));
+        when(client.profile(7)).thenReturn(new DispatchCourierProfile(7L, "Olena", null, null, null, null));
         when(client.status(7, 7)).thenReturn(status);
         when(client.currentOffer(7, 7)).thenReturn(null);
         when(client.activeAssignments(7, 7)).thenReturn(deliveries);

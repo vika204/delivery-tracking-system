@@ -46,7 +46,7 @@ com.delivery.webui
 Усі REST-клієнти у `client` — інтерфейси з `@HttpExchange` та `@GetExchange` / `@PostExchange` / `@PutExchange`.
 `HttpClientConfiguration` реєструє їх через стандартний `@ImportHttpServices`; Spring створює реалізації автоматично.
 Адреси й таймаути задаються в `application.properties` через `spring.http.serviceclient.*`.
-Збережені наявні `shipment.client.base-url`, `dispatch.client.base-url`, `tracking.client.base-url` та відповідні змінні середовища.
+Адреси сервісів задаються через `shipment.client.base-url`, `dispatch.client.base-url`, `tracking.client.base-url`, `notification.client.base-url`, `auth.client.base-url` та відповідні змінні середовища.
 Connect timeout — 2 секунди, read timeout — 3 секунди; для створення посилки й розрахунку ціни — 20 секунд.
 
 Коли потрібні HTTP-статус або заголовки, клієнт повертає стандартний `ResponseEntity<DTO>`.
@@ -116,3 +116,44 @@ mvn -f web-ui/pom.xml spring-boot:run
 mvn -f web-ui/pom.xml clean verify
 npm --prefix web-ui run test:js
 ```
+
+## Редагування профілів
+
+`/profile` і `/courier/profile` використовують один `js/pages/profile.js`.
+Скрипт завантажує поточні дані, відкриває форму, виконує PUT та показує відповідь сервера.
+Cancel відкидає чернетку. При помилці форма зберігає введені дані й показує наявний WebExpressModal.
+Фото — спільні статичні ресурси; полів завантаження чи API редагування фото немає.
+
+- Клієнт: `GET/PUT /api/profile` → `UserProfileClient` → `GET/PUT /users/profile` в auth-service.
+- Кур'єр: `GET/PUT /api/courier/profile` → дані користувача в auth-service та наявні `GET/PATCH /couriers/{id}` у dispatch-service.
+- В auth-service DTO містить тільки ім'я, прізвище, email і телефон. Роль, пароль та ID під час оновлення не змінюються.
+- Dispatch зберігає ім'я й телефон кур'єра, робочу зону, код КАТОТТГ і максимальну вагу. Застосовується наявна логіка оновлення профілю кур'єра.
+- Два сервіси оновлюються послідовно. Якщо другий запит не пройшов, інтерфейс повідомляє про можливе часткове збереження та пропонує повторити Save. Спільної транзакції між БД немає.
+
+Для локального запуску:
+
+```powershell
+docker compose up -d --build auth-service
+docker compose up -d dispatch-service
+
+$users = Invoke-RestMethod "http://localhost:8081/users"
+$users | Select-Object userId, firstName, lastName, role
+$couriers = Invoke-RestMethod "http://localhost:8083/couriers"
+$couriers | Select-Object userId, displayName, workZone
+```
+
+В окремому PowerShell із кореня проєкту вибери існуючі ID зі списків:
+
+```powershell
+$env:AUTH_SERVICE_URL = "http://localhost:8081"
+$env:SHIPMENT_CREATION_SENDER_ID = Read-Host "User ID клієнта з auth-service"
+$env:DISPATCH_COURIER_DASHBOARD_COURIER_ID = Read-Host "Спільний User ID кур'єра в auth-service та dispatch-service"
+mvn -f web-ui/pom.xml spring-boot:run
+```
+
+До Keycloak використовуються локальні тестові ID, а нові API web-ui обмежені loopback-адресами.
+Профіль потребує існуючого запису User; для кур'єра потрібен також Courier із тим самим userId.
+Відсутній User повертає 404, невірні поля — 400, конфлікт даних — 409, недоступний сервіс — 503/504.
+
+Ручна перевірка: відкрити обидва профілі, натиснути Edit, змінити поля, зберегти й перезавантажити сторінку.
+Перевірити, що зміни залишились, Cancel не зберігає чернетку, КАТОТТГ обирає справжній населений пункт, а фото незмінні.

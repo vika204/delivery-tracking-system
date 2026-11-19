@@ -8,6 +8,7 @@ import com.delivery.webui.client.ShipmentReadClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.NotificationClient;
+import com.delivery.webui.client.UserProfileClient;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.service.registry.ImportHttpServices;
 
@@ -17,5 +18,6 @@ import org.springframework.web.service.registry.ImportHttpServices;
 @ImportHttpServices(group = "dispatch", types = {DispatchCourierClient.class, DispatchCourierDashboardClient.class})
 @ImportHttpServices(group = "tracking", types = {TrackingShipmentClient.class, TrackingLocationClient.class})
 @ImportHttpServices(group = "notification", types = NotificationClient.class)
+@ImportHttpServices(group = "auth", types = UserProfileClient.class)
 public class HttpClientConfiguration {
 }

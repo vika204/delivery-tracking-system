@@ -188,6 +188,12 @@ body {
     color: #211611;
 }
 
+.profile-button:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .profile-button__label {
     position: relative;
     z-index: 2;
@@ -243,6 +249,10 @@ body {
     color: #73503d;
     text-align: right;
     font: 600 13px/1.4 var(--font-body);
+}
+
+.profile-notice--error {
+    color: var(--red);
 }
 
 @media (max-width: 740px) {
