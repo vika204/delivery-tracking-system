@@ -10,6 +10,7 @@ import com.delivery.dispatch.entity.DispatchRequestStatus;
 import com.delivery.dispatch.entity.OfferStatus;
 import com.delivery.dispatch.exception.DispatchAccessDeniedException;
 import com.delivery.dispatch.exception.DispatchConflictException;
+import com.delivery.dispatch.exception.OfferNoLongerAvailableException;
 import com.delivery.dispatch.geo.ServiceZones;
 import com.delivery.dispatch.metrics.DispatchMetrics;
 import com.delivery.dispatch.outbox.DispatchEventOutbox;
@@ -143,6 +144,17 @@ class DispatchServiceAcceptOfferTest {
                 .isInstanceOf(DispatchConflictException.class)
                 .hasMessageContaining("active delivery");
 
+        assertNothingAssigned();
+    }
+
+    @Test
+    void cancelsOfferWhenShipmentNoLongerWaitsForIt() {
+        request.setStatus(DispatchRequestStatus.CANCELLED);
+
+        assertThatThrownBy(() -> service.acceptOffer(COURIER_ID, OFFER_ID))
+                .isInstanceOf(OfferNoLongerAvailableException.class);
+
+        assertThat(offer.getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertNothingAssigned();
     }
 

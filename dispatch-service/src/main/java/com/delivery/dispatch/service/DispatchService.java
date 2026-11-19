@@ -12,6 +12,7 @@ import com.delivery.dispatch.events.ShipmentSnapshot;
 import com.delivery.dispatch.exception.DispatchAccessDeniedException;
 import com.delivery.dispatch.exception.DispatchConflictException;
 import com.delivery.dispatch.exception.DispatchNotFoundException;
+import com.delivery.dispatch.exception.OfferNoLongerAvailableException;
 import com.delivery.dispatch.geo.ServiceZones;
 import com.delivery.dispatch.metrics.DispatchMetrics;
 import com.delivery.dispatch.outbox.DispatchEventOutbox;
@@ -377,7 +378,7 @@ public class DispatchService {
      * Пропозиція, призначення й подія COURIER_ASSIGNED в outbox фіксуються в одній транзакції.
      * Відхиляється, якщо пропозиція чужа, прострочена, кур'єр офлайн або вже має активну доставку.
      */
-    @Transactional
+    @Transactional(noRollbackFor = OfferNoLongerAvailableException.class)
     public Assignment acceptOffer(long courierId, long offerId) {
         DeliveryOffer offer = lockOwnOffer(courierId, offerId);
 
@@ -396,9 +397,9 @@ public class DispatchService {
         DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId())
                 .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + " not found"));
         if (request.getStatus() != DispatchRequestStatus.OFFERED) {
-            offer.setStatus(OfferStatus.CANCELLED);
-            offer.setRespondedAt(Instant.now(clock));
-            throw new DispatchConflictException("Shipment " + offer.getShipmentId() + " is no longer available");
+            // зміна зберігається: виняток не відкочує транзакцію (noRollbackFor)
+            cancelOffers(List.of(offer), "shipment no longer waits for this offer");
+            throw new OfferNoLongerAvailableException("Shipment " + offer.getShipmentId() + " is no longer available");
         }
 
         Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow();

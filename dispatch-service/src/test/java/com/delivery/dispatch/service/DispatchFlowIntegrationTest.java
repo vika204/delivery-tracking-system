@@ -330,6 +330,25 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
+    void acceptOfOfferForShipmentThatNoLongerWaitsCancelsTheOffer() {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        long offerId = pendingOffer(shipmentId).getOfferId();
+        var request = requests.findById(shipmentId).orElseThrow();
+        request.setStatus(DispatchRequestStatus.CANCELLED);
+        requests.save(request);
+
+        assertThatThrownBy(() -> dispatchService.acceptOffer(1, offerId))
+                .isInstanceOf(DispatchConflictException.class)
+                .hasMessageContaining("no longer available");
+
+        // скасування пропозиції закомічене, хоча Accept завершився винятком
+        assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
+        assertThat(assignments.count()).isZero();
+        assertThat(outbox.count()).isZero();
+    }
+
+    @Test
     void concurrentAcceptsOfTheSameOfferCreateOneAssignment() throws Exception {
         courier(1, KYIV, "20", true, null, null);
         long offerId = pendingOffer(created(KYIV, "3", "STANDARD")).getOfferId();
