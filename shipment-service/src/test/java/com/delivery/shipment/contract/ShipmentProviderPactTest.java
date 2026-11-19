@@ -31,7 +31,6 @@ import java.math.BigDecimal;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.kafka.bootstrap-servers=localhost:9999",
                 "spring.kafka.listener.auto-startup=false",
                 "spring.kafka.admin.auto-create=false",

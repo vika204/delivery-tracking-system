@@ -62,10 +62,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Shipment + Pricing через HTTP API на реальному Postgres. Kafka вимкнена:
  * події Dispatch подаються напряму в {@link DispatchEventListener}, вихідні події
- * перевіряються в таблиці outbox.
+ * перевіряються в таблиці outbox. Схему створюють міграції Flyway (ddl-auto=validate).
  */
 @SpringBootTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.kafka.bootstrap-servers=localhost:9999",
         "spring.kafka.listener.auto-startup=false",
         "spring.kafka.admin.auto-create=false",
