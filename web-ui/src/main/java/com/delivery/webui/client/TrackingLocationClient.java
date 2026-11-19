@@ -1,9 +1,11 @@
 package com.delivery.webui.client;
 
+import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -41,7 +43,7 @@ public class TrackingLocationClient {
                 .build();
     }
 
-    TrackingLocationClient(RestClient restClient) {
+    public TrackingLocationClient(RestClient restClient) {
         this.restClient = restClient;
     }
 
@@ -60,5 +62,15 @@ public class TrackingLocationClient {
                 .body(RESPONSE_TYPE);
 
         return locations == null ? List.of() : locations;
+    }
+
+    /** Запис GPS-точки; tracking-service перевіряє координати й публікує точку підписникам стріму. */
+    public TrackingLocationResponse recordLocation(long shipmentId, RecordLocationRequest request) {
+        return restClient.post()
+                .uri("/tracking/shipments/{shipmentId}/locations", shipmentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(TrackingLocationResponse.class);
     }
 }

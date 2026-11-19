@@ -1,6 +1,7 @@
 package com.delivery.webui.controller.support;
 
 import com.delivery.webui.controller.CourierDashboardApiController;
+import com.delivery.webui.controller.CourierDeliveryApiController;
 import com.delivery.webui.controller.ShipmentCreationApiController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -15,7 +16,11 @@ import java.util.Map;
  * Помилки бекенд-сервісів для BFF-контролерів: 4xx (валідація, прострочена пропозиція тощо)
  * передаються сторінці з причиною й деталями полів, решта — 503.
  */
-@RestControllerAdvice(assignableTypes = {CourierDashboardApiController.class, ShipmentCreationApiController.class})
+@RestControllerAdvice(assignableTypes = {
+        CourierDashboardApiController.class,
+        CourierDeliveryApiController.class,
+        ShipmentCreationApiController.class
+})
 public class UpstreamProblemAdvice {
 
     @ExceptionHandler(RestClientResponseException.class)
