@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 
 @SpringBootTest(properties = "shipment.creation.sender-id=42")
 @AutoConfigureMockMvc
@@ -185,6 +186,8 @@ class MyParcelsPageControllerTest {
         mockMvc.perform(get("/my-parcels/515"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/shipment-details"))
+                .andExpect(model().attribute("activePage", "my-parcels"))
+                .andExpect(content().string(containsString("<a class=\"back\" href=\"/my-parcels\">")))
                 .andExpect(content().string(containsString("BACK TO MY PARCELS")))
                 .andExpect(content().string(containsString("SHIPMENT #515")))
                 .andExpect(content().string(containsString("Kyiv, Illinska 2")))
@@ -198,6 +201,22 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(containsString("Not available")))
                 .andExpect(content().string(containsString("Test Courier Kyiv")))
                 .andExpect(content().string(not(containsString("SHIPMENT DETAILS"))));
+    }
+
+    @Test
+    void detailsOpenedFromNotificationsKeepNotificationNavigation() throws Exception {
+        when(shipmentClient.getShipment(515)).thenReturn(shipment(515, 42, "DELIVERED"));
+
+        mockMvc.perform(get("/my-parcels/515").param("from", "notifications"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("pages/shipment-details"))
+                .andExpect(model().attribute("activePage", "notifications"))
+                .andExpect(content().string(containsString("BACK TO NOTIFICATIONS")))
+                .andExpect(content().string(containsString("<a class=\"back\" href=\"/notifications\">")))
+                .andExpect(content().string(containsString("site-header__desktop-only site-header__notifications active")))
+                .andExpect(content().string(not(containsString("BACK TO MY PARCELS"))))
+                .andExpect(content().string(containsString("SHIPMENT #515")));
+        verify(shipmentClient).getShipment(515);
     }
 
     @Test

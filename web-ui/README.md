@@ -43,7 +43,7 @@ com.delivery.webui
 
 ## REST-клієнти
 
-Усі сім REST-клієнтів у `client` — інтерфейси з `@HttpExchange` та `@GetExchange` / `@PostExchange` / `@PutExchange`.
+Усі REST-клієнти у `client` — інтерфейси з `@HttpExchange` та `@GetExchange` / `@PostExchange` / `@PutExchange`.
 `HttpClientConfiguration` реєструє їх через стандартний `@ImportHttpServices`; Spring створює реалізації автоматично.
 Адреси й таймаути задаються в `application.properties` через `spring.http.serviceclient.*`.
 Збережені наявні `shipment.client.base-url`, `dispatch.client.base-url`, `tracking.client.base-url` та відповідні змінні середовища.
@@ -62,6 +62,29 @@ gRPC та SSE від цього рефакторингу не змінюютьс
 - `MyParcelsPageAdvice` залишає оформлений стан помилки списку з HTTP 503; відсутня посилка повертає HTML 404.
 - Звичайні HTML-сторінки 404/500 обслуговує стандартний механізм Spring Boot. Stack trace, exception і внутрішні повідомлення не включаються в його відповіді, зокрема з увімкненими DevTools.
 - Очікувана відсутність GPS або імені кур'єра обробляється як часткові дані в `TrackingViewService`. Помилки вже відкритого SSE-потоку обробляє `TrackingStreamService`; вони не замінюються JSON-відповіддю.
+
+## Notifications
+
+`GET /notifications` показує 50 останніх повідомлень поточного локального клієнта, від нових до старих.
+`NotificationClient` викликає `GET /notifications/mine?limit=50` у notification-service із заголовком `X-User-Id`.
+Джерело — власна PostgreSQL-база notification-service, із сортуванням `createdAt DESC, notificationId DESC` і фільтром за `userId`.
+Сервіс зберігає повідомлення про створення посилки та зміни її статусу з наявних Kafka-подій.
+Повторне отримання події з тим самим `eventId` не створює нового повідомлення.
+
+Сторінка використовує спільний Header, картки й кнопки My Parcels. Порожній список — HTTP 200; помилка завантаження — оформлений стан з HTTP 503.
+Посилання DETAILS передає `from=notifications`: деталі посилки зберігають активний пункт NOTIFICATIONS і повертають до повідомлень. Звичайне відкриття деталей із My Parcels зберігає попередню навігацію.
+Поле `read` надходить із наявного `isRead` у notification-service. Нові картки позначені SVG-дзвіночком, трохи висунутим за правий верхній кут картки.
+Header один раз при відкритті сторінки перевіряє `GET /api/notifications/unread` через web-ui. Для Guest і Courier цей запит не виконується.
+На сторінці Notifications замість перевірки виконується `POST /api/notifications/read?throughId=...`: notification-service позначає прочитаною історію поточного клієнта до найбільшого завантаженого ID та повертає, чи залишилися нові повідомлення.
+Повідомлення з більшими ID не змінюються. Позначення ідемпотентне, а GET сторінки сам по собі не змінює БД.
+На поточному відкритті дзвіночки карток залишаються видимими; при наступному відкритті вони зникають. Окремих кнопок, polling або live-потоку немає.
+Поки немає Keycloak, використовується той самий `SHIPMENT_CREATION_SENDER_ID`, що й у My Parcels; доступ до сторінки лише з loopback-адреси.
+Це локальний режим розробки, а не авторизація. `notification-service` має бути запущений окремо.
+
+```powershell
+$env:NOTIFICATION_SERVICE_URL = "http://localhost:8085"
+$env:SHIPMENT_CREATION_SENDER_ID = "42"
+```
 
 ## My Parcels
 

@@ -26,3 +26,41 @@ document.querySelectorAll('[data-profile-menu]').forEach(profile => {
         }
     });
 });
+
+async function updateNotificationBell() {
+    const link = document.querySelector('[data-notification-status-url]');
+    if (!link) return;
+
+    const page = document.querySelector('[data-notification-read-through]');
+    const throughId = page?.dataset.notificationReadThrough;
+    let response = null;
+    if (throughId && throughId !== '0') {
+        try {
+            const query = new URLSearchParams({throughId});
+            response = await fetch(`${link.dataset.notificationReadUrl}?${query}`, {
+                method: 'POST',
+                headers: {Accept: 'application/json'}
+            });
+            if (!response.ok) throw new Error('Unable to mark notifications as viewed');
+        } catch {
+            response = null;
+            console.warn('Notifications could not be marked as viewed.');
+        }
+    }
+
+    try {
+        response ??= await fetch(link.dataset.notificationStatusUrl, {
+            headers: {Accept: 'application/json'}, cache: 'no-store'
+        });
+        if (!response.ok) throw new Error('Notification status unavailable');
+        const hasUnread = await response.json();
+        if (typeof hasUnread !== 'boolean') throw new Error('Invalid notification status');
+        document.querySelectorAll('[data-notification-bell]').forEach(bell => {
+            bell.hidden = !hasUnread;
+        });
+    } catch {
+        console.warn('Notification status is temporarily unavailable.');
+    }
+}
+
+updateNotificationBell();

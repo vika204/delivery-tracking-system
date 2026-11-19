@@ -310,6 +310,10 @@ body::after {
     z-index: 2;
 }
 
+.parcel-card--subtle:hover {
+    transform: scale(1.005);
+}
+
 @media (prefers-reduced-motion: reduce) {
     .parcel-card {
         transition: none;

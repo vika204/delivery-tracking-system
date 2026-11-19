@@ -135,7 +135,27 @@
     display: none;
 }
 
+.site-header__notification-bell {
+    width: 18px;
+    height: 18px;
+    margin-left: 5px;
+    vertical-align: middle;
+    filter: invert(1);
+}
+
+.site-header__notification-bell[hidden] {
+    display: none;
+}
+
 @media (max-width: 760px) {
+    .site-header__notifications {
+        display: none;
+    }
+
+    .site-header__menu .site-header__notifications {
+        display: block;
+    }
+
     .site-header {
         padding-right: 12px;
         padding-left: 12px;

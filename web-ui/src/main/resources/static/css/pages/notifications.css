@@ -1,0 +1,56 @@
+.notifications-heading {
+    margin: 0 0 23px;
+    font: 900 36px/1.1 var(--font-condensed);
+}
+
+.notification-card {
+    overflow: visible;
+}
+
+.notification-card::before {
+    border-radius: 8px 0 0 8px;
+}
+
+.notification-new-icon {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    border-radius: 50%;
+    background: var(--cream);
+}
+
+.notification-time {
+    color: #77513d;
+    font: 500 13px/1.5 var(--font-body);
+}
+
+.notification-shipment {
+    margin: 18px 0 10px;
+    color: #77513d;
+    font: 800 19px/1.2 var(--font-condensed);
+}
+
+.notification-message {
+    margin: 0;
+}
+
+.notifications-limit {
+    margin: 23px 0 0;
+    color: #77513d;
+    font: 500 13px/1.5 var(--font-body);
+}
+
+@media (max-width: 650px) {
+    .notifications-heading {
+        font-size: 28px;
+    }
+
+    .notification-new-icon {
+        top: -6px;
+        right: -6px;
+    }
+}

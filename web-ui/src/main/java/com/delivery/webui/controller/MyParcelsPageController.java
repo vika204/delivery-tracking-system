@@ -58,7 +58,8 @@ public class MyParcelsPageController {
     }
 
     @GetMapping("/my-parcels/{shipmentId}")
-    public String parcelDetails(@PathVariable long shipmentId, Model model) {
+    public String parcelDetails(@PathVariable long shipmentId,
+                                @RequestParam(required = false) String from, Model model) {
         if (shipmentId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
@@ -71,6 +72,7 @@ public class MyParcelsPageController {
         }
 
         model.addAttribute("pageTitle", "Shipment #" + shipmentId + " — WEB EXPRESS");
+        model.addAttribute("activePage", "notifications".equals(from) ? "notifications" : "my-parcels");
         model.addAttribute("parcel", ParcelViewModel.from(shipment));
         return "pages/shipment-details";
     }
