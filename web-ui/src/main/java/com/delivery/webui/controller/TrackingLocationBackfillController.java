@@ -2,6 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
+import com.delivery.webui.controller.support.LoopbackOnly;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -15,8 +16,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 
 @RestController
@@ -54,12 +53,7 @@ public class TrackingLocationBackfillController {
     ) {
         validateQuery(shipmentId, afterLocationId, limit);
 
-        if (!isLoopback(request.getRemoteAddr())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "GPS history is restricted to local development"
-            );
-        }
+        LoopbackOnly.require(request, "GPS history");
 
         try {
             List<TrackingLocationResponse> locations = locationClient.getShipmentLocations(shipmentId, afterLocationId, limit);
@@ -116,13 +110,5 @@ public class TrackingLocationBackfillController {
 
     private ResponseStatusException invalidResponse() {
         return new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "GPS history returned an invalid response");
-    }
-
-    private boolean isLoopback(String remoteAddress) {
-        try {
-            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
-        } catch (UnknownHostException ex) {
-            return false;
-        }
     }
 }
