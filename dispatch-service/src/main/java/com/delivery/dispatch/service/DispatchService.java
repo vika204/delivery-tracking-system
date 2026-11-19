@@ -38,9 +38,12 @@ import java.util.Set;
 /**
  * Dispatch Context: пошук кур'єра, пропозиції, призначення та їх завершення.
  * <p>
+ * Кур'єр має або одну пропозицію на розгляді, або одне активне призначення — не більше.
+ * <p>
  * Порядок блокувань однаковий у всіх операціях — пропозиція → DispatchRequest → призначення → кур'єр,
  * тож паралельні операції (Kafka-споживачі, планувальники, HTTP) не взаємоблокуються.
- * Блокування рядка кур'єра гарантує правило «не більше однієї активної пропозиції на кур'єра».
+ * Блокування рядка кур'єра серіалізує видачу пропозицій і прийняття: перевірки «немає пропозиції»
+ * та «немає активної доставки» виконуються вже під ним.
  */
 @Service
 public class DispatchService {
@@ -255,7 +258,7 @@ public class DispatchService {
 
     /**
      * FindCourier → SendCourierProposal. Викликається з уже заблокованим DispatchRequest.
-     * Ранжування: менша відстань до точки забору → менше активних доставок → довше без замовлень.
+     * Ранжування: менша відстань до точки забору → довше без замовлень.
      */
     private DispatchRequestStatus dispatch(DispatchRequest request) {
         if (!request.isSearchable()) {
@@ -270,17 +273,13 @@ public class DispatchService {
 
         Set<Long> excluded = excludedCouriers(request.getShipmentId());
         List<Candidate> candidates = courierRepository
-                .findEligible(request.getParcelWeight(), properties.maxActiveAssignments())
+                .findFree(request.getParcelWeight())
                 .stream()
                 .filter(courier -> !excluded.contains(courier.getUserId()))
                 .filter(courier -> zones.sameZone(courier.getWorkZoneCode(), request.getPickupCityCode()))
-                .map(courier -> new Candidate(
-                        courier,
-                        distanceToPickup(courier, request),
-                        assignmentRepository.countByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)))
+                .map(courier -> new Candidate(courier, distanceToPickup(courier, request)))
                 .sorted(Comparator
                         .comparingDouble(Candidate::distanceToPickupKm)
-                        .thenComparingLong(Candidate::activeAssignments)
                         .thenComparing(c -> c.courier().getLastAssignedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(c -> c.courier().getUserId()))
                 .toList();
@@ -290,7 +289,7 @@ public class DispatchService {
 
         for (Candidate candidate : candidates) {
             Courier courier = courierRepository.findByIdForUpdate(candidate.courier().getUserId()).orElse(null);
-            if (courier == null || !stillEligible(courier, request)) {
+            if (courier == null || !stillFree(courier, request)) {
                 continue;
             }
 
@@ -341,12 +340,16 @@ public class DispatchService {
         return excluded;
     }
 
-    private boolean stillEligible(Courier courier, DispatchRequest request) {
+    /** Повторна перевірка вже під блокуванням кур'єра: стан міг змінитися після вибірки кандидатів. */
+    private boolean stillFree(Courier courier, DispatchRequest request) {
         return courier.isAvailable()
                 && courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) >= 0
                 && offerRepository.findPendingByCourier(courier.getUserId()).isEmpty()
-                && assignmentRepository.countByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)
-                < properties.maxActiveAssignments();
+                && !hasActiveAssignment(courier.getUserId());
+    }
+
+    private boolean hasActiveAssignment(long courierId) {
+        return assignmentRepository.existsByCourierUserIdAndStatus(courierId, AssignmentStatus.ACTIVE);
     }
 
     private double distanceToPickup(Courier courier, DispatchRequest request) {
@@ -598,6 +601,6 @@ public class DispatchService {
         request.setUpdatedAt(Instant.now(clock));
     }
 
-    private record Candidate(Courier courier, double distanceToPickupKm, long activeAssignments) {
+    private record Candidate(Courier courier, double distanceToPickupKm) {
     }
 }

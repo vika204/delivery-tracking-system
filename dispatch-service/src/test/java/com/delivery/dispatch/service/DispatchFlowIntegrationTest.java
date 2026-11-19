@@ -60,8 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.kafka.listener.auto-startup=false",
         "spring.kafka.admin.auto-create=false",
         "outbox.relay.enabled=false",
-        "dispatch.scheduling.enabled=false",
-        "dispatch.max-active-assignments=2"
+        "dispatch.scheduling.enabled=false"
 })
 @AutoConfigureMockMvc
 @Testcontainers
@@ -197,14 +196,25 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
-    void courierAtCapacityGetsNoNewOffers() {
+    void courierWithActiveDeliveryGetsNoNewOffers() {
         courier(1, KYIV, "20", true, null, null);
         acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
+
+        long second = created(KYIV, "1", "STANDARD");
+
+        assertThat(request(second)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+        assertThat(offers.findPendingByCourier(1L)).isEmpty();
+    }
+
+    @Test
+    void busyCourierIsSkippedInFavourOfFartherFreeCourier() {
+        courier(1, KYIV, "20", true, 50.45, 30.52);   // найближчий, але зайнятий
+        courier(2, KYIV, "20", true, 50.55, 30.70);
         acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
 
-        long third = created(KYIV, "1", "STANDARD");
+        long next = created(KYIV, "1", "STANDARD");
 
-        assertThat(request(third)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+        assertThat(pendingOffer(next).getCourier().getUserId()).isEqualTo(2L);
     }
 
     // ---------------------------------------------------------------- відповідь на пропозицію
@@ -408,7 +418,6 @@ class DispatchFlowIntegrationTest {
     @Test
     void cancellationAfterAssignmentReleasesCourierForWaitingShipment() {
         courier(1, KYIV, "20", true, null, null);
-        dispatchCapacity(1);
         long assigned = created(KYIV, "3", "STANDARD");
         Assignment assignment = acceptCurrent(assigned, 1);
         long waiting = created(KYIV, "3", "STANDARD");
@@ -508,11 +517,6 @@ class DispatchFlowIntegrationTest {
         Courier courier = couriers.findById(id).orElseThrow();
         courier.setAvailable(false);
         couriers.save(courier);
-    }
-
-    /** Займає одне з двох місць кур'єра (dispatch.max-active-assignments=2) іншою доставкою. */
-    private void dispatchCapacity(long courierId) {
-        acceptCurrent(created(KYIV, "1", "STANDARD"), courierId);
     }
 
     private void availability(long courierId, boolean online) throws Exception {

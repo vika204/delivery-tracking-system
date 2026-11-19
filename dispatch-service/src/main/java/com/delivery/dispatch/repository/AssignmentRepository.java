@@ -40,4 +40,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     List<Assignment> findByCourierUserIdAndStatusOrderByAssignmentIdDesc(Long courierId, AssignmentStatus status);
 
     long countByCourierUserIdAndStatus(Long courierId, AssignmentStatus status);
+
+    boolean existsByCourierUserIdAndStatus(Long courierId, AssignmentStatus status);
 }

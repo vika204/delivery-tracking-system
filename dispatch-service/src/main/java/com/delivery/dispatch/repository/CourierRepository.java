@@ -19,8 +19,8 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     Optional<Courier> findByIdForUpdate(Long userId);
 
     /**
-     * Кур'єри на лінії, які можуть узяти посилку такої ваги, без активної пропозиції
-     * й з вільним місцем для ще однієї доставки. Зона та виключення перевіряються в коді.
+     * Вільні кур'єри на лінії, які можуть узяти посилку такої ваги: без пропозиції на розгляді
+     * й без активної доставки. Зона та виключення перевіряються в коді.
      */
     @Query("""
             select c from Courier c
@@ -29,8 +29,9 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
               and not exists (
                   select o from DeliveryOffer o
                   where o.courier = c and o.status = com.delivery.dispatch.entity.OfferStatus.PENDING)
-              and (select count(a) from Assignment a
-                   where a.courier = c and a.status = com.delivery.dispatch.entity.AssignmentStatus.ACTIVE) < :maxActive
+              and not exists (
+                  select a from Assignment a
+                  where a.courier = c and a.status = com.delivery.dispatch.entity.AssignmentStatus.ACTIVE)
             """)
-    List<Courier> findEligible(BigDecimal weight, long maxActive);
+    List<Courier> findFree(BigDecimal weight);
 }
