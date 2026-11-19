@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -21,7 +22,7 @@ class CreateShipmentPageControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void opensCreateShipmentPrototype() throws Exception {
+    void opensCreateShipmentForm() throws Exception {
         mockMvc.perform(get("/ship"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/create-shipment"))
@@ -29,7 +30,7 @@ class CreateShipmentPageControllerTest {
                 .andExpect(model().attribute("activePage", "ship"))
                 .andExpect(content().string(containsString("CREATE SHIPMENT")))
                 .andExpect(content().string(containsString("DELIVERY ROUTE")))
-                .andExpect(content().string(containsString("RECIPIENT DETAILS")))
+                .andExpect(content().string(containsString("SENDER &amp; RECIPIENT")))
                 .andExpect(content().string(containsString("PACKAGE DETAILS")))
                 .andExpect(content().string(containsString("ORDER SUMMARY")))
                 .andExpect(content().string(containsString("PICKUP CITY / VILLAGE")))
@@ -45,6 +46,11 @@ class CreateShipmentPageControllerTest {
                         "src=\"/js/pages/create-shipment.js\""
                 )))
                 .andExpect(content().string(containsString("name=\"pickupAddress\"")))
-                .andExpect(content().string(containsString("name=\"deliveryAddress\"")));
+                .andExpect(content().string(containsString("name=\"deliveryAddress\"")))
+                .andExpect(content().string(containsString("id=\"sender-phone\"")))
+                .andExpect(content().string(containsString("id=\"delivery-type\"")))
+                .andExpect(content().string(containsString("id=\"summary-price\"")))
+                .andExpect(content().string(containsString("id=\"confirm-create\"")))
+                .andExpect(content().string(not(containsString("design preview"))));
     }
 }

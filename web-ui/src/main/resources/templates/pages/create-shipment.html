@@ -124,38 +124,63 @@
 
             <hr class="rule">
 
-            <section aria-labelledby="recipient-title">
+            <section aria-labelledby="contacts-title">
                 <div class="section-top">
                     <span class="step-num">02 /</span>
-                    <h2 class="section-title" id="recipient-title">RECIPIENT DETAILS</h2>
+                    <h2 class="section-title" id="contacts-title">SENDER &amp; RECIPIENT</h2>
                 </div>
 
                 <div class="field-grid">
                     <div class="field">
-                        <label for="recipient-name">FULL NAME</label>
+                        <label for="sender-name">SENDER FULL NAME</label>
+                        <div class="input-box">
+                            <input required
+                                   type="text"
+                                   name="senderName"
+                                   id="sender-name"
+                                   placeholder="e.g. Olena Kovalenko"
+                                   autocomplete="name"
+                                   maxlength="100">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="sender-phone">SENDER PHONE</label>
+                        <div class="input-box">
+                            <input required
+                                   type="tel"
+                                   name="senderPhone"
+                                   id="sender-phone"
+                                   placeholder="+380 XX XXX XX XX"
+                                   autocomplete="tel"
+                                   maxlength="20"
+                                   pattern="\+?[0-9][0-9 ()\-]{8,18}[0-9]"
+                                   title="Digits, spaces, brackets or dashes; may start with +">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="recipient-name">RECIPIENT FULL NAME</label>
                         <div class="input-box">
                             <input required
                                    type="text"
                                    name="recipientName"
                                    id="recipient-name"
                                    placeholder="e.g. Marta Shevchenko"
-                                   autocomplete="name"
-                                   maxlength="150">
+                                   autocomplete="off"
+                                   maxlength="100">
                         </div>
                     </div>
-
                     <div class="field">
-                        <label for="recipient-phone">PHONE NUMBER</label>
+                        <label for="recipient-phone">RECIPIENT PHONE</label>
                         <div class="input-box">
                             <input required
                                    type="tel"
                                    name="recipientPhone"
                                    id="recipient-phone"
                                    placeholder="+380 XX XXX XX XX"
-                                   autocomplete="tel"
-                                   maxlength="25"
-                                   pattern="[+0-9() .-]{7,25}"
-                                   title="Enter a valid phone number (digits, spaces, + or dashes)">
+                                   autocomplete="off"
+                                   maxlength="20"
+                                   pattern="\+?[0-9][0-9 ()\-]{8,18}[0-9]"
+                                   title="Digits, spaces, brackets or dashes; may start with +">
                         </div>
                     </div>
                 </div>
@@ -206,6 +231,18 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="field-grid delivery-type-row">
+                    <div class="field">
+                        <label for="delivery-type">DELIVERY TYPE</label>
+                        <div class="input-box">
+                            <select id="delivery-type" name="deliveryType" required>
+                                <option value="STANDARD" selected>Standard</option>
+                                <option value="EXPRESS">Express (×1.5)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <hr class="rule">
@@ -220,6 +257,9 @@
                     <div class="summary-heading">
                         <h3>YOUR PARCEL</h3>
                     </div>
+                    <p class="summary-note" id="quote-status" role="status" aria-live="polite">
+                        Price is calculated by WEB EXPRESS once the route and weight are filled in.
+                    </p>
 
                     <div class="summary-grid">
                         <div class="summary-item">
@@ -240,11 +280,11 @@
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">DISTANCE</span>
-                            <span class="summary-value placeholder">To be calculated</span>
+                            <span class="summary-value placeholder" id="summary-distance">To be calculated</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-label">DELIVERY PRICE</span>
-                            <span class="summary-value placeholder">To be calculated</span>
+                            <span class="summary-value placeholder" id="summary-price">To be calculated</span>
                         </div>
                     </div>
                 </div>
@@ -266,15 +306,19 @@
          aria-modal="true"
          aria-labelledby="modal-title"
          aria-describedby="modal-description">
-        <h2 id="modal-title">READY TO SHIP!</h2>
+        <h2 id="modal-title">CONFIRM SHIPMENT</h2>
         <p id="modal-description">
-            Your form is complete. This standalone HTML is a design preview: no shipment has been created.
-            Connect the form to <strong>shipment-service</strong> to save it.
+            Delivery price: <strong id="confirm-price">—</strong>
+            (<span id="confirm-distance">—</span>).
+            The price is fixed for this shipment once you confirm.
         </p>
-        <button class="btn btn-primary web-button" type="button" id="close-modal">
-            <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
-            <span class="btn-label web-button__label">BACK TO FORM</span>
-        </button>
+        <div class="modal-actions">
+            <button class="btn btn-primary web-button" type="button" id="confirm-create">
+                <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                <span class="btn-label web-button__label">CONFIRM</span>
+            </button>
+            <button class="btn btn-secondary" type="button" id="close-modal">BACK TO FORM</button>
+        </div>
     </div>
 </div>
 

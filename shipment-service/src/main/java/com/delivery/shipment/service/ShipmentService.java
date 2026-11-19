@@ -94,19 +94,23 @@ public class ShipmentService {
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
         } catch (DataIntegrityViolationException concurrentDuplicate) {
-            // інший запит із тим самим ключем закомітився першим
-            return transactionTemplate.execute(status -> replay(idempotencyKey, requestHash));
+            // інший запит із тим самим ключем, але іншою пропозицією закомітився першим
+            return transactionTemplate.execute(status -> replay(userId, idempotencyKey, requestHash));
         }
     }
 
+    /**
+     * Спершу блокує пропозицію, потім шукає Idempotency-Key. Так паралельний повтор того самого
+     * запиту чекає на перший, а після його коміту бачить уже створену доставку,
+     * а не «пропозицію вже використано».
+     */
     private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
                                           CreateShipmentRequest request) {
-        if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
-            return replay(idempotencyKey, requestHash);
-        }
-
-        // Блокує пропозицію ціни до кінця транзакції: одну пропозицію не використати двічі.
         PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
+        if (idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).isPresent()) {
+            return replay(userId, idempotencyKey, requestHash);
+        }
+        pricingService.requireUsable(quote);
 
         Shipment shipment = shipmentRepository.save(Shipment.builder()
                 .userId(userId)
@@ -136,6 +140,7 @@ public class ShipmentService {
         quote.setShipmentId(shipment.getShipmentId());
 
         idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
+                .userId(userId)
                 .idempotencyKey(idempotencyKey)
                 .requestHash(requestHash)
                 .shipmentId(shipment.getShipmentId())
@@ -154,8 +159,8 @@ public class ShipmentService {
         return new CreationResult(shipment, false);
     }
 
-    private CreationResult replay(String idempotencyKey, String requestHash) {
-        IdempotencyRecord record = idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey)
+    private CreationResult replay(long userId, String idempotencyKey, String requestHash) {
+        IdempotencyRecord record = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                 .orElseThrow();
         if (!record.getRequestHash().equals(requestHash)) {
             throw new IdempotencyKeyReuseException(idempotencyKey);
