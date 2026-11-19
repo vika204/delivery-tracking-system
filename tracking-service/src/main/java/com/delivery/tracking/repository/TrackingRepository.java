@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface TrackingRepository extends JpaRepository<Location, Long> {
 
@@ -16,4 +17,6 @@ public interface TrackingRepository extends JpaRepository<Location, Long> {
     );
 
     Optional<Location> findFirstByShipmentIdOrderByRecordedAtDescLocationIdDesc(Long shipmentId);
+
+    Optional<Location> findByShipmentIdAndClientPointId(Long shipmentId, UUID clientPointId);
 }

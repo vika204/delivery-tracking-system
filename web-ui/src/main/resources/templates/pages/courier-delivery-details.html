@@ -20,12 +20,12 @@
     <script defer th:src="@{/js/components/header.js}"></script>
     <script defer th:src="@{/js/components/cursor-webs.js}"></script>
     <script defer th:src="@{/js/components/modal.js}"></script>
-    <script defer th:src="@{/js/pages/courier-delivery-details.js}"></script>
+    <script type="module" th:src="@{/js/pages/courier-delivery-details.js}"></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
-<main class="delivery-details-page">
+<main class="delivery-details-page" th:attr="data-shipment-id=${shipmentId}">
     <a th:href="@{/courier/dashboard}" href="/courier/dashboard" class="back-link">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none"
              xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -41,9 +41,7 @@
         <div class="delivery-details-card__inner">
             <header class="delivery-details-card__top">
                 <h1 class="shipment-number" th:text="|SHIPMENT #${shipmentId}|">SHIPMENT #2154</h1>
-                <span id="shipment-status" class="delivery-status" role="status" aria-live="polite">
-                    TO PICK UP
-                </span>
+                <span id="shipment-status" class="delivery-status" role="status" aria-live="polite">&mdash;</span>
             </header>
 
             <hr class="dashed-rule">
@@ -53,25 +51,25 @@
                 <div class="details-fields">
                     <div class="detail-field">
                         <span class="detail-field__label">PICKUP ADDRESS</span>
-                        <span class="detail-field__value">Kyiv, Volodymyrska St, 12</span>
+                        <span class="detail-field__value" id="detail-pickup">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">DELIVERY ADDRESS</span>
-                        <span class="detail-field__value">Kyiv, Khreshchatyk St, 27</span>
+                        <span class="detail-field__value" id="detail-delivery">&mdash;</span>
                     </div>
                     <div class="detail-field">
-                        <span class="detail-field__label">RECIPIENT</span>
-                        <span class="detail-field__value">Olena Kovalenko</span>
+                        <span class="detail-field__label">RECIPIENT (INITIALS)</span>
+                        <span class="detail-field__value" id="detail-recipient">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">RECIPIENT PHONE</span>
                         <span class="detail-field__value">
-                            <a href="tel:+380501234567">+380 50 123 45 67</a>
+                            <a id="detail-recipient-phone" href="#">&mdash;</a>
                         </span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">DISTANCE</span>
-                        <span class="detail-field__value">7.3 km</span>
+                        <span class="detail-field__value" id="detail-distance">&mdash;</span>
                     </div>
                 </div>
             </section>
@@ -83,33 +81,33 @@
                 <div class="details-fields">
                     <div class="detail-field">
                         <span class="detail-field__label">WEIGHT</span>
-                        <span class="detail-field__value">2.40 kg</span>
+                        <span class="detail-field__value" id="detail-weight">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">LENGTH</span>
-                        <span class="detail-field__value">40 cm</span>
+                        <span class="detail-field__value" id="detail-length">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">WIDTH</span>
-                        <span class="detail-field__value">30 cm</span>
+                        <span class="detail-field__value" id="detail-width">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">HEIGHT</span>
-                        <span class="detail-field__value">20 cm</span>
+                        <span class="detail-field__value" id="detail-height">&mdash;</span>
                     </div>
                     <div class="detail-field">
                         <span class="detail-field__label">DELIVERY PRICE</span>
-                        <span class="detail-field__value">250 UAH</span>
+                        <span class="detail-field__value" id="detail-price">&mdash;</span>
                     </div>
                 </div>
             </section>
 
             <hr class="dashed-rule">
 
-            <div class="delivery-actions" id="delivery-actions">
-                <button type="button" class="delivery-button delivery-button--outline" id="cancel-delivery">
-                    <span class="delivery-button__label">CANCEL DELIVERY</span>
-                </button>
+            <p id="gps-status" class="gps-status" role="status" aria-live="polite" hidden></p>
+            <p id="delivery-notice" class="delivery-notice" role="alert"></p>
+
+            <div class="delivery-actions" id="delivery-actions" hidden>
                 <button type="button" class="delivery-button delivery-button--red web-button" id="advance-delivery">
                     <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                     <span class="delivery-button__label web-button__label" id="advance-label">CONFIRM PICKUP</span>

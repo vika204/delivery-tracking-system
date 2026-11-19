@@ -1,9 +1,12 @@
 package com.delivery.webui.client;
 
+import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -41,7 +44,7 @@ public class TrackingLocationClient {
                 .build();
     }
 
-    TrackingLocationClient(RestClient restClient) {
+    public TrackingLocationClient(RestClient restClient) {
         this.restClient = restClient;
     }
 
@@ -60,5 +63,22 @@ public class TrackingLocationClient {
                 .body(RESPONSE_TYPE);
 
         return locations == null ? List.of() : locations;
+    }
+
+    /**
+     * Запис GPS-точки; tracking-service перевіряє координати й публікує точку підписникам стріму.
+     * 200 замість 201 означає, що точку з цим pointId уже було збережено.
+     */
+    public RecordedLocation recordLocation(long shipmentId, RecordLocationRequest request) {
+        ResponseEntity<TrackingLocationResponse> response = restClient.post()
+                .uri("/tracking/shipments/{shipmentId}/locations", shipmentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .toEntity(TrackingLocationResponse.class);
+        return new RecordedLocation(response.getBody(), response.getStatusCode().value() == 200);
+    }
+
+    public record RecordedLocation(TrackingLocationResponse location, boolean replayed) {
     }
 }

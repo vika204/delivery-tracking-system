@@ -83,13 +83,16 @@ curl localhost:8083/couriers/10
 
 ### tracking-service
 
-Записати локацію кур'єра (запис у `tracking-db`):
+Записати GPS-точку кур'єра (координати й час перевіряються; точка одразу йде підписникам gRPC-стріму):
 
 ```bash
-curl -X POST localhost:8084/tracking \
+curl -X POST localhost:8084/tracking/shipments/1/locations \
   -H 'Content-Type: application/json' \
-  -d '{"shipmentId":1,"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-09-21T12:00:00"}'
+  -d '{"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-09-21T12:00:00Z"}'
 ```
+
+Некоректна точка повертає `400`, підозрілий стрибок позиції — `422`. Необов'язковий `pointId` (UUID)
+робить повтор безпечним: та сама точка з тим самим `pointId` повертає вже збережену (`200`) без дубля.
 
 Прочитати локації (читання з бази):
 

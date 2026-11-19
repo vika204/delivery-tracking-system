@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -35,8 +36,11 @@ class CourierDeliveryDetailsPageControllerTest {
                 .andExpect(content().string(containsString("/css/components/modal.css")))
                 .andExpect(content().string(containsString("/js/components/modal.js")))
                 .andExpect(content().string(containsString(
-                        "src=\"/js/pages/courier-delivery-details.js\""
-                )));
+                        "<script type=\"module\" src=\"/js/pages/courier-delivery-details.js\""
+                )))
+                .andExpect(content().string(containsString("data-shipment-id=\"2154\"")))
+                .andExpect(content().string(containsString("id=\"gps-status\"")))
+                .andExpect(content().string(not(containsString("Kyiv, Volodymyrska St, 12"))));
     }
 
     @Test

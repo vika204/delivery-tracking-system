@@ -3,6 +3,7 @@ package com.delivery.webui.controller;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.controller.dto.TrackingShipmentStatusResponse;
+import com.delivery.webui.controller.support.LoopbackOnly;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -15,8 +16,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Locale;
 
 @RestController
@@ -45,9 +44,7 @@ public class TrackingStatusController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
 
-        if (!isLoopback(request.getRemoteAddr())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Shipment status is restricted to local development");
-        }
+        LoopbackOnly.require(request, "Shipment status");
 
         try {
             TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
@@ -75,14 +72,6 @@ public class TrackingStatusController {
                     "Shipment status is temporarily unavailable",
                     ex
             );
-        }
-    }
-
-    private boolean isLoopback(String remoteAddress) {
-        try {
-            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
-        } catch (UnknownHostException ex) {
-            return false;
         }
     }
 }

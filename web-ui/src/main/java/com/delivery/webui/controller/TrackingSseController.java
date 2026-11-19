@@ -1,6 +1,7 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.service.TrackingStreamService;
+import com.delivery.webui.controller.support.LoopbackOnly;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -12,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 @RestController
 @RequestMapping("/api/tracking/shipments")
@@ -45,21 +44,8 @@ public class TrackingSseController {
             );
         }
 
-        if (!isLoopback(request.getRemoteAddr())) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "GPS streaming is restricted to local development"
-            );
-        }
+        LoopbackOnly.require(request, "GPS streaming");
 
         return streamService.subscribe(shipmentId);
-    }
-
-    private boolean isLoopback(String remoteAddress) {
-        try {
-            return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
-        } catch (UnknownHostException ex) {
-            return false;
-        }
     }
 }

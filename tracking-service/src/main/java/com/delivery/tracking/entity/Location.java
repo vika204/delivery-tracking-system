@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "locations")
@@ -31,4 +32,12 @@ public class Location {
 
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;
+
+    // Ідентифікатор точки від клієнта (REST); null для точок з gRPC-потоків.
+    @Column(name = "client_point_id")
+    private UUID clientPointId;
+
+    public Location(Long locationId, Long shipmentId, BigDecimal latitude, BigDecimal longitude, LocalDateTime recordedAt) {
+        this(locationId, shipmentId, latitude, longitude, recordedAt, null);
+    }
 }

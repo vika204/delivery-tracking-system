@@ -1,56 +1,138 @@
-(() => {
-    const badge = document.getElementById('shipment-status');
-    const actions = document.getElementById('delivery-actions');
-    const advance = document.getElementById('advance-delivery');
-    const advanceLabel = document.getElementById('advance-label');
-    const cancel = document.getElementById('cancel-delivery');
+import {
+    formatValue,
+    isRetriableFailure,
+    locationPayload,
+    nextAction,
+    sharesGps,
+    shouldSendPosition,
+    statusClass,
+    statusLabel
+} from '../components/courier-delivery.js';
 
-    if (!badge || !actions || !advance || !advanceLabel || !cancel) return;
+const page = document.querySelector('[data-shipment-id]');
+const shipmentId = page?.dataset.shipmentId;
+const api = `/api/courier/shipments/${encodeURIComponent(shipmentId)}`;
 
-    let stage = 'TO_PICKUP';
+const el = id => document.getElementById(id);
+const badge = el('shipment-status');
+const actions = el('delivery-actions');
+const advance = el('advance-delivery');
+const advanceLabel = el('advance-label');
+const gpsStatus = el('gps-status');
+const notice = el('delivery-notice');
 
-    function render() {
-        const labels = {
-            TO_PICKUP: 'TO PICK UP',
-            IN_TRANSIT: 'IN TRANSIT',
-            DELIVERED: 'DELIVERED',
-            WITHDRAWN: 'WITHDRAWN'
-        };
+let current = null;
+let gpsWatch = null;
+let lastSentAt = null;
+let sending = false;
+// точка, яку не вдалося доставити через збій; надсилається повторно з тим самим pointId
+let pendingPoint = null;
 
-        badge.textContent = labels[stage];
-        badge.className = 'delivery-status';
-        if (stage === 'IN_TRANSIT') badge.classList.add('in-transit');
-        if (stage === 'DELIVERED') badge.classList.add('delivered');
-        if (stage === 'WITHDRAWN') badge.classList.add('withdrawn');
-
-        cancel.hidden = stage !== 'TO_PICKUP';
-        actions.hidden = stage === 'DELIVERED' || stage === 'WITHDRAWN';
-        advanceLabel.textContent = stage === 'TO_PICKUP' ? 'CONFIRM PICKUP' : 'MARK AS DELIVERED';
-    }
-
-    advance.addEventListener('click', () => {
-        if (stage === 'TO_PICKUP') {
-            stage = 'IN_TRANSIT';
-        } else if (stage === 'IN_TRANSIT') {
-            stage = 'DELIVERED';
-        }
-        render();
-    });
-
-    cancel.addEventListener('click', async () => {
-        if (stage !== 'TO_PICKUP') return;
-
-        const approved = await window.WebExpressModal.confirm({
-            title: 'WITHDRAW FROM DELIVERY?',
-            message: 'Withdraw from this delivery? The shipment itself will remain active.',
-            confirmLabel: 'WITHDRAW',
-            cancelLabel: 'KEEP DELIVERY'
+async function call(method, path = '', body) {
+    let response;
+    try {
+        response = await fetch(api + path, {
+            method,
+            headers: body ? {'Content-Type': 'application/json'} : {},
+            body: body ? JSON.stringify(body) : undefined
         });
-        if (!approved) return;
+    } catch (networkError) {
+        throw Object.assign(new Error('Connection lost, retrying.'), {status: null});
+    }
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+        throw Object.assign(new Error(payload?.detail || 'Delivery data is unavailable right now.'),
+            {status: response.status});
+    }
+    return payload;
+}
 
-        stage = 'WITHDRAWN';
-        render();
-    });
+function render(shipment) {
+    current = shipment;
+    badge.textContent = statusLabel(shipment.status);
+    badge.className = `delivery-status ${statusClass(shipment.status)}`.trim();
 
-    render();
-})();
+    el('detail-pickup').textContent = shipment.pickupAddress ?? '—';
+    el('detail-delivery').textContent = shipment.deliveryAddress ?? '—';
+    el('detail-recipient').textContent = shipment.recipient?.initials ?? '—';
+    const phone = el('detail-recipient-phone');
+    phone.textContent = shipment.recipient?.phone ?? '—';
+    phone.href = shipment.recipient?.phone ? `tel:${shipment.recipient.phone.replace(/[^+0-9]/g, '')}` : '#';
+    el('detail-distance').textContent = formatValue(shipment.distance, 'km');
+    el('detail-weight').textContent = formatValue(shipment.weight, 'kg');
+    el('detail-length').textContent = formatValue(shipment.length, 'cm');
+    el('detail-width').textContent = formatValue(shipment.width, 'cm');
+    el('detail-height').textContent = formatValue(shipment.height, 'cm');
+    el('detail-price').textContent = formatValue(shipment.price, 'UAH');
+
+    const action = nextAction(shipment.status);
+    actions.hidden = !action;
+    if (action) advanceLabel.textContent = action.label;
+
+    if (sharesGps(shipment.status)) startGps(); else stopGps();
+}
+
+function setGpsStatus(text, warning = false) {
+    gpsStatus.hidden = false;
+    gpsStatus.textContent = text;
+    gpsStatus.classList.toggle('warning', warning);
+}
+
+async function sendPosition(position) {
+    if (sending || !shouldSendPosition(lastSentAt, Date.now())) return;
+    sending = true;
+    lastSentAt = Date.now();
+    const point = pendingPoint ?? locationPayload(position);
+    try {
+        await call('POST', '/locations', point);
+        pendingPoint = null;
+        setGpsStatus(`GPS: sharing location · last sent ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+        pendingPoint = isRetriableFailure(error.status) ? point : null;
+        setGpsStatus(`GPS: ${error.message}`, true);
+    } finally {
+        sending = false;
+    }
+}
+
+function startGps() {
+    if (gpsWatch !== null) return;
+    if (!('geolocation' in navigator)) {
+        setGpsStatus('GPS: this browser cannot share location.', true);
+        return;
+    }
+    setGpsStatus('GPS: waiting for location…');
+    gpsWatch = navigator.geolocation.watchPosition(
+        sendPosition,
+        error => setGpsStatus(`GPS: ${error.message || 'location is unavailable'}`, true),
+        {enableHighAccuracy: true, maximumAge: 5000}
+    );
+}
+
+function stopGps() {
+    if (gpsWatch !== null) {
+        navigator.geolocation.clearWatch(gpsWatch);
+        gpsWatch = null;
+    }
+    gpsStatus.hidden = true;
+}
+
+advance.addEventListener('click', async () => {
+    const action = current && nextAction(current.status);
+    if (!action) return;
+    advance.disabled = true;
+    notice.textContent = '';
+    try {
+        render(await call('POST', `/${action.action}`));
+    } catch (error) {
+        notice.textContent = error.message;
+    } finally {
+        advance.disabled = false;
+    }
+});
+
+window.addEventListener('pagehide', stopGps);
+
+call('GET').then(render).catch(error => {
+    notice.textContent = error.message;
+});
