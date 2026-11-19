@@ -11,7 +11,7 @@ import com.delivery.webui.client.NotificationClient;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.service.registry.ImportHttpServices;
 
-@Configuration(proxyBeanMethods = false)
+@Configuration
 @ImportHttpServices(group = "shipment", types = {ShipmentReadClient.class, CourierShipmentClient.class})
 @ImportHttpServices(group = "shipment-creation", types = ShipmentCreationClient.class)
 @ImportHttpServices(group = "dispatch", types = {DispatchCourierClient.class, DispatchCourierDashboardClient.class})

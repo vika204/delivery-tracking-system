@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.client.ImportGrpcClients;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
-@Configuration(proxyBeanMethods = false)
+@Configuration
 @ConditionalOnProperty(
         prefix = "tracking.stream",
         name = "enabled",

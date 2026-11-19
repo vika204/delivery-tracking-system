@@ -1,4 +1,4 @@
-package com.delivery.webui.controller.support;
+package com.delivery.webui.exception;
 
 import com.delivery.webui.controller.MyParcelsPageController;
 import org.springframework.http.HttpStatus;

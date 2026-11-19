@@ -1,7 +1,7 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.client.ShipmentCreationClient;
-import com.delivery.webui.controller.support.ApiExceptionHandler;
+import com.delivery.webui.exception.ApiExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;

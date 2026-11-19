@@ -2,7 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.TrackingLocationClient;
-import com.delivery.webui.controller.support.ApiExceptionHandler;
+import com.delivery.webui.exception.ApiExceptionHandler;
 import com.delivery.webui.service.CourierDeliveryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

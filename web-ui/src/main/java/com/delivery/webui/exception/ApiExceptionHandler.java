@@ -1,6 +1,5 @@
-package com.delivery.webui.controller.support;
+package com.delivery.webui.exception;
 
-import com.delivery.webui.service.CourierDeliveryService.ShipmentNotInTransitException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -9,19 +8,32 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.http.ResponseEntity;
 
+import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.util.Map;
 
 @RestControllerAdvice(annotations = RestController.class)
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(ResourceAccessException.class)
+    ProblemDetail connectionError(ResourceAccessException ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof HttpTimeoutException || cause instanceof SocketTimeoutException) {
+                return ProblemDetail.forStatusAndDetail(HttpStatus.GATEWAY_TIMEOUT, "Service response timed out");
+            }
+        }
+        return unavailable();
+    }
 
     @ExceptionHandler(ShipmentNotInTransitException.class)
     ProblemDetail notInTransit(ShipmentNotInTransitException ex) {
@@ -58,8 +70,7 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     ResponseEntity<Object> unexpected(Exception ex, WebRequest request) {
         log.error("Unhandled API error", ex);
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.");
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later.");
         return handleExceptionInternal(ex, problem, HttpHeaders.EMPTY, HttpStatus.INTERNAL_SERVER_ERROR, request);
     }
 

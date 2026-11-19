@@ -135,15 +135,21 @@
     display: none;
 }
 
-.site-header__notification-bell {
-    width: 18px;
-    height: 18px;
-    margin-left: 5px;
-    vertical-align: middle;
-    filter: invert(1);
+.site-header__notifications {
+    position: relative;
 }
 
-.site-header__notification-bell[hidden] {
+.site-header__notification-dot {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+}
+
+.site-header__notification-dot[hidden] {
     display: none;
 }
 

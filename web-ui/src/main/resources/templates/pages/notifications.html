@@ -20,8 +20,7 @@
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
-<main class="parcels-page" th:attr="data-notification-read-through=${notificationReadThrough}">
-    <h1 class="notifications-heading">NOTIFICATIONS</h1>
+<main class="parcels-page notifications-page" th:attr="data-notification-read-through=${notificationReadThrough}">
     <section class="parcel-list" aria-label="Shipment notifications" aria-live="polite">
         <article class="parcel-card parcel-state" th:if="${notificationsError}" role="alert">
             <div class="parcel-inner">
@@ -31,9 +30,10 @@
         </article>
 
         <th:block th:if="${!notificationsError}">
-            <article class="parcel-card notification-card parcel-card--subtle" th:each="notification : ${notifications}">
+            <article class="parcel-card notification-card parcel-card--subtle" th:each="notification : ${notifications}"
+                     th:classappend="${!notification.read()} ? 'notification-card--unread' : ''">
                 <img class="notification-new-icon" th:if="${!notification.read()}"
-                     th:src="@{/images/notification-icon.svg}" width="30" height="30" alt="New notification">
+                     th:src="@{/images/notification-icon.svg}" width="52" height="52" alt="New notification">
                 <div class="parcel-inner">
                     <div class="parcel-top">
                         <h2 class="parcel-number" th:text="${notification.eventTitle()}">SHIPMENT UPDATE</h2>

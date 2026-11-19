@@ -2,7 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.controller.dto.CourierDashboardView;
-import com.delivery.webui.controller.support.ApiExceptionHandler;
+import com.delivery.webui.exception.ApiExceptionHandler;
 import com.delivery.webui.service.CourierDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

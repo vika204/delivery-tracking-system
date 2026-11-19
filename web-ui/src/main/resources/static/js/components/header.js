@@ -27,7 +27,7 @@ document.querySelectorAll('[data-profile-menu]').forEach(profile => {
     });
 });
 
-async function updateNotificationBell() {
+async function updateNotificationIndicator() {
     const link = document.querySelector('[data-notification-status-url]');
     if (!link) return;
 
@@ -55,12 +55,12 @@ async function updateNotificationBell() {
         if (!response.ok) throw new Error('Notification status unavailable');
         const hasUnread = await response.json();
         if (typeof hasUnread !== 'boolean') throw new Error('Invalid notification status');
-        document.querySelectorAll('[data-notification-bell]').forEach(bell => {
-            bell.hidden = !hasUnread;
+        document.querySelectorAll('[data-notification-indicator]').forEach(indicator => {
+            indicator.hidden = !hasUnread;
         });
     } catch {
         console.warn('Notification status is temporarily unavailable.');
     }
 }
 
-updateNotificationBell();
+updateNotificationIndicator();

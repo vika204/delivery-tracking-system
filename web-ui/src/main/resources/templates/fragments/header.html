@@ -41,8 +41,8 @@
                th:attr="data-notification-status-url=@{/api/notifications/unread},data-notification-read-url=@{/api/notifications/read}"
                th:classappend="${currentPage == 'notifications'} ? 'active' : ''">
                 NOTIFICATIONS
-                <img class="site-header__notification-bell" th:src="@{/images/notification-icon.svg}"
-                     width="18" height="18" alt="New notifications" data-notification-bell hidden>
+                <span class="site-header__notification-dot" role="img" aria-label="New notifications"
+                      data-notification-indicator hidden></span>
             </a>
 
             <div class="site-header__profile" data-profile-menu>
@@ -90,8 +90,8 @@
                        th:href="@{/notifications}"
                        th:classappend="${currentPage == 'notifications'} ? 'active' : ''">
                         NOTIFICATIONS
-                        <img class="site-header__notification-bell" th:src="@{/images/notification-icon.svg}"
-                             width="18" height="18" alt="New notifications" data-notification-bell hidden>
+                        <span class="site-header__notification-dot" role="img" aria-label="New notifications"
+                              data-notification-indicator hidden></span>
                     </a>
                     <button type="button" role="menuitem">LOG OUT</button>
                 </div>

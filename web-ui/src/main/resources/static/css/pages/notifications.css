@@ -1,10 +1,13 @@
-.notifications-heading {
-    margin: 0 0 23px;
-    font: 900 36px/1.1 var(--font-condensed);
+.notifications-page {
+    max-width: 760px;
 }
 
 .notification-card {
     overflow: visible;
+}
+
+.notification-card--unread {
+    background: #fbedda;
 }
 
 .notification-card::before {
@@ -13,14 +16,12 @@
 
 .notification-new-icon {
     position: absolute;
-    top: -8px;
-    right: -8px;
+    top: -24px;
+    right: -16px;
     z-index: 3;
-    width: 30px;
-    height: 30px;
-    padding: 3px;
-    border-radius: 50%;
-    background: var(--cream);
+    width: 52px;
+    height: 52px;
+    padding: 4px;
 }
 
 .notification-time {
@@ -45,12 +46,10 @@
 }
 
 @media (max-width: 650px) {
-    .notifications-heading {
-        font-size: 28px;
-    }
-
     .notification-new-icon {
-        top: -6px;
-        right: -6px;
+        top: -24px;
+        right: -10px;
+        width: 46px;
+        height: 46px;
     }
 }

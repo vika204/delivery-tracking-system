@@ -5,6 +5,7 @@ import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
 import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
+import com.delivery.webui.exception.ShipmentNotInTransitException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -45,9 +46,4 @@ public class CourierDeliveryService {
         return trackingClient.recordLocation(shipmentId, point);
     }
 
-    public static class ShipmentNotInTransitException extends RuntimeException {
-        public ShipmentNotInTransitException(long shipmentId, String status) {
-            super("GPS can be recorded only while shipment " + shipmentId + " is IN_TRANSIT, current status is " + status);
-        }
-    }
 }
