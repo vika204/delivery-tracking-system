@@ -9,6 +9,7 @@ import com.delivery.dispatch.exception.DispatchExceptionHandler;
 import com.delivery.dispatch.service.CourierService;
 import com.delivery.dispatch.service.DispatchService;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -82,6 +83,15 @@ class CourierControllerTest {
                 .andExpect(jsonPath("$.pickupAddress").value("Kyiv, A"));
 
         verify(courierService, never()).assignments(anyLong(), anyBoolean());
+    }
+
+    @Test
+    void mapsDatabaseConstraintViolationToConflict() throws Exception {
+        when(dispatchService.acceptOffer(10, 55)).thenThrow(new DataIntegrityViolationException("uq_assignment_active_courier"));
+
+        mockMvc.perform(post("/couriers/10/offers/55/accept").header("X-User-Id", "10"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("The action conflicts with the current state, please retry"));
     }
 
     @Test

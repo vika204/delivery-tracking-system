@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -58,11 +59,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Сценарії Dispatch на реальному Postgres: пошук, пропозиції, призначення, відмови, скасування.
+ * Схему створюють міграції Flyway, а Hibernate звіряє її з сутностями (ddl-auto=validate).
  * Kafka-споживачі та планувальники вимкнені: події подаються через {@link ShipmentEventProcessor},
  * а тайм-аути пропозицій — через {@link DispatchQueueProcessor#expireOffers()}.
  */
 @SpringBootTest(properties = {
-        "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.kafka.bootstrap-servers=localhost:9999",
         "spring.kafka.listener.auto-startup=false",
         "spring.kafka.admin.auto-create=false",
@@ -375,6 +376,18 @@ class DispatchFlowIntegrationTest {
         assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertThat(assignments.count()).isZero();
         assertThat(outbox.count()).isZero();
+    }
+
+    @Test
+    void databaseAllowsOnlyOneActiveAssignmentPerCourier() {
+        courier(1, KYIV, "20", true, null, null);
+        Courier courier = couriers.findById(1L).orElseThrow();
+        assignments.save(Assignment.builder().shipmentId(1L).courier(courier).status(AssignmentStatus.ACTIVE).build());
+        assignments.save(Assignment.builder().shipmentId(2L).courier(courier).status(AssignmentStatus.COMPLETED).build());
+
+        assertThatThrownBy(() -> assignments.save(
+                Assignment.builder().shipmentId(3L).courier(courier).status(AssignmentStatus.ACTIVE).build()))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
