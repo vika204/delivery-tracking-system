@@ -94,19 +94,23 @@ public class ShipmentService {
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
         } catch (DataIntegrityViolationException concurrentDuplicate) {
-            // інший запит із тим самим ключем закомітився першим
+            // інший запит із тим самим ключем, але іншою пропозицією закомітився першим
             return transactionTemplate.execute(status -> replay(idempotencyKey, requestHash));
         }
     }
 
+    /**
+     * Спершу блокує пропозицію, потім шукає Idempotency-Key. Так паралельний повтор того самого
+     * запиту чекає на перший, а після його коміту бачить уже створену доставку,
+     * а не «пропозицію вже використано».
+     */
     private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
                                           CreateShipmentRequest request) {
+        PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
         if (idempotencyRecordRepository.findByIdempotencyKey(idempotencyKey).isPresent()) {
             return replay(idempotencyKey, requestHash);
         }
-
-        // Блокує пропозицію ціни до кінця транзакції: одну пропозицію не використати двічі.
-        PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
+        pricingService.requireUsable(quote);
 
         Shipment shipment = shipmentRepository.save(Shipment.builder()
                 .userId(userId)

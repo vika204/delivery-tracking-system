@@ -26,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -41,6 +42,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -191,6 +193,56 @@ class ShipmentApiIntegrationTest {
                 .andExpect(header().string("Idempotent-Replayed", "true"))
                 .andExpect(jsonPath("$.shipmentId").value(first));
         assertThat(shipments.count()).isEqualTo(1);
+    }
+
+    @Test
+    void sameKeyWithDifferentDataIsRejected() throws Exception {
+        JsonNode first = quote(SENDER, "1", "STANDARD");
+        JsonNode second = quote(SENDER, "1", "STANDARD");
+        create(SENDER, first, "key-changed").andExpect(status().isOk());
+
+        create(SENDER, second, "key-changed")
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:idempotency-key-reuse"));
+        assertThat(shipments.count()).isEqualTo(1);
+    }
+
+    @Test
+    void replayStillReturnsShipmentAfterQuoteExpired() throws Exception {
+        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        long first = id(json(create(SENDER, quote, "key-late-retry")));
+        var stored = quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow();
+        stored.setExpiresAt(Instant.now().minusSeconds(60));
+        quotes.save(stored);
+
+        create(SENDER, quote, "key-late-retry")
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replayed", "true"))
+                .andExpect(jsonPath("$.shipmentId").value(first));
+    }
+
+    @Test
+    void concurrentRetriesWithSameKeyCreateOneShipment() throws Exception {
+        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        CyclicBarrier start = new CyclicBarrier(2);
+
+        List<CompletableFuture<MockHttpServletResponse>> attempts = List.of(1, 2).stream()
+                .map(attempt -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        start.await();
+                        return create(SENDER, quote, "key-double-click").andReturn().getResponse();
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }))
+                .toList();
+        List<MockHttpServletResponse> responses = attempts.stream().map(CompletableFuture::join).toList();
+
+        assertThat(responses).allSatisfy(response -> assertThat(response.getStatus()).isEqualTo(200));
+        assertThat(responses).filteredOn(response -> "true".equals(response.getHeader("Idempotent-Replayed"))).hasSize(1);
+        assertThat(responses.stream().map(this::shipmentId).distinct()).hasSize(1);
+        assertThat(shipments.count()).isEqualTo(1);
+        assertThat(events(ShipmentCreatedEvent.TYPE, ShipmentCreatedEvent.class)).hasSize(1);
     }
 
     @Test
@@ -587,6 +639,14 @@ class ShipmentApiIntegrationTest {
 
     private JsonNode json(ResultActions result) throws Exception {
         return jsonMapper.readTree(result.andReturn().getResponse().getContentAsString());
+    }
+
+    private long shipmentId(MockHttpServletResponse response) {
+        try {
+            return id(jsonMapper.readTree(response.getContentAsString()));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private static long id(JsonNode shipment) {
