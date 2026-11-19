@@ -1,6 +1,5 @@
 package com.delivery.dispatch.service;
 
-import com.delivery.dispatch.config.DispatchProperties;
 import com.delivery.dispatch.dto.AssignmentResponse;
 import com.delivery.dispatch.dto.CourierStatusResponse;
 import com.delivery.dispatch.dto.OfferResponse;
@@ -9,6 +8,7 @@ import com.delivery.dispatch.dto.UpdateCourierRequest;
 import com.delivery.dispatch.entity.Assignment;
 import com.delivery.dispatch.entity.AssignmentStatus;
 import com.delivery.dispatch.entity.Courier;
+import com.delivery.dispatch.entity.CourierAvailability;
 import com.delivery.dispatch.entity.DeliveryOffer;
 import com.delivery.dispatch.entity.DispatchRequest;
 import com.delivery.dispatch.exception.DispatchConflictException;
@@ -40,20 +40,18 @@ public class CourierService {
     private final DeliveryOfferRepository offerRepository;
     private final AssignmentRepository assignmentRepository;
     private final DispatchRequestRepository requestRepository;
-    private final DispatchProperties properties;
     private final CourierMetrics metrics;
     private final ApplicationEventPublisher applicationEvents;
     private final Clock clock;
 
     public CourierService(CourierRepository courierRepository, DeliveryOfferRepository offerRepository,
                           AssignmentRepository assignmentRepository, DispatchRequestRepository requestRepository,
-                          DispatchProperties properties, CourierMetrics metrics,
+                          CourierMetrics metrics,
                           ApplicationEventPublisher applicationEvents, Clock clock) {
         this.courierRepository = courierRepository;
         this.offerRepository = offerRepository;
         this.assignmentRepository = assignmentRepository;
         this.requestRepository = requestRepository;
-        this.properties = properties;
         this.metrics = metrics;
         this.applicationEvents = applicationEvents;
         this.clock = clock;
@@ -153,9 +151,9 @@ public class CourierService {
         return new CourierStatusResponse(
                 courier.getUserId(),
                 courier.isAvailable(),
+                CourierAvailability.of(courier.isAvailable(), active > 0),
                 active,
-                pendingOfferId,
-                courier.isAvailable() && active < properties.maxActiveAssignments()
+                pendingOfferId
         );
     }
 

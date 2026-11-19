@@ -1,15 +1,19 @@
 package com.delivery.dispatch.dto;
 
+import com.delivery.dispatch.entity.CourierAvailability;
+
 /**
- * Стан кур'єра для перемикача «на лінії» (US-3.5).
+ * Стан кур'єра для Dashboard (US-3.5).
  *
- * @param receivingOffers кур'єр на лінії й має вільне місце: отримуватиме нові пропозиції
+ * @param online         положення перемикача «на лінії»; не змінюється, коли кур'єр стає BUSY
+ * @param state          AVAILABLE / BUSY / UNAVAILABLE, див. {@link CourierAvailability}
+ * @param pendingOfferId пропозиція на розгляді, якщо є
  */
 public record CourierStatusResponse(
         long courierId,
         boolean online,
+        CourierAvailability state,
         long activeAssignments,
-        Long pendingOfferId,
-        boolean receivingOffers
+        Long pendingOfferId
 ) {
 }

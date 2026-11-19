@@ -296,6 +296,24 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
+    void statusEndpointReportsAvailableBusyAndUnavailable() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        assertState(1, "AVAILABLE", true);
+
+        long shipmentId = created(KYIV, "3", "STANDARD");
+        acceptCurrent(shipmentId, 1);
+        assertState(1, "BUSY", true);
+
+        // перемикач можна вимкнути під час доставки: стан лишається BUSY, положення перемикача — збережене
+        availability(1, false);
+        assertState(1, "BUSY", false);
+
+        events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
+        events.process(statusEvent(shipmentId, "DELIVERED", 1L));
+        assertState(1, "UNAVAILABLE", false);
+    }
+
+    @Test
     void courierCannotAnswerAnotherCouriersOffer() throws Exception {
         courier(1, KYIV, "20", true, null, null);
         courier(2, KYIV, "20", false, null, null);
@@ -495,6 +513,21 @@ class DispatchFlowIntegrationTest {
     /** Займає одне з двох місць кур'єра (dispatch.max-active-assignments=2) іншою доставкою. */
     private void dispatchCapacity(long courierId) {
         acceptCurrent(created(KYIV, "1", "STANDARD"), courierId);
+    }
+
+    private void availability(long courierId, boolean online) throws Exception {
+        mockMvc.perform(put("/couriers/" + courierId + "/availability")
+                        .header("X-User-Id", String.valueOf(courierId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"online\": " + online + "}"))
+                .andExpect(status().isOk());
+    }
+
+    private void assertState(long courierId, String state, boolean online) throws Exception {
+        mockMvc.perform(get("/couriers/" + courierId + "/status").header("X-User-Id", String.valueOf(courierId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value(state))
+                .andExpect(jsonPath("$.online").value(online));
     }
 
     private long created(String pickupCode, String weight, String type) {
