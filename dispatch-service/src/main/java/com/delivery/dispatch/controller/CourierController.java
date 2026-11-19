@@ -81,8 +81,7 @@ public class CourierController {
     public AssignmentResponse acceptOffer(@PathVariable long id, @PathVariable long offerId,
                                           @RequestHeader(USER_ID) @Positive long userId) {
         requireSelf(id, userId);
-        Assignment assignment = dispatchService.acceptOffer(id, offerId);
-        return find(id, assignment.getAssignmentId());
+        return courierService.describe(dispatchService.acceptOffer(id, offerId));
     }
 
     @PostMapping("/{id}/offers/{offerId}/decline")
@@ -105,15 +104,8 @@ public class CourierController {
                                                  @RequestHeader(USER_ID) @Positive long userId,
                                                  @Valid @RequestBody(required = false) WithdrawAssignmentRequest request) {
         requireSelf(id, userId);
-        dispatchService.withdrawAssignment(id, assignmentId, request == null ? null : request.reason());
-        return find(id, assignmentId);
-    }
-
-    private AssignmentResponse find(long courierId, long assignmentId) {
-        return courierService.assignments(courierId, false).stream()
-                .filter(a -> a.assignmentId() == assignmentId)
-                .findFirst()
-                .orElseThrow();
+        Assignment assignment = dispatchService.withdrawAssignment(id, assignmentId, request == null ? null : request.reason());
+        return courierService.describe(assignment);
     }
 
     private static void requireSelf(long courierId, long userId) {

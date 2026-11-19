@@ -185,6 +185,12 @@ public class CourierService {
         );
     }
 
+    /** Призначення з адресами й винагородою для застосунку кур'єра. */
+    @Transactional(readOnly = true)
+    public AssignmentResponse describe(Assignment assignment) {
+        return toResponse(assignment);
+    }
+
     private AssignmentResponse toResponse(Assignment assignment) {
         DispatchRequest request = requestRepository.findById(assignment.getShipmentId()).orElse(null);
         return new AssignmentResponse(
