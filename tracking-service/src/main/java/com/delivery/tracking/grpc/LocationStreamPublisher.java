@@ -1,9 +1,12 @@
 package com.delivery.tracking.grpc;
 
 import com.delivery.tracking.event.LocationSavedEvent;
+import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -11,19 +14,31 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
+/**
+ * Підписники gRPC Server Streaming за посилкою. Під час зупинки сервісу закриває їхні стріми зі
+ * статусом UNAVAILABLE: інакше відкриті стріми тримали б gRPC-сервер до таймауту graceful shutdown,
+ * а клієнти дізналися б про обрив лише після примусової зупинки. Клієнт (web-ui) перепідключається
+ * і дозавантажує пропущені точки через REST.
+ */
 @Component
 public class LocationStreamPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(LocationStreamPublisher.class);
     private final Map<Long, Set<ServerCallStreamObserver<ShipmentLocationUpdate>>> subscribers = new ConcurrentHashMap<>();
     private final TrackingProtoMapper mapper;
+    private volatile boolean shuttingDown;
 
     public LocationStreamPublisher(TrackingProtoMapper mapper) {
         this.mapper = mapper;
     }
 
     public void subscribe(long shipmentId, ServerCallStreamObserver<ShipmentLocationUpdate> observer) {
+        if (shuttingDown) {
+            observer.onError(shutdownStatus().asRuntimeException());
+            return;
+        }
         subscribers.compute(shipmentId, (id, existing) -> {
             Set<ServerCallStreamObserver<ShipmentLocationUpdate>> active = existing;
             if (active == null) {
@@ -78,27 +93,42 @@ public class LocationStreamPublisher {
     }
 
     public void completeShipment(long shipmentId) {
-        Set<ServerCallStreamObserver<ShipmentLocationUpdate>> active = subscribers.remove(shipmentId);
+        finish(shipmentId, ServerCallStreamObserver::onCompleted);
+        log.info("gRPC streams completed for terminal shipment: shipmentId={}", shipmentId);
+    }
 
+    /** ContextClosedEvent надходить раніше, ніж Spring зупиняє gRPC-сервер. */
+    @EventListener(ContextClosedEvent.class)
+    public void closeAllOnShutdown() {
+        shuttingDown = true;
+        int shipments = subscribers.size();
+        for (Long shipmentId : Set.copyOf(subscribers.keySet())) {
+            finish(shipmentId, observer -> observer.onError(shutdownStatus().asRuntimeException()));
+        }
+        log.info("gRPC location streams closed for shutdown: shipments={}", shipments);
+    }
+
+    private void finish(long shipmentId, Consumer<ServerCallStreamObserver<ShipmentLocationUpdate>> action) {
+        Set<ServerCallStreamObserver<ShipmentLocationUpdate>> active = subscribers.remove(shipmentId);
         if (active == null) {
             return;
         }
-
         for (ServerCallStreamObserver<ShipmentLocationUpdate> observer : active) {
             synchronized (observer) {
                 if (observer.isCancelled()) {
                     continue;
                 }
-
                 try {
-                    observer.onCompleted();
+                    action.accept(observer);
                 } catch (RuntimeException ex) {
-                    log.warn("Failed to complete gRPC stream: shipmentId={}", shipmentId, ex);
+                    log.warn("Failed to finish gRPC stream: shipmentId={}", shipmentId, ex);
                 }
             }
         }
+    }
 
-        log.info("gRPC streams completed for terminal shipment: shipmentId={}", shipmentId);
+    private static Status shutdownStatus() {
+        return Status.UNAVAILABLE.withDescription("tracking-service is shutting down");
     }
 
     private void unsubscribe(long shipmentId, ServerCallStreamObserver<ShipmentLocationUpdate> observer) {
