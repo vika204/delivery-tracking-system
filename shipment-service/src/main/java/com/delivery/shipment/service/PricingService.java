@@ -46,7 +46,6 @@ public class PricingService {
         this.clock = clock;
     }
 
-    /** Геокодує адреси, рахує відстань і ціну. Нічого не зберігає. */
     public RouteQuote calculate(
             String pickupCityCode,
             String pickupAddress,
@@ -107,19 +106,13 @@ public class PricingService {
         return quote;
     }
 
-    /**
-     * Блокує пропозицію відправника до кінця транзакції: запити з тією самою пропозицією
-     * виконуються по черзі. Придатність перевіряє {@link #requireUsable(PriceQuote)}.
-     */
     @Transactional
     public PriceQuote lockQuote(UUID quoteId, long userId) {
         return quoteRepository.findByIdForUpdate(quoteId)
-                // Чужа пропозиція виглядає як неіснуюча, щоб не розкривати її наявність.
                 .filter(found -> found.getUserId() == userId)
                 .orElseThrow(() -> new QuoteException(QuoteException.Reason.NOT_FOUND, quoteId));
     }
 
-    /** Пропозицію можна використати один раз і лише до кінця терміну дії. */
     public void requireUsable(PriceQuote quote) {
         if (quote.getShipmentId() != null) {
             throw new QuoteException(QuoteException.Reason.ALREADY_USED, quote.getQuoteId());

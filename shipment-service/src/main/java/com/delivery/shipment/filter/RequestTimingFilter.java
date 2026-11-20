@@ -12,10 +12,6 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.IOException;
 
-/**
- * Records the latency of business endpoints as {@code delivery_http_request_seconds}
- * with a percentile histogram, which the HighLatency alert queries.
- */
 @Component
 public class RequestTimingFilter extends OncePerRequestFilter {
 

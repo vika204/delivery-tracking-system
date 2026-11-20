@@ -7,10 +7,6 @@ import org.springframework.web.ErrorResponseException;
 
 import java.net.URI;
 
-/**
- * Rendered as an RFC 9457 problem with status 429 and a {@code Retry-After} header
- * by the standard Spring MVC error handling.
- */
 public class RateLimitExceededException extends ErrorResponseException {
 
     static final URI TYPE = URI.create("urn:delivery:problem:rate-limit-exceeded");

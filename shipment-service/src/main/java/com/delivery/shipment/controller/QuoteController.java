@@ -15,9 +15,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Крок «відправник бачить розраховану вартість» перед підтвердженням (сценарій 1 dz_2, US-2.1–2.5).
- */
 @RestController
 @RequestMapping("/shipments/quotes")
 public class QuoteController {

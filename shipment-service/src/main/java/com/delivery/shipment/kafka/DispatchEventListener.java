@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Dispatch -> Shipment: CourierAssigned / CourierUnassigned (Context Map). */
 @Component
 public class DispatchEventListener {
 
@@ -30,7 +29,6 @@ public class DispatchEventListener {
     public void onDispatchEvent(String json) {
         DispatchEvent event = parse(json);
         if (!event.changesAssignment()) {
-            // наприклад, COURIER_SEARCH_DELAYED: призначений для notification-service
             log.debug("Dispatch event not relevant for shipment: type={}, shipmentId={}", event.eventType(), event.shipmentId());
             return;
         }

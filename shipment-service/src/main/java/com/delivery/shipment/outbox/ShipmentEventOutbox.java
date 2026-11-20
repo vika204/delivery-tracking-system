@@ -17,10 +17,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Записує доменні події доставки в outbox у поточній транзакції.
- * {@link OutboxRelay} публікує їх у Kafka після коміту.
- */
 @Component
 public class ShipmentEventOutbox {
 

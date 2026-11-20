@@ -2,7 +2,6 @@ package com.delivery.webui.client.dto;
 
 import java.math.BigDecimal;
 
-/** GET /shipments/{id}/courier-view: те, що бачить призначений кур'єр. */
 public record CourierShipmentResponse(
         long shipmentId,
         String status,

@@ -6,10 +6,6 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * Кур'єр у Dispatch Context. {@code isAvailable} — перемикач «на лінії» (US-3.5):
- * лише кур'єри на лінії отримують нові пропозиції; активні доставки можна завершити й офлайн.
- */
 @Entity
 @Table(name = "couriers")
 @Getter
@@ -29,11 +25,9 @@ public class Courier {
     @Column(name = "phone", length = 32)
     private String phone;
 
-    // Назва зони для людей (наприклад, "Kyiv").
     @Column(name = "work_zone", nullable = false)
     private String workZone;
 
-    // KATOTTG-код населеного пункту зони; за ним підбираються доставки поблизу.
     @Column(name = "work_zone_code", length = 19)
     private String workZoneCode;
 
@@ -43,7 +37,6 @@ public class Courier {
     @Column(name = "is_available", nullable = false)
     private boolean isAvailable;
 
-    // Snapshot останньої позиції (у майбутньому — з події Tracking CourierLocationUpdated).
     @Column(name = "last_known_latitude")
     private Double lastKnownLatitude;
 
@@ -53,7 +46,6 @@ public class Courier {
     @Column(name = "location_updated_at")
     private Instant locationUpdatedAt;
 
-    // Для чесної черги між рівноцінними кандидатами.
     @Column(name = "last_assigned_at")
     private Instant lastAssignedAt;
 }

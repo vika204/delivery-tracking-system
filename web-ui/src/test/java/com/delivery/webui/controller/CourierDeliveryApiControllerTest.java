@@ -33,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-/** BFF разом зі справжніми клієнтами; shipment-service і tracking-service імітує MockRestServiceServer. */
 class CourierDeliveryApiControllerTest {
 
     private static final long COURIER = 7;

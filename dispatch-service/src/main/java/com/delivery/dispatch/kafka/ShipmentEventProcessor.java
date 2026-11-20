@@ -15,7 +15,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Обробка подій Shipment рівно один раз: позначка оброблення й зміни Dispatch — в одній транзакції. */
 @Component
 public class ShipmentEventProcessor {
 

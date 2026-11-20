@@ -45,7 +45,6 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-// Контекст містить лише слухача й Kafka: обробник підмінено моком, база даних не потрібна.
 @SpringBootTest(
         classes = {ShipmentEventListener.class, KafkaRetryConfig.class, NotificationMetrics.class,
                 ShipmentEventListenerDltIntegrationTest.MetricsConfig.class},
@@ -102,17 +101,14 @@ class ShipmentEventListenerDltIntegrationTest {
 
     @Test
     void shouldMoveEventToDltAfterRetriesAreExhausted() {
-        // given
         String key = "exhausted-" + UUID.randomUUID();
         String json = eventJson(UUID.randomUUID());
         doThrow(new IllegalStateException("Notification database is unavailable"))
                 .when(handler)
                 .handle(any(ShipmentCreatedEvent.class));
 
-        // when
         send(key, json);
 
-        // then
         ConsumerRecord<String, String> dltRecord = awaitDltRecord(key);
         assertThat(dltRecord.value()).isEqualTo(json);
         assertThat(header(dltRecord, KafkaHeaders.ORIGINAL_TOPIC)).isEqualTo(ShipmentEventListener.TOPIC);
@@ -128,14 +124,11 @@ class ShipmentEventListenerDltIntegrationTest {
 
     @Test
     void shouldMoveMalformedJsonToDltWithoutRetries() {
-        // given
         String key = "malformed-" + UUID.randomUUID();
         String json = "{not-a-json";
 
-        // when
         send(key, json);
 
-        // then
         ConsumerRecord<String, String> dltRecord = awaitDltRecord(key);
         assertThat(dltRecord.value()).isEqualTo(json);
         assertThat(wasRetried(key)).isFalse();
@@ -144,16 +137,13 @@ class ShipmentEventListenerDltIntegrationTest {
 
     @Test
     void shouldMoveEventViolatingContractToDltWithoutRetries() {
-        // given
         String key = "invalid-" + UUID.randomUUID();
         String json = """
                 {"eventType":"SHIPMENT_CREATED","payload":{"shipmentId":1,"userId":42,"status":"WAITING_FOR_COURIER"}}
                 """.strip();
 
-        // when
         send(key, json);
 
-        // then
         ConsumerRecord<String, String> dltRecord = awaitDltRecord(key);
         assertThat(header(dltRecord, KafkaHeaders.EXCEPTION_CAUSE_FQCN))
                 .isEqualTo(InvalidShipmentEventException.class.getName());
@@ -163,7 +153,6 @@ class ShipmentEventListenerDltIntegrationTest {
 
     @Test
     void shouldNotUseDltWhenRetrySucceeds() {
-        // given
         String key = "recovered-" + UUID.randomUUID();
         doThrow(new IllegalStateException("Temporary failure"))
                 .doThrow(new IllegalStateException("Temporary failure"))
@@ -171,10 +160,8 @@ class ShipmentEventListenerDltIntegrationTest {
                 .when(handler)
                 .handle(any(ShipmentCreatedEvent.class));
 
-        // when
         send(key, eventJson(UUID.randomUUID()));
 
-        // then
         verify(handler, timeout(TIMEOUT.toMillis()).times(3)).handle(any(ShipmentCreatedEvent.class));
         assertThat(pollDltRecord(key)).isEmpty();
     }
@@ -196,7 +183,6 @@ class ShipmentEventListenerDltIntegrationTest {
         return Optional.empty();
     }
 
-    // будь-яка повторна спроба спершу проходить через перший retry-топік
     private boolean wasRetried(String key) {
         try (Consumer<String, String> retryConsumer = consumerFor(FIRST_RETRY_TOPIC)) {
             for (ConsumerRecord<String, String> consumerRecord : retryConsumer.poll(Duration.ofSeconds(3))) {

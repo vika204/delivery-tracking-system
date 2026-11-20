@@ -37,7 +37,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** Створення доставки (CreateShipment) і читання. Переходи стану — у {@link ShipmentLifecycleService}. */
 @Service
 public class ShipmentService {
 
@@ -94,16 +93,10 @@ public class ShipmentService {
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
         } catch (DataIntegrityViolationException _) {
-            // інший запит із тим самим ключем, але іншою пропозицією закомітився першим
             return transactionTemplate.execute(status -> replay(userId, idempotencyKey, requestHash));
         }
     }
 
-    /**
-     * Спершу блокує пропозицію, потім шукає Idempotency-Key. Так паралельний повтор того самого
-     * запиту чекає на перший, а після його коміту бачить уже створену доставку,
-     * а не «пропозицію вже використано».
-     */
     private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
                                           CreateShipmentRequest request) {
         PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
@@ -168,8 +161,6 @@ public class ShipmentService {
         return new CreationResult(load(existing.getShipmentId()), true);
     }
 
-    // ---------- Читання ----------
-
     @Transactional(readOnly = true)
     public Shipment getById(Long id) {
         return load(id);
@@ -179,7 +170,6 @@ public class ShipmentService {
         return shipmentRepository.findById(id).orElseThrow(() -> new ShipmentNotFoundException(id));
     }
 
-    /** Список, відсортований від найновіших (US-1.5). */
     @Transactional(readOnly = true)
     public List<Shipment> search(ShipmentSearchCriteria criteria, int page, int size) {
         return shipmentRepository.findAll(

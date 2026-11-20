@@ -9,7 +9,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Фільтри списку доставок (US-1.5). Усі поля необов'язкові. */
 public record ShipmentSearchCriteria(
         Long senderId,
         Long courierId,

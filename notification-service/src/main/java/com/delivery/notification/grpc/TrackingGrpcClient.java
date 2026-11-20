@@ -94,7 +94,6 @@ public class TrackingGrpcClient {
         );
     }
 
-    // Після першого повідомлення канал уже не повторює стрім — його перевідкриває підписка.
     private final class Subscription implements StreamObserver<ShipmentLocationUpdate> {
 
         private final long shipmentId;

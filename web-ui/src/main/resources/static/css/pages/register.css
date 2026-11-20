@@ -43,7 +43,6 @@ a:focus-visible,
     overflow: hidden;
 }
 
-/* Centered form and spider positioned beside it */
 
 .registration-page {
     position: relative;
@@ -130,7 +129,6 @@ h1 span {
     line-height: 1.5;
 }
 
-/* Spider and thread */
 
 .visual {
     position: absolute;
@@ -192,7 +190,6 @@ h1 span {
     background: #574534;
 }
 
-/* Registration form */
 
 form {
     display: grid;
@@ -263,7 +260,6 @@ input:focus {
     pointer-events: none;
 }
 
-/* Red button and hover cobwebs */
 
 .cta {
     position: relative;
@@ -317,7 +313,6 @@ input:focus {
 
 .footer-note a { font-weight: 700; }
 
-/* Tablet and mobile */
 
 @media (max-width: 900px) {
     .hanger {

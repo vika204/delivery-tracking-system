@@ -17,7 +17,6 @@ public interface DispatchRequestRepository extends JpaRepository<DispatchRequest
     @Query("select r from DispatchRequest r where r.shipmentId = :shipmentId")
     Optional<DispatchRequest> findByIdForUpdate(Long shipmentId);
 
-    /** Черга очікування: спершу EXPRESS (US-2.3), далі найстаріші. */
     @Query("""
             select r.shipmentId from DispatchRequest r
             where r.status in :statuses

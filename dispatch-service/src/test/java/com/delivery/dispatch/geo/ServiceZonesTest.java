@@ -41,7 +41,6 @@ class ServiceZonesTest {
 
     @Test
     void distanceUsesRoadFactor() {
-        // Kyiv -> Lviv ≈ 470 km great circle
         double km = zones.distanceKm(50.450, 30.523, 49.839, 24.029);
 
         assertThat(km).isBetween(560.0, 660.0);

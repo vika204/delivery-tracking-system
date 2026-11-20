@@ -16,10 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * BFF сторінки доставки кур'єра. Лише для локальної розробки: той самий кур'єр, що й у
- * Courier Dashboard (dispatch.courier-dashboard.courier-id), доки немає автентифікації.
- */
 @RestController
 @RequestMapping("/api/courier/shipments")
 @ConditionalOnProperty(prefix = "dispatch.courier-dashboard", name = "enabled", havingValue = "true")
@@ -50,7 +46,6 @@ public class CourierDeliveryApiController {
         return deliveryService.completeDelivery(courierId, shipmentId);
     }
 
-    /** 201 — нова точка, 200 — повтор тієї самої точки (pointId), дубля немає. */
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                                    @RequestBody RecordLocationRequest point) {

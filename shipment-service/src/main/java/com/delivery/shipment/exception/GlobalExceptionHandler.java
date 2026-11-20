@@ -64,7 +64,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problem(ex, HttpStatus.FORBIDDEN, SHIPMENT_ACCESS_DENIED, "Action not allowed for this user", request);
     }
 
-    // Паралельна зміна тієї самої доставки (наприклад, кур'єр і подія Dispatch одночасно).
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
     public ResponseEntity<Object> handleConcurrentUpdate(ObjectOptimisticLockingFailureException ex, WebRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
@@ -74,7 +73,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(ex, problem, new HttpHeaders(), HttpStatus.CONFLICT, request);
     }
 
-    // Адресу неможливо геокодувати: створення блокується (US-1.1).
     @ExceptionHandler(AddressNotGeocodableException.class)
     public ResponseEntity<Object> handleAddressNotGeocodable(AddressNotGeocodableException ex, WebRequest request) {
         return problem(ex, HttpStatus.UNPROCESSABLE_ENTITY, ADDRESS_NOT_GEOCODABLE, "Address cannot be geocoded", request);

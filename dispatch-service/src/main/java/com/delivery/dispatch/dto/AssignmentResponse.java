@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
-/** Доставка в розділі «Мої доставки» кур'єра (US-3.6). */
 public record AssignmentResponse(
         long assignmentId,
         long shipmentId,

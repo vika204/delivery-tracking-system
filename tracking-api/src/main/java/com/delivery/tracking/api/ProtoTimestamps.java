@@ -4,9 +4,6 @@ import com.google.protobuf.Timestamp;
 
 import java.time.Instant;
 
-/**
- * Перетворення {@code google.protobuf.Timestamp} контракту tracking.proto на {@link Instant} і назад.
- */
 public final class ProtoTimestamps {
 
     private ProtoTimestamps() {

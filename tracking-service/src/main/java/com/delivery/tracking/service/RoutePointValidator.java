@@ -8,10 +8,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * Перевірка однієї GPS-координати від кур'єра.
- * Не залежить від gRPC-повідомлень: спільна для Client Streaming і Bidirectional Streaming.
- */
 @Component
 public class RoutePointValidator {
 
@@ -28,12 +24,7 @@ public class RoutePointValidator {
         this.clock = clock;
     }
 
-    /**
-     * @param recordedAt null, якщо час не передано
-     * @return опис порушення або empty, якщо координата коректна
-     */
     public Optional<String> findViolation(double latitude, double longitude, Instant recordedAt) {
-        // Порівняння «всередину діапазону» відсікає й NaN.
         if (!(latitude >= -90 && latitude <= 90)) {
             return Optional.of("latitude must be between -90 and 90");
         }

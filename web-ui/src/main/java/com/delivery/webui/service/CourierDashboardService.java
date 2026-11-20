@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/** Збирає Dashboard зі стану dispatch-service; після кожної дії повертає оновлений вигляд. */
 @Service
 public class CourierDashboardService {
 

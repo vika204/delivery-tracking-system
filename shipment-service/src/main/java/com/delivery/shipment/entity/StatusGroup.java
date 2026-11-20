@@ -2,7 +2,6 @@ package com.delivery.shipment.entity;
 
 import java.util.Set;
 
-/** Групи статусів для фільтра «Мої доставки» (US-1.5). */
 public enum StatusGroup {
     ACTIVE(ShipmentStatus.ACTIVE),
     COMPLETED(Set.of(ShipmentStatus.DELIVERED)),

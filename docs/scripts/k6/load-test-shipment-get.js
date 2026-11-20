@@ -1,13 +1,11 @@
-// Load test: normal load on GET /shipments/{id} (the call tracking-service makes to shipment-service).
-// Run: k6 run -e TARGET_URL=http://localhost:8092 docs/scripts/k6/load-test-shipment-get.js
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export const options = {
   stages: [
-    { duration: '30s', target: 20 }, // ramp-up
-    { duration: '2m', target: 20 },  // hold
-    { duration: '30s', target: 0 },  // ramp-down
+    { duration: '30s', target: 20 },
+    { duration: '2m', target: 20 },
+    { duration: '30s', target: 0 },
   ],
   thresholds: {
     http_req_failed: ['rate<0.01'],
@@ -19,7 +17,6 @@ const BASE_URL = __ENV.TARGET_URL || 'http://localhost:8082';
 const SEED_COUNT = Number(__ENV.SEED_COUNT || 20);
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
-// Creates test shipments (quote -> shipment) so that GET has real ids to read.
 export function setup() {
   const ids = [];
   for (let i = 0; i < SEED_COUNT; i++) {

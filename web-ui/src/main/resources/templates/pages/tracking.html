@@ -9,25 +9,25 @@
     <title th:text="${pageTitle}">WEB EXPRESS</title>
     <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
 
-    <!-- Fonts -->
+
     <link rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap">
 
-    <!-- MapLibre -->
+
     <link rel="stylesheet"
           th:if="${tracking != null}"
           href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"
           integrity="sha384-Nq6PQ+9vJPvw7U/VfDELyrWoGQMsy0gi6QShhaSrGzkpF5KkM40csg2leky+YMTd"
           crossorigin="anonymous">
 
-    <!-- Shared styles -->
+
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
     <link rel="stylesheet" th:href="@{/css/components/modal.css}">
 
-    <!-- Tracking page styles -->
+
     <link rel="stylesheet" th:href="@{/css/pages/tracking.css}">
     <link rel="stylesheet" th:href="@{/css/components/tracking-map.css}">
     <link rel="stylesheet" th:href="@{/css/components/tracking-card.css}">
@@ -42,7 +42,7 @@
 
 <main class="tracking-page" id="tracking">
 
-    <!-- Heading and search -->
+
 
     <div class="tracking-heading">
 
@@ -90,13 +90,13 @@
        data-we-modal-title="TRACKING ERROR"
        th:text="${errorMessage}">
     </p>
-    
+
     <th:block th:if="${tracking != null}">
-        <!-- Map + shipment information -->
+
 
         <div class="tracking-layout">
 
-            <!-- Interactive map -->
+
 
             <section class="tracking-map-panel"
                      aria-label="Courier tracking map">
@@ -134,7 +134,7 @@
 
             </section>
 
-            <!-- Reusable Thymeleaf shipment card -->
+
 
             <aside th:replace="~{fragments/tracking/shipment-card :: shipmentCard}">
             </aside>
@@ -176,17 +176,17 @@
 
 <div th:replace="~{fragments/ui/modal :: modal}"></div>
 
-<!-- Shared modal controller -->
+
 <script th:src="@{/js/components/modal.js}"></script>
 
-<!-- MapLibre library -->
+
 <script th:if="${tracking != null}"
         src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"
         integrity="sha384-/L1njH4bbgNt9Uk3HwJ272N9fxJzRBQCxhtwGkZiqgl+Nxpq2ETUNZhNMNV1RgyW"
         crossorigin="anonymous">
 </script>
 
-<!-- Safely serialized server-side tracking data -->
+
 <script th:if="${tracking != null}" th:inline="javascript">
     window.webExpressTracking = Object.freeze({
         shipmentId: /*[[${tracking.trackingNumber}]]*/ null,
@@ -197,13 +197,13 @@
     });
 </script>
 
-<!-- Tracking map -->
+
 <script th:if="${tracking != null}"
         type="module"
         th:src="@{/js/components/tracking-map.js}">
 </script>
 
-<!-- Shipment status and live GPS -->
+
 <script th:if="${tracking != null and !tracking.terminal}"
         type="module"
         th:src="@{/js/components/tracking-live.js}">

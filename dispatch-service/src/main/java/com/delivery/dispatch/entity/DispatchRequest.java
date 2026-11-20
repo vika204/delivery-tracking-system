@@ -6,11 +6,6 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * Snapshot доставки з Shipment (ShipmentCreated / ShipmentDetailsUpdated) і стан пошуку кур'єра.
- * Dispatch повторює пошук без звернень до Shipment.
- * Поля snapshot nullable: «надгробок» скасованої доставки може з'явитися раніше за ShipmentCreated.
- */
 @Entity
 @Table(name = "dispatch_requests")
 @Getter
@@ -73,7 +68,6 @@ public class DispatchRequest {
     @Column(name = "last_search_at")
     private Instant lastSearchAt;
 
-    // Коли відправника повідомили про затримку пошуку; null — ще не повідомляли.
     @Column(name = "delay_notified_at")
     private Instant delayNotifiedAt;
 

@@ -14,7 +14,6 @@ public class KafkaTopicConfig {
     public static final String SHIPMENT_DETAILS_UPDATED_TOPIC = "shipment.details.updated";
     public static final String SHIPMENT_STATUS_CHANGED_TOPIC = "shipment.status.changed";
 
-    // Власні DLT цього споживача: shipment.events-dlt уже використовує notification-service.
     public static final String DLT_SUFFIX = ".dispatch-dlt";
 
     @Bean

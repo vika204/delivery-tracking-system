@@ -5,10 +5,6 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Duration;
 
-/**
- * Per-client limit for the JSON API: at most {@code capacity} requests per {@code window}.
- * The bucket refills continuously, so a short burst up to {@code capacity} is allowed.
- */
 @ConfigurationProperties(prefix = "rate-limit")
 public record RateLimitProperties(
         @DefaultValue("true") boolean enabled,

@@ -6,7 +6,6 @@ import lombok.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
-/** Призначення кур'єра на доставку (CourierAssignment). */
 @Entity
 @Table(name = "assignments", indexes = @Index(name = "idx_assignment_shipment", columnList = "shipment_id"))
 @Getter

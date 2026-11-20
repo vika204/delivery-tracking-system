@@ -9,10 +9,6 @@ import com.delivery.webui.exception.ShipmentNotInTransitException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-/**
- * Доставка очима кур'єра: забір посилки й запис GPS. Перед записом точки shipment-service
- * підтверджує, що посилку призначено цьому кур'єру (інакше 403) і вона вже в дорозі.
- */
 @Service
 public class CourierDeliveryService {
 

@@ -31,7 +31,6 @@ class OfflineRoutingClientTest {
     void kyivToLvivDistanceIsRealistic() {
         double km = client.routeDistanceKm(client.geocode(KYIV, "Khreshchatyk 1"), client.geocode(LVIV, "Svobody 10"));
 
-        // реальна дорога ≈ 540 км
         assertThat(km).isBetween(400.0, 750.0);
     }
 

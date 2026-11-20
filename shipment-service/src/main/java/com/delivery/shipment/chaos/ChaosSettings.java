@@ -6,10 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Runtime-adjustable fault injection used to trigger alerts on demand.
- * Both knobs default to zero, so the component is inert unless the chaos endpoints are enabled and used.
- */
 @Component
 public class ChaosSettings {
 

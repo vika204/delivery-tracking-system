@@ -15,11 +15,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * BFF форми «Create Shipment»: розрахунок вартості й підтвердження. Поля перевіряє shipment-service,
- * його помилки передаються сторінці як є. Лише для локальної розробки:
- * відправник задається властивістю shipment.creation.sender-id, доки немає автентифікації.
- */
 @RestController
 @RequestMapping("/api/shipments")
 @ConditionalOnProperty(prefix = "shipment.creation", name = "enabled", havingValue = "true")

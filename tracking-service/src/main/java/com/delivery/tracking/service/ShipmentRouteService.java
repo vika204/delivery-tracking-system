@@ -17,10 +17,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Зберігає маршрут, отриманий через Client Streaming. Повтор із тим самим upload_id
- * повертає збережений підсумок замість повторного запису точок.
- */
 @Service
 public class ShipmentRouteService {
 

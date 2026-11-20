@@ -3,11 +3,6 @@ package com.delivery.shipment.event;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Подія Dispatch (топік dispatch.events).
- * COURIER_ASSIGNED / COURIER_UNASSIGNED змінюють доставку; COURIER_SEARCH_DELAYED — лише
- * сигнал для сповіщень (courierId = null), Shipment його не обробляє.
- */
 public record DispatchEvent(
         UUID eventId,
         String eventType,

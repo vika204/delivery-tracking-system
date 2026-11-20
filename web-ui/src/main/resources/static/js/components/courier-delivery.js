@@ -1,6 +1,5 @@
 import {formatDistance} from './format-distance.js';
 
-/** TO PICK UP — підпис посилки зі статусом ASSIGNED (і TO_PICKUP, якщо кур'єр уже виїхав). */
 const LABELS = Object.freeze({
     ASSIGNED: 'TO PICK UP',
     TO_PICKUP: 'TO PICK UP',
@@ -23,7 +22,6 @@ export function statusClass(status) {
     return '';
 }
 
-/** Наступна дія кур'єра: забрати посилку, завершити доставку або нічого. */
 export function nextAction(status) {
     if (status === 'ASSIGNED' || status === 'TO_PICKUP') {
         return {action: 'pickup', label: 'CONFIRM PICKUP'};
@@ -34,17 +32,14 @@ export function nextAction(status) {
     return null;
 }
 
-/** GPS передається лише поки посилка в дорозі. */
 export function sharesGps(status) {
     return status === 'IN_TRANSIT';
 }
 
-/** Не частіше за одну точку на інтервал: браузер може віддавати позицію щосекунди. */
 export function shouldSendPosition(lastSentAtMs, nowMs, minIntervalMs = GPS_MIN_INTERVAL_MS) {
     return lastSentAtMs === null || nowMs - lastSentAtMs >= minIntervalMs;
 }
 
-/** GeolocationPosition → тіло запиту tracking-service; pointId робить повтор безпечним. */
 export function locationPayload(position, pointId = crypto.randomUUID()) {
     return {
         pointId,
@@ -54,10 +49,6 @@ export function locationPayload(position, pointId = crypto.randomUUID()) {
     };
 }
 
-/**
- * Після збою мережі чи 5xx ту саму точку надсилаємо ще раз з тим самим pointId (tracking-service
- * не створить дубля). Відхилену точку (4xx) повторювати немає сенсу.
- */
 export function isRetriableFailure(status) {
     return status === null || status >= 500;
 }

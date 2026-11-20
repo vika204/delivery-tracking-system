@@ -5,10 +5,6 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 
 import java.time.Duration;
 
-/**
- * Єдині параметри викликів tracking-service для всіх клієнтів: deadline і retry.
- * Ті самі значення використовує і retry-політика каналу, і ручне перепідключення стрімів.
- */
 @ConfigurationProperties("tracking.grpc")
 public record TrackingGrpcProperties(
         @DefaultValue("30s") Duration deadline,

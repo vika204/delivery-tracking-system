@@ -1,7 +1,5 @@
 import {createKatottgAutocomplete} from '../components/katottg-autocomplete.js';
 
-// Shared visual prototype for registration and login.
-// Inputs intentionally have no names, so credentials cannot be submitted.
 const forms = [...document.querySelectorAll('[data-auth-form]')];
 const registrationTabs = [...document.querySelectorAll('[data-registration-tab]')];
 const registrationPanels = [...document.querySelectorAll('[data-registration-panel]')];
@@ -115,8 +113,6 @@ forms.forEach(form => {
     });
 });
 
-// Courier descends on a web, then gently swings.
-// Clicking it adds a little swing.
 (() => {
     const courier = document.querySelector('.hanger');
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');

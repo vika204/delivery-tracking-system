@@ -10,7 +10,6 @@ public class KafkaTopicConfig {
 
     public static final String SHIPMENT_EVENTS_TOPIC = "shipment.events";
     public static final String SHIPMENT_STATUS_CHANGED_TOPIC = "shipment.status.changed";
-    // Окремий топік: notification-service трактує все з shipment.events як SHIPMENT_CREATED.
     public static final String SHIPMENT_DETAILS_UPDATED_TOPIC = "shipment.details.updated";
 
     public static final String DISPATCH_EVENTS_TOPIC = "dispatch.events";

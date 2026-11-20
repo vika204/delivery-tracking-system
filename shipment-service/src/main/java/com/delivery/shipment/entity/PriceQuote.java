@@ -7,10 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Розрахована пропозиція ціни (PriceQuote з dz_2). Відправник бачить її перед підтвердженням,
- * а створення доставки фіксує саме цю ціну як agreedPrice. Одноразова й має термін дії.
- */
 @Entity
 @Table(name = "price_quotes")
 @Getter
@@ -64,7 +60,6 @@ public class PriceQuote {
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
 
-    // Ставки тарифу на момент розрахунку: тариф може змінитися, а пропозиція — ні.
     @Column(name = "price_per_km", nullable = false)
     private BigDecimal pricePerKm;
 
@@ -89,7 +84,6 @@ public class PriceQuote {
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
-    // Доставка, яка використала цю пропозицію; null, поки пропозиція вільна.
     @Column(name = "shipment_id")
     private Long shipmentId;
 }

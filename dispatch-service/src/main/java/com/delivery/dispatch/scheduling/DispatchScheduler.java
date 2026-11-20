@@ -4,7 +4,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Розклад фонових процесів Dispatch; у тестах вимикається, щоб керувати часом вручну. */
 @Component
 @ConditionalOnProperty(prefix = "dispatch.scheduling", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DispatchScheduler {

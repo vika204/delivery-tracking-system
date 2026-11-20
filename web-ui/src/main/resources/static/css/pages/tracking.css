@@ -96,7 +96,6 @@
         font-size: clamp(28px, 6.4vw, 46px);
     }
 }
-/* Tracking page: map and shipment details */
 
 .tracking-layout {
     display: grid;
@@ -109,7 +108,6 @@
     min-width: 0;
 }
 
-/* Tablet and mobile */
 
 @media (max-width: 760px) {
     .tracking-layout {

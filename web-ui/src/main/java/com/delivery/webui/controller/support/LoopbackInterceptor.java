@@ -11,7 +11,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/** Rejects non-local callers of controllers annotated with {@link LocalDevOnly}. */
 public class LoopbackInterceptor implements HandlerInterceptor {
 
     @Override

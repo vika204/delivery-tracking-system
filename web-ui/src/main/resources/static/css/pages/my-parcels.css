@@ -306,7 +306,6 @@ body::after {
     }
 }
 
-/* Плавне збільшення карток при наведенні */
 
 .parcel-card:hover {
     transform: scale(1.02);

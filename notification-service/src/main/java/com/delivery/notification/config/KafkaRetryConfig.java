@@ -17,7 +17,6 @@ public class KafkaRetryConfig {
         return new ByteArrayJacksonJsonMessageConverter();
     }
 
-    // потрібен retry-топікам, щоб відновлювати споживання після паузи на backoff
     @Bean
     public TaskScheduler kafkaRetryTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();

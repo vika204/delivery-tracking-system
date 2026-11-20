@@ -49,10 +49,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-/**
- * Серверна частина Unary та Client Streaming: реальний gRPC-виклик і PostgreSQL (Testcontainers).
- * shipment-service замінено mock-ом TrackingService.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @AutoConfigureTestGrpcTransport
 @ImportGrpcClients(types = {
@@ -105,13 +101,11 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
                 .thenAnswer(invocation -> new ShipmentDto(invocation.getArgument(0), "Recipient", "IN_TRANSIT"));
     }
 
-    // ---------- Unary ----------
 
     @Test
     void unaryReturnsStatusAndLatestLocation() {
         save(15L, "50.100000", "30.100000", LocalDateTime.of(2026, 11, 15, 10, 0));
         save(15L, "50.300000", "30.300000", LocalDateTime.of(2026, 11, 15, 10, 30));
-        // Вставлена пізніше, але записана раніше (історія з Client Streaming) — не остання.
         save(15L, "50.200000", "30.200000", LocalDateTime.of(2026, 11, 15, 10, 15));
         save(20L, "49.000000", "28.000000", LocalDateTime.of(2026, 11, 15, 11, 0));
 
@@ -160,7 +154,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
                 .isEqualTo(Status.Code.INVALID_ARGUMENT);
     }
 
-    // ---------- Client streaming ----------
 
     @Test
     void clientStreamingSavesRouteAndReturnsCounts() throws Exception {
@@ -181,7 +174,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         assertThat(trackingRepository.count()).isEqualTo(3);
         assertThat(routeUploadRepository.findById("upload-1")).isPresent();
 
-        // Unary бачить останню точку щойно вивантаженої історії.
         ShipmentDeliveryInfo info = blockingStub.getShipmentDeliveryInfo(request(15L));
         assertThat(info.getLatitude()).isCloseTo(50.4520, within(0.000001));
     }
@@ -192,11 +184,11 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
         ShipmentRouteSummary summary = upload(List.of(
                 point("upload-mixed", 15L, 50.4501, 30.5234, "2026-11-15T10:00:00Z"),
-                point("upload-mixed", 15L, 95.0, 30.5240, "2026-11-15T10:00:10Z"),       // latitude
-                point("upload-mixed", 15L, 50.4510, 200.0, "2026-11-15T10:00:20Z"),      // longitude
-                point("upload-mixed", 15L, Double.NaN, 30.52, "2026-11-15T10:00:30Z"),   // NaN
-                pointWithoutTime("upload-mixed", 15L, 50.4515, 30.5245),                 // no recordedAt
-                point("upload-mixed", 15L, 50.4520, 30.5250, future),                    // future
+                point("upload-mixed", 15L, 95.0, 30.5240, "2026-11-15T10:00:10Z"),
+                point("upload-mixed", 15L, 50.4510, 200.0, "2026-11-15T10:00:20Z"),
+                point("upload-mixed", 15L, Double.NaN, 30.52, "2026-11-15T10:00:30Z"),
+                pointWithoutTime("upload-mixed", 15L, 50.4515, 30.5245),
+                point("upload-mixed", 15L, 50.4520, 30.5250, future),
                 point("upload-mixed", 15L, 50.4530, 30.5260, "2026-11-15T10:00:40Z")
         )).get(10, TimeUnit.SECONDS);
 
@@ -229,7 +221,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         );
 
         ShipmentRouteSummary first = upload(route).get(10, TimeUnit.SECONDS);
-        // Імітація retry: сервер зберіг дані, але клієнт не отримав відповідь і повторив потік.
         ShipmentRouteSummary second = upload(route).get(10, TimeUnit.SECONDS);
 
         assertThat(first.getDuplicate()).isFalse();
@@ -248,9 +239,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         ShipmentRouteSummary first = upload(route).get(10, TimeUnit.SECONDS);
         RouteUpload committed = routeUploadRepository.findById("upload-race").orElseThrow();
 
-        // Паралельна спроба: перевірка upload_id відбулася ще до коміту першої,
-        // тому вона не бачить запису й намагається зберегти маршрут повторно.
-        // Після конфлікту первинного ключа повторна перевірка вже бачить закомічений запис.
         doReturn(Optional.empty()).doReturn(Optional.of(committed))
                 .when(routeUploadRepository).findById("upload-race");
 
@@ -294,7 +282,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         StreamObserver<ShipmentRoutePoint> requestObserver = context.call(() -> asyncStub.recordShipmentRoute(collector(result)));
         requestObserver.onNext(point("upload-abort", 15L, 50.45, 30.52, "2026-11-15T10:00:00Z"));
         requestObserver.onNext(point("upload-abort", 15L, 50.46, 30.53, "2026-11-15T10:00:10Z"));
-        // Обрив з'єднання посеред потоку: onCompleted так і не надходить.
         context.cancel(null);
 
         assertThat(statusOf(result)).isEqualTo(Status.Code.CANCELLED);
@@ -320,16 +307,13 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
                         @Override
                         public void onError(Throwable error) {
-                            // intentionally empty
                         }
 
                         @Override
                         public void onCompleted() {
-                            // intentionally empty
                         }
                     }));
 
-            // Чекаємо реєстрації підписки на сервері, повторюючи вивантаження з новим upload_id.
             ShipmentLocationUpdate update = null;
             for (int i = 0; i < 25 && update == null; i++) {
                 upload(List.of(point("upload-pub-" + i, 15L, 50.45, 30.52, "2026-11-15T10:00:00Z")))
@@ -344,7 +328,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         }
     }
 
-    // ---------- helpers ----------
 
     private Location save(long shipmentId, String latitude, String longitude, LocalDateTime recordedAt) {
         return locationService.createLocation(new Location(
@@ -393,7 +376,6 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
             @Override
             public void onCompleted() {
-                // intentionally empty
             }
         };
     }

@@ -86,7 +86,6 @@ function renderDeliveries(deliveries) {
     noDeliveries.hidden = deliveries.length > 0;
 }
 
-/** Дії виконуються по одній; сторінка показує стан, який повернув сервер після дії. */
 async function act(method, path, body, success) {
     if (busy) return;
     busy = true;

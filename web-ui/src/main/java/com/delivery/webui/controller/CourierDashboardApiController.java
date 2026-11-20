@@ -14,10 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * BFF для Courier Dashboard. Лише для локальної розробки: кур'єр задається властивістю
- * dispatch.courier-dashboard.courier-id, доки немає автентифікації (Keycloak).
- */
 @RestController
 @RequestMapping("/api/courier/dashboard")
 @ConditionalOnProperty(prefix = "dispatch.courier-dashboard", name = "enabled", havingValue = "true")

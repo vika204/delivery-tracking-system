@@ -25,7 +25,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
-/** BFF разом зі справжнім клієнтом; shipment-service імітує MockRestServiceServer. */
 class ShipmentCreationApiControllerTest {
 
     private static final long SENDER = 42;

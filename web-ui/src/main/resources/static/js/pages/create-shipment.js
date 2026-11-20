@@ -68,7 +68,6 @@ function startCreateShipment() {
     const value = id => document.getElementById(id).value.trim();
     const idempotencyKeys = createIdempotencyKeys();
 
-    // Остання пропозиція та запит, для якого її розраховано.
     let quote = null;
     let quoteRequest = null;
     let pendingQuote = null;
@@ -111,7 +110,6 @@ function startCreateShipment() {
         display('summary-price', quote ? formatPrice(quote.totalPrice) : null);
     }
 
-    /** Повертає дійсну пропозицію для поточних даних, за потреби розраховує нову. */
     async function currentQuote() {
         const request = quoteRequestFrom(fields());
         if (!request) {
@@ -232,7 +230,6 @@ function startCreateShipment() {
             }
             modal.hidden = true;
             if (isQuoteProblem(result.body)) {
-                // пропозиція спливла чи вже використана: рахуємо нову й просимо підтвердити ще раз
                 quote = quoteRequest = null;
                 setQuoteStatus('The price has to be recalculated. Check it and confirm again.', true);
                 await currentQuote();
@@ -244,7 +241,6 @@ function startCreateShipment() {
             }
             await showShipmentCreationError(new Error(`Shipment creation failed with ${result.status}`));
         } catch (error) {
-            // мережа впала: повторне підтвердження піде з тим самим Idempotency-Key
             modal.hidden = true;
             await showShipmentCreationError(error);
         } finally {

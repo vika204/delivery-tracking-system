@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Shipment → Dispatch (Context Map): ShipmentCreated, ShipmentDetailsUpdated, зміни статусу. */
 @Component
 public class ShipmentEventsListener {
 

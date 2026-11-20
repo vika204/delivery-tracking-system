@@ -64,7 +64,6 @@ public class OutboxRelay {
                 continue;
             }
 
-            // Спан відновлює трейс HTTP-запиту, що створив подію; Kafka-продюсер стає його нащадком
             Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
             try (var _ = traceContext.activate(span)) {
                 kafkaTemplate.send(

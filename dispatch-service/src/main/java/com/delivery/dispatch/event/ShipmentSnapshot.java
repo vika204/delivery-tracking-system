@@ -2,7 +2,6 @@ package com.delivery.dispatch.event;
 
 import java.math.BigDecimal;
 
-/** Payload подій Shipment (SHIPMENT_CREATED, SHIPMENT_DETAILS_UPDATED). */
 public record ShipmentSnapshot(
         Long shipmentId,
         Long userId,

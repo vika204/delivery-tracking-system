@@ -1,4 +1,3 @@
-// Small, temporary cobwebs follow the pointer (desktop only).
 (() => {
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     const fine = matchMedia('(pointer: fine)');

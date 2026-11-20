@@ -11,7 +11,6 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
-/** Повтори з експоненційною затримкою; зіпсовані події й вичерпані спроби — у "*.dispatch-dlt". */
 @Configuration
 public class KafkaConsumerConfig {
 

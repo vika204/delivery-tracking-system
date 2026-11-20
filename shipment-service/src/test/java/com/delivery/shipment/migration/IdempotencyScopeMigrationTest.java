@@ -12,7 +12,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** V2 на базі зі старими даними: ключ прив'язується до відправника доставки, глобальна унікальність зникає. */
 @Testcontainers
 class IdempotencyScopeMigrationTest {
 

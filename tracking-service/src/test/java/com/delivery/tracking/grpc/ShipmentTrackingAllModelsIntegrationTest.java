@@ -104,12 +104,10 @@ class ShipmentTrackingAllModelsIntegrationTest {
 
                         @Override
                         public void onError(Throwable error) {
-                            // intentionally empty
                         }
 
                         @Override
                         public void onCompleted() {
-                            // intentionally empty
                         }
                     }
             ));
@@ -216,7 +214,6 @@ class ShipmentTrackingAllModelsIntegrationTest {
 
             @Override
             public void onCompleted() {
-                // intentionally empty
             }
         });
         points.forEach(requestObserver::onNext);

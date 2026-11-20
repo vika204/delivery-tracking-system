@@ -33,7 +33,6 @@ public class Location {
     @Column(name = "recorded_at", nullable = false)
     private LocalDateTime recordedAt;
 
-    // Ідентифікатор точки від клієнта (REST); null для точок з gRPC-потоків.
     @Column(name = "client_point_id")
     private UUID clientPointId;
 

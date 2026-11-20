@@ -65,7 +65,6 @@ class RateLimitIntegrationTest {
         }
     }
 
-    // Loopback addresses only: the dev-only API behind the limiter rejects other callers with 403.
     private static RequestPostProcessor from(String address) {
         return request -> {
             request.setRemoteAddr(address);

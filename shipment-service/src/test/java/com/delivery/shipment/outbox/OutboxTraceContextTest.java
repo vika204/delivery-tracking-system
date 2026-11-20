@@ -38,7 +38,6 @@ class OutboxTraceContextTest {
         }
         request.end();
 
-        // відкладене надсилання: активного спану немає, контекст береться лише з outbox
         Span relay = traceContext.startChild("outbox relay publish", traceparent);
 
         assertThat(traceparent).startsWith("00-" + request.context().traceId());

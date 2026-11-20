@@ -41,7 +41,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** Правила AcceptCourierProposal без бази: перевірки виконуються до створення призначення. */
 @ExtendWith(MockitoExtension.class)
 class DispatchServiceAcceptOfferTest {
 
@@ -161,7 +160,6 @@ class DispatchServiceAcceptOfferTest {
     @Test
     void checksAvailabilityOnlyAfterLockingCourier() {
         when(courierRepository.findByIdForUpdate(COURIER_ID)).thenAnswer(invocation -> {
-            // інша транзакція вимкнула перемикач, поки Accept чекав на блокування
             courier.setAvailable(false);
             return Optional.of(courier);
         });

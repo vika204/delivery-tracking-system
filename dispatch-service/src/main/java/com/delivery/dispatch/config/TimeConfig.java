@@ -8,7 +8,6 @@ import java.time.Clock;
 @Configuration
 public class TimeConfig {
 
-    // UTC: LocalDateTime-колонки (expires_at, ended_at) зберігаються в UTC.
     @Bean
     public Clock clock() {
         return Clock.systemUTC();

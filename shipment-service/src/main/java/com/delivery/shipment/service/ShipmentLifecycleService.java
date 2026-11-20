@@ -25,10 +25,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 
-/**
- * Переходи життєвого циклу доставки. Кожна зміна статусу в одній транзакції:
- * оновлює агрегат, пише запис таймлайну і подію SHIPMENT_STATUS_CHANGED в outbox.
- */
 @Service
 public class ShipmentLifecycleService {
 
@@ -57,9 +53,7 @@ public class ShipmentLifecycleService {
         this.clock = clock;
     }
 
-    // ---------- Відправник ----------
 
-    /** CancelShipment -> ShipmentCancelled (сценарій 3 dz_2). */
     @Transactional
     public Shipment cancel(long shipmentId, long senderId, String reason) {
         Shipment shipment = load(shipmentId);
@@ -77,7 +71,6 @@ public class ShipmentLifecycleService {
         return shipment;
     }
 
-    /** Редагування до призначення кур'єра з перерахунком ціни (US-1.6, US-2.4). */
     @Transactional
     public UpdateResult update(long shipmentId, long senderId, UpdateShipmentRequest request) {
         Shipment shipment = load(shipmentId);
@@ -123,7 +116,6 @@ public class ShipmentLifecycleService {
         return shipment.getDeliveryType() == null ? DeliveryType.STANDARD : shipment.getDeliveryType();
     }
 
-    // ---------- Кур'єр ----------
 
     @Transactional
     public Shipment startTripToPickup(long shipmentId, long courierId) {
@@ -155,13 +147,7 @@ public class ShipmentLifecycleService {
         return shipment;
     }
 
-    // ---------- Події Dispatch ----------
 
-    /**
-     * Обробляє подію Dispatch рівно один раз. Подію, що суперечить поточному стану
-     * (наприклад, призначення вже скасованої доставки), фіксуємо як оброблену й ігноруємо:
-     * Dispatch сам звільнить кур'єра, коли отримає ShipmentCancelled.
-     */
     @Transactional
     public void onDispatchEvent(DispatchEvent event) {
         if (processedEventRepository.existsById(event.eventId())) {
@@ -205,7 +191,6 @@ public class ShipmentLifecycleService {
 
     private void recordTransition(Shipment shipment, ShipmentStatus previous, Long courierId, String courierName,
                                   ActorType actorType, Long actorId, String reason) {
-        // flush перевіряє @Version до запису таймлайну й події
         shipmentRepository.saveAndFlush(shipment);
         historyRepository.save(ShipmentStatusHistory.builder()
                 .shipmentId(shipment.getShipmentId())

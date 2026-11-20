@@ -13,10 +13,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Підключає до каналу tracking однакову retry-політику та логування кожної спроби
- * в усіх сервісах, що додали залежність tracking-grpc-client.
- */
 @AutoConfiguration
 @EnableConfigurationProperties(TrackingGrpcProperties.class)
 public class TrackingGrpcClientAutoConfiguration {

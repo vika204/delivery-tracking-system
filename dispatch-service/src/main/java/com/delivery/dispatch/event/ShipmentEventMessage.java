@@ -3,7 +3,6 @@ package com.delivery.dispatch.event;
 import java.time.Instant;
 import java.util.UUID;
 
-/** SHIPMENT_CREATED (shipment.events) або SHIPMENT_DETAILS_UPDATED (shipment.details.updated). */
 public record ShipmentEventMessage(
         UUID eventId,
         String eventType,

@@ -13,12 +13,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Агрегат Shipment: тримає життєвий цикл доставки й перевіряє дозволені переходи.
- * <p>
- * Нові колонки nullable у БД: так {@code ddl-auto=update} додає їх до таблиці з наявними рядками.
- * Обов'язковість для нових доставок перевіряється на рівні застосунку.
- */
 @Entity
 @Table(name = "shipments")
 @Getter
@@ -33,7 +27,6 @@ public class Shipment {
     @Column(name = "shipment_id")
     private Long shipmentId;
 
-    // senderId із dz_2
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -85,11 +78,9 @@ public class Shipment {
     @Column(name = "height", nullable = false)
     private BigDecimal height;
 
-    // Відстань маршруту з Maps/Routing API, км.
     @Column(name = "distance", nullable = false)
     private BigDecimal distance;
 
-    // agreedPrice: зафіксована ціна з підтвердженої пропозиції Pricing.
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
@@ -104,7 +95,6 @@ public class Shipment {
     @Column(name = "status", nullable = false)
     private ShipmentStatus status;
 
-    // Snapshot призначеного кур'єра з події Dispatch CourierAssigned.
     @Column(name = "assigned_courier_id")
     private Long assignedCourierId;
 
@@ -133,17 +123,13 @@ public class Shipment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // DEFAULT потрібен ddl-auto=update: Hibernate додає колонку як NOT NULL до таблиці з наявними рядками.
     @UpdateTimestamp
     @Column(name = "updated_at", columnDefinition = "timestamp(6) default now()")
     private LocalDateTime updatedAt;
 
-    // Оптимістичне блокування: команда кур'єра й подія Dispatch не перезапишуть одна одну.
     @Version
     @Column(name = "version", columnDefinition = "bigint default 0")
     private Long version;
-
-    // ---------- Команди відправника ----------
 
     public void cancelBySender(long senderId, String reason, Instant at) {
         requireSender(senderId);
@@ -160,7 +146,6 @@ public class Shipment {
         cancellationReason = reason;
     }
 
-    /** Ключові поля можна змінювати лише до призначення кур'єра (US-1.6, US-2.4). */
     public void requireEditableBy(long senderId) {
         requireSender(senderId);
         if (status != ShipmentStatus.WAITING_FOR_COURIER) {
@@ -201,9 +186,6 @@ public class Shipment {
         this.price = price;
     }
 
-    // ---------- Реакція на Dispatch ----------
-
-    /** @return false, якщо подію проігноровано (доставку вже скасовано або призначено). */
     public boolean assignCourier(long courierId, String courierName, Instant at) {
         if (status != ShipmentStatus.WAITING_FOR_COURIER) {
             return false;
@@ -216,7 +198,6 @@ public class Shipment {
         return true;
     }
 
-    /** @return false, якщо подію проігноровано (інший кур'єр або посилку вже забрано). */
     public boolean unassignCourier(long courierId) {
         if (!Objects.equals(assignedCourierId, courierId)
                 || (status != ShipmentStatus.ASSIGNED && status != ShipmentStatus.TO_PICKUP)) {
@@ -230,9 +211,7 @@ public class Shipment {
         return true;
     }
 
-    // ---------- Команди кур'єра ----------
 
-    /** StartTripToPickup -> CourierDepartedForPickup. */
     public boolean startTripToPickup(long courierId, Instant at) {
         requireAssignedCourier(courierId);
         if (status == ShipmentStatus.TO_PICKUP) {
@@ -244,7 +223,6 @@ public class Shipment {
         return true;
     }
 
-    /** ConfirmParcelPickup -> ParcelPickedUp. Крок «почати рух» необов'язковий. */
     public boolean confirmPickup(long courierId, Instant at) {
         requireAssignedCourier(courierId);
         if (status == ShipmentStatus.IN_TRANSIT) {
@@ -261,7 +239,6 @@ public class Shipment {
         return true;
     }
 
-    /** CompleteDelivery -> ShipmentDelivered. */
     public boolean completeDelivery(long courierId, Instant at) {
         requireAssignedCourier(courierId);
         if (status == ShipmentStatus.DELIVERED) {
@@ -273,7 +250,6 @@ public class Shipment {
         return true;
     }
 
-    // ---------- Перевірки ----------
 
     public boolean isSender(long userId) {
         return Objects.equals(this.userId, userId);

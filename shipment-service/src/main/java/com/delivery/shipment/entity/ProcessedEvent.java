@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Уже оброблені події інших контекстів: повторна доставка з Kafka нічого не змінює. */
 @Entity
 @Table(name = "processed_events")
 @Getter

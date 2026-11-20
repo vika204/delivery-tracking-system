@@ -13,7 +13,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Пише події Dispatch в outbox у поточній транзакції; {@link OutboxRelay} публікує їх у Kafka. */
 @Component
 public class DispatchEventOutbox {
 

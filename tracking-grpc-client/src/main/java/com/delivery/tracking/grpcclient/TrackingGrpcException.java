@@ -2,9 +2,6 @@ package com.delivery.tracking.grpcclient;
 
 import io.grpc.Status;
 
-/**
- * Помилка gRPC-виклику tracking-service після вичерпання всіх retries.
- */
 public class TrackingGrpcException extends RuntimeException {
 
     private final Status.Code code;

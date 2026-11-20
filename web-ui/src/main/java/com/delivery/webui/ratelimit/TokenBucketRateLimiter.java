@@ -3,10 +3,6 @@ package com.delivery.webui.ratelimit;
 import java.time.Clock;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * In-memory token bucket per client key. State is local to the instance, so with several
- * replicas the effective limit is {@code capacity} per replica.
- */
 public class TokenBucketRateLimiter {
 
     static final int CLEANUP_THRESHOLD = 10_000;
@@ -34,7 +30,6 @@ public class TokenBucketRateLimiter {
         return buckets.size();
     }
 
-    // A bucket that would be full again is indistinguishable from a new one, so it can be dropped.
     private void evictIdle(long now) {
         buckets.values().removeIf(bucket -> bucket.isFullAt(now));
     }

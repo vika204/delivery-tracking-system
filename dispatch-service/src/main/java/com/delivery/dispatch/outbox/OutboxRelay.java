@@ -17,10 +17,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Публікує події з outbox у Kafka. Ключ повідомлення — shipmentId, тож події однієї доставки
- * потрапляють в одну партицію й читаються Shipment у порядку створення.
- */
 @Component
 @ConditionalOnProperty(prefix = "outbox.relay", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxRelay {

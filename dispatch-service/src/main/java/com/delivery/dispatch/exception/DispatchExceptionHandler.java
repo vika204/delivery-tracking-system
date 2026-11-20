@@ -24,7 +24,6 @@ public class DispatchExceptionHandler {
         return problem(HttpStatus.CONFLICT, "dispatch-conflict", "Action not available in current state", ex);
     }
 
-    /** Спрацювало обмеження БД (наприклад, друге ACTIVE-призначення кур'єра), яке обійшло перевірки в коді. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail constraintViolated(DataIntegrityViolationException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,

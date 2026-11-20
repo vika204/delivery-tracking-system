@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/** Counts every request of the client address and rejects it once the bucket is empty. */
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     static final String LIMIT_HEADER = "X-RateLimit-Limit";

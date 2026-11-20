@@ -14,10 +14,6 @@ import org.springframework.web.client.ResourceAccessException;
 
 import java.sql.SQLTransientException;
 
-/**
- * Єдине місце перетворення серверних винятків на gRPC-статуси.
- * Тимчасова недоступність залежності -> UNAVAILABLE, єдиний статус, який повторюють клієнти.
- */
 final class GrpcStatusMapper {
 
     private GrpcStatusMapper() {

@@ -63,11 +63,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Shipment + Pricing через HTTP API на реальному Postgres. Kafka вимкнена:
- * події Dispatch подаються напряму в {@link DispatchEventListener}, вихідні події
- * перевіряються в таблиці outbox. Схему створюють міграції Flyway (ddl-auto=validate).
- */
 @SpringBootTest(properties = {
         "spring.kafka.bootstrap-servers=localhost:9999",
         "spring.kafka.listener.auto-startup=false",
@@ -121,7 +116,6 @@ class ShipmentApiIntegrationTest {
         quotes.deleteAll();
     }
 
-    // ---------------------------------------------------------------- Pricing
 
     @Test
     void quoteShowsDistanceAndPriceBreakdown() throws Exception {
@@ -163,7 +157,6 @@ class ShipmentApiIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // ---------------------------------------------------------------- CreateShipment
 
     @Test
     void createsShipmentFromQuoteWithAgreedPriceAndEvent() throws Exception {
@@ -318,7 +311,6 @@ class ShipmentApiIntegrationTest {
 
         assertThat(shipments.count()).isZero();
         assertThat(history.count()).isZero();
-        // пропозиція лишилася вільною: її можна використати повторно
         assertThat(quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow().getShipmentId()).isNull();
     }
 
@@ -337,7 +329,6 @@ class ShipmentApiIntegrationTest {
         assertThat(event.getPublishedAt()).isNull();
     }
 
-    // ---------------------------------------------------------------- Dispatch → Shipment
 
     @Test
     void courierAssignedEventAssignsCourierOnce() throws Exception {
@@ -372,7 +363,6 @@ class ShipmentApiIntegrationTest {
         outbox.deleteAll();
         cancel(SENDER, shipmentId);
         ShipmentStatusChangedEvent cancelled = onlyEvent(ShipmentStatusChangedEvent.TYPE, ShipmentStatusChangedEvent.class);
-        // кур'єр, якого треба сповістити про скасування, лишається в події
         assertThat(cancelled.courierId()).isEqualTo(COURIER);
         assertThat(cancelled.courierName()).isEqualTo("Andrii Kovalenko");
     }
@@ -433,7 +423,6 @@ class ShipmentApiIntegrationTest {
                 .isInstanceOf(InvalidDispatchEventException.class);
     }
 
-    // ---------------------------------------------------------------- Courier
 
     @Test
     void courierCompletesDeliveryAndTimelineIsRecorded() throws Exception {
@@ -478,7 +467,6 @@ class ShipmentApiIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ---------------------------------------------------------------- CancelShipment
 
     @Test
     void senderCancelsAssignedShipmentAndCourierIsNotified() throws Exception {
@@ -514,7 +502,6 @@ class ShipmentApiIntegrationTest {
         assertThat(events(ShipmentStatusChangedEvent.TYPE, ShipmentStatusChangedEvent.class)).hasSize(1);
     }
 
-    // ---------------------------------------------------------------- Edit (US-1.6, US-2.4)
 
     @Test
     void contactChangeKeepsPrice() throws Exception {
@@ -565,7 +552,6 @@ class ShipmentApiIntegrationTest {
         edit(99, shipmentId, "{\"weight\": 3}").andExpect(status().isForbidden());
     }
 
-    // ---------------------------------------------------------------- My shipments (US-1.5)
 
     @Test
     void myShipmentsAreFilteredAndNewestFirst() throws Exception {
@@ -592,7 +578,6 @@ class ShipmentApiIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-    // ---------------------------------------------------------------- helpers
 
     private JsonNode quote(long userId, String weight, String type) throws Exception {
         return json(mockMvc.perform(post("/shipments/quotes").header("X-User-Id", userId)

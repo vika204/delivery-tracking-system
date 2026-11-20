@@ -34,7 +34,6 @@ public class GlobalExceptionHandler
         return problem;
     }
 
-    //сюди попадають помилки 4xx від shipment-service, наприклад 404, якщо посилку не знайдено
     @ExceptionHandler(HttpClientErrorException.class)
     public ProblemDetail handleShipmentClientError(
             HttpClientErrorException ex
@@ -59,7 +58,6 @@ public class GlobalExceptionHandler
         return problem;
     }
 
-    //сюди попадають технічні помилки через які зараз не можемо нормально звернутися до shipment-service
     @ExceptionHandler({
             CallNotPermittedException.class,
             BulkheadFullException.class,
@@ -83,8 +81,6 @@ public class GlobalExceptionHandler
         return problem;
     }
 
-    //якщо сталася якась інша неочікувана помилка
-    //це останній захист тому перед цим окремо обробляємо всі відомі нам помилки
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleUnexpected(Exception ex) {
 

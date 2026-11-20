@@ -9,10 +9,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-/**
- * Що бачить призначений кур'єр (сценарій 2 dz_2): адреси, параметри посилки,
- * ініціали й телефони відправника та отримувача. Повні імена не розкриваються.
- */
 public record CourierShipmentView(
         Long shipmentId,
         ShipmentStatus status,
@@ -58,7 +54,6 @@ public record CourierShipmentView(
         );
     }
 
-    /** "Marta Shevchenko" -> "M. S." */
     static String initials(String fullName) {
         if (fullName == null || fullName.isBlank()) {
             return null;

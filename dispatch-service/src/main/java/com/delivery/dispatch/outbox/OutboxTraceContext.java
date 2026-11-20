@@ -9,10 +9,6 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Зберігає W3C traceparent разом з outbox-подією та відновлює його під час відкладеного надсилання,
- * щоб Kafka-спани лишалися в трейсі початкового HTTP-запиту.
- */
 @Component
 public class OutboxTraceContext {
 
@@ -26,7 +22,6 @@ public class OutboxTraceContext {
         this.propagator = propagator;
     }
 
-    /** Поточний traceparent або null, якщо трасування неактивне. */
     public String capture() {
         TraceContext context = tracer.currentTraceContext().context();
         if (context == null) {
@@ -37,7 +32,6 @@ public class OutboxTraceContext {
         return carrier.get(TRACEPARENT);
     }
 
-    /** Стартує спан-нащадок збереженого контексту; без контексту стартує окремий спан. */
     public Span startChild(String name, String traceparent) {
         Span.Builder builder = traceparent == null
                 ? tracer.spanBuilder()

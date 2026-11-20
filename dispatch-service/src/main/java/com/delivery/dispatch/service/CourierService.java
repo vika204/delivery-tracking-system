@@ -32,7 +32,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-/** Кур'єри: реєстрація, профіль, режим «на лінії» та читання для застосунку кур'єра. */
 @Service
 public class CourierService {
 
@@ -91,16 +90,10 @@ public class CourierService {
         if (request.workZone() != null) courier.setWorkZone(request.workZone().trim());
         if (request.workZoneCode() != null) courier.setWorkZoneCode(request.workZoneCode());
         if (request.maxPackageWeight() != null) courier.setMaxPackageWeight(request.maxPackageWeight());
-        // нова зона чи вага можуть зробити кур'єра придатним для доставок у черзі
         applicationEvents.publishEvent(new CourierCapacityFreedEvent());
         return courier;
     }
 
-    /**
-     * SetCourierAvailability → CourierWentOnline / CourierWentOffline (US-3.5).
-     * Офлайн з активною доставкою дозволено: її можна завершити, але нових пропозицій не буде.
-     * Пропозиція на розгляді в кур'єра, що пішов офлайн, одразу передається наступному кандидату.
-     */
     @Transactional
     public CourierStatusResponse setAvailability(long courierId, boolean online) {
         if (online) {
@@ -139,7 +132,6 @@ public class CourierService {
         return status(load(courierId));
     }
 
-    /** Поточна пропозиція кур'єра; протермінована, але ще не закрита планувальником, не показується. */
     @Transactional(readOnly = true)
     public Optional<OfferResponse> currentOffer(long courierId) {
         load(courierId);
@@ -193,7 +185,6 @@ public class CourierService {
         );
     }
 
-    /** Призначення з адресами й винагородою для застосунку кур'єра. */
     @Transactional(readOnly = true)
     public AssignmentResponse describe(Assignment assignment) {
         return toResponse(assignment);

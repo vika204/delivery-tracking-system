@@ -13,11 +13,6 @@ import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Логує кожну фізичну спробу gRPC-виклику: retries виконуються всередині каналу,
- * тому їх видно лише через {@link ClientStreamTracer}, створений на кожну спробу.
- * Реєструється для всіх каналів через {@link TrackingGrpcClientAutoConfiguration}.
- */
 public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(GrpcAttemptLoggingInterceptor.class);

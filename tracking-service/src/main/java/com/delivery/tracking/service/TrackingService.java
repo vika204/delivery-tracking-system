@@ -26,8 +26,6 @@ public class TrackingService {
         this.metrics = metrics;
     }
 
-    //тут фолбек приписуємо, бо якщо shipment-service недоступний,
-    //то можемо просто повернути і сказати однозначно, що дані зараз недоступні
     @Bulkhead(name = "shipmentClient")
     @CircuitBreaker(
             name = "shipmentClient",
@@ -38,8 +36,6 @@ public class TrackingService {
         return metrics.timeShipmentCall("get", () -> shipmentClient.getShipmentById(shipmentId));
     }
 
-    //те саме без fallback: для gRPC недоступність shipment-service має дійти до клієнта
-    //винятком (-> статус UNAVAILABLE, який клієнт повторить), а не підмінним DTO
     @Bulkhead(name = "shipmentClient")
     @CircuitBreaker(name = "shipmentClient")
     @Retry(name = "shipmentClient")
@@ -47,8 +43,6 @@ public class TrackingService {
         return metrics.timeShipmentCall("get", () -> shipmentClient.getShipmentById(shipmentId));
     }
 
-    //для batch фолбек не прописуємо, бо порожній або неповний результат
-    //можна сприйняти так, ніби нічого не знайдено, хоча сервіс просто недоступний
     @Bulkhead(name = "shipmentClient")
     @CircuitBreaker(name = "shipmentClient")
     @Retry(name = "shipmentClient")
@@ -57,9 +51,6 @@ public class TrackingService {
         return metrics.timeShipmentCall("batch", () -> shipmentClient.getShipmentsBatch(ids));
     }
 
-    //при створенні ми не знаємо, чи посилка не створилась,
-    //чи вона створилась, але відповідь від shipment-service не встигла прийти,
-    //тому нормальний фолбек тут однозначно повернути не можемо
     @Bulkhead(name = "shipmentClient")
     @CircuitBreaker(name = "shipmentClient")
     @Retry(name = "shipmentClient")
@@ -71,9 +62,6 @@ public class TrackingService {
         return metrics.timeShipmentCall("create", () -> shipmentClient.createShipment(idempotencyKey, userId, request));
     }
 
-    //робимо окремі фолбеки тільки для технічних помилок,
-    //бо якщо поставити загальний Throwable, сюди може потрапити і 404,
-    //а її треба повернути як звичайну помилку через ProblemDetail
     private ShipmentDto getShipmentFallback(
             Long shipmentId,
             CallNotPermittedException ex

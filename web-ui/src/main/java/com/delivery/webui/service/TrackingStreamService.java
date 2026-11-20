@@ -172,7 +172,6 @@ public class TrackingStreamService {
                         .name(eventName)
                         .data(message));
             } catch (IOException _) {
-                // The connection may already be gone; cleanup still continues.
             } finally {
                 emitter.complete();
             }

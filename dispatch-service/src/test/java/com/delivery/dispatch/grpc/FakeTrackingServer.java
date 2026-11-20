@@ -86,7 +86,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
 
             @Override
             public void onError(Throwable error) {
-                // intentionally empty
             }
 
             @Override
@@ -127,7 +126,6 @@ class FakeTrackingServer extends ShipmentTrackingServiceGrpc.ShipmentTrackingSer
 
             @Override
             public void onError(Throwable error) {
-                // intentionally empty
             }
 
             @Override

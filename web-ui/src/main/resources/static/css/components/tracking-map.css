@@ -102,7 +102,6 @@
     display: none;
 }
 
-/* Controls supplied by MapLibre */
 
 .tracking-map-panel .maplibregl-ctrl-group {
     background: var(--cream);
@@ -123,7 +122,6 @@
     box-shadow: 2px 3px #2a181233;
 }
 
-/* Original spider courier */
 
 .tracking-courier-pin {
     width: 53px;

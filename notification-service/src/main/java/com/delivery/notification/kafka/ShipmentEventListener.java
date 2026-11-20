@@ -35,8 +35,6 @@ public class ShipmentEventListener {
         this.metrics = metrics;
     }
 
-    // Повторювані помилки проходять через shipment.events-retry-N із зростаючою затримкою.
-    // Неповторювані (зіпсований JSON, порушення контракту) одразу йдуть у shipment.events-dlt.
     @RetryableTopic(
             attempts = "${app.kafka.retry.attempts}",
             backOff = @BackOff(

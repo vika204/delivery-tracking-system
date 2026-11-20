@@ -37,7 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Запис GPS-точки через REST: валідація, збереження й публікація підписникам gRPC-стріму. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @AutoConfigureMockMvc
@@ -122,7 +121,6 @@ class LocationRecordingControllerIntegrationTest {
     void rejectsSuspiciousJumpFromPreviousPoint() throws Exception {
         postLocation(15, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
 
-        // Київ → Львів за одну точку
         postLocation(15, "49.8397", "24.0297", Instant.now())
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.type").value("urn:delivery:problem:location-suspicious-jump"));

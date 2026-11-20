@@ -3,7 +3,6 @@ package com.delivery.shipment.event;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Відправник змінив деталі доставки до призначення кур'єра (US-1.6). */
 public record ShipmentDetailsUpdatedEvent(
         UUID eventId,
         String eventType,

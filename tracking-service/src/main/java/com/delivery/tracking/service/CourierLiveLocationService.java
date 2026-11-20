@@ -33,7 +33,6 @@ public class CourierLiveLocationService {
         return processPoint(shipmentId, point, null);
     }
 
-    /** @param clientPointId ідентифікатор точки від клієнта або null */
     public LiveLocationDecisionResult processPoint(long shipmentId, RoutePoint point, UUID clientPointId) {
         Optional<Location> previousOpt = locationService.findLatestLocation(shipmentId);
         double distanceMeters = 0.0;

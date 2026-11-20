@@ -27,7 +27,7 @@ class TokenBucketRateLimiterTest {
 
         assertThat(decision.allowed()).isFalse();
         assertThat(decision.remaining()).isZero();
-        assertThat(decision.retryAfterSeconds()).isEqualTo(10); // 3 tokens per 30 s = 1 token per 10 s
+        assertThat(decision.retryAfterSeconds()).isEqualTo(10);
     }
 
     @Test

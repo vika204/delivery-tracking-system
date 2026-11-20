@@ -58,12 +58,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Сценарії Dispatch на реальному Postgres: пошук, пропозиції, призначення, відмови, скасування.
- * Схему створюють міграції Flyway, а Hibernate звіряє її з сутностями (ddl-auto=validate).
- * Kafka-споживачі та планувальники вимкнені: події подаються через {@link ShipmentEventProcessor},
- * а тайм-аути пропозицій — через {@link DispatchQueueProcessor#expireOffers()}.
- */
 @SpringBootTest(properties = {
         "spring.kafka.bootstrap-servers=localhost:9999",
         "spring.kafka.listener.auto-startup=false",
@@ -113,15 +107,14 @@ class DispatchFlowIntegrationTest {
         processed.deleteAll();
     }
 
-    // ---------------------------------------------------------------- пошук
 
     @Test
     void offersShipmentToNearestEligibleCourier() {
-        courier(1, KYIV, "20", true, 50.40, 30.50);   // ~6 km — найближчий, але офлайн
-        courier(2, KYIV, "1", true, 50.45, 30.52);    // поруч, але не підніме 5 кг
-        courier(3, LVIV, "20", true, 50.45, 30.52);   // інша зона
-        courier(4, KYIV, "20", true, 50.50, 30.60);   // ~10 km
-        courier(5, KYIV, "20", true, 50.46, 30.53);   // ~1.5 km — переможець
+        courier(1, KYIV, "20", true, 50.40, 30.50);
+        courier(2, KYIV, "1", true, 50.45, 30.52);
+        courier(3, LVIV, "20", true, 50.45, 30.52);
+        courier(4, KYIV, "20", true, 50.50, 30.60);
+        courier(5, KYIV, "20", true, 50.46, 30.53);
         offline(1);
 
         long shipmentId = created(KYIV, "5", "STANDARD");
@@ -167,7 +160,6 @@ class DispatchFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.online").value(true));
 
-        // після коміту CourierCapacityFreedEvent роздає чергу очікування
         assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
     }
 
@@ -217,7 +209,7 @@ class DispatchFlowIntegrationTest {
 
     @Test
     void busyCourierIsSkippedInFavourOfFartherFreeCourier() {
-        courier(1, KYIV, "20", true, 50.45, 30.52);   // найближчий, але зайнятий
+        courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
         acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
 
@@ -226,7 +218,6 @@ class DispatchFlowIntegrationTest {
         assertThat(pendingOffer(next).getCourier().getUserId()).isEqualTo(2L);
     }
 
-    // ---------------------------------------------------------------- відповідь на пропозицію
 
     @Test
     void acceptingOfferAssignsCourierAndPublishesCourierAssigned() throws Exception {
@@ -348,7 +339,6 @@ class DispatchFlowIntegrationTest {
         courier(1, KYIV, "20", true, null, null);
         long shipmentId = created(KYIV, "3", "STANDARD");
         long offerId = pendingOffer(shipmentId).getOfferId();
-        // перемикач вимкнено, а пропозиція лишилась (гонка з goOffline): Accept усе одно відхиляється
         offline(1);
 
         mockMvc.perform(post("/couriers/1/offers/" + offerId + "/accept").header("X-User-Id", "1"))
@@ -374,7 +364,6 @@ class DispatchFlowIntegrationTest {
                 .isInstanceOf(DispatchConflictException.class)
                 .hasMessageContaining("no longer available");
 
-        // скасування пропозиції закомічене, хоча Accept завершився винятком
         assertThat(offers.findById(offerId).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertThat(assignments.count()).isZero();
         assertThat(outbox.count()).isZero();
@@ -412,7 +401,6 @@ class DispatchFlowIntegrationTest {
         long first = created(KYIV, "3", "STANDARD");
         long second = created(KYIV, "3", "STANDARD");
         long firstOffer = pendingOffer(first).getOfferId();
-        // імітуємо збій інваріанту «одна пропозиція»: друга пропозиція тому самому кур'єру
         long secondOffer = forceOffer(second, 1);
 
         List<Object> results = concurrently(
@@ -435,7 +423,6 @@ class DispatchFlowIntegrationTest {
         acceptCurrent(shipmentId, 1);
         assertState(1, "BUSY", true);
 
-        // перемикач можна вимкнути під час доставки: стан лишається BUSY, положення перемикача — збережене
         availability(1, false);
         assertState(1, "BUSY", false);
 
@@ -470,7 +457,6 @@ class DispatchFlowIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ---------------------------------------------------------------- відмова від призначення
 
     @Test
     void withdrawalBeforePickupUnassignsAndSearchesWithoutThatCourier() {
@@ -513,7 +499,6 @@ class DispatchFlowIntegrationTest {
         dispatchService.withdrawAssignment(1, assignment.getAssignmentId(), "late withdrawal");
         DeliveryOffer replacement = pendingOffer(shipmentId);
 
-        // Shipment встиг зафіксувати забір посилки першим кур'єром
         events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
 
         Assignment restored = assignments.findById(assignment.getAssignmentId()).orElseThrow();
@@ -523,7 +508,6 @@ class DispatchFlowIntegrationTest {
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.IN_PROGRESS);
     }
 
-    // ---------------------------------------------------------------- скасування й завершення
 
     @Test
     void cancellationAbortsSearchAndCancelsPendingOffer() {
@@ -585,7 +569,6 @@ class DispatchFlowIntegrationTest {
         long shipmentId = created(KYIV, "3", "STANDARD");
         long firstOffer = pendingOffer(shipmentId).getOfferId();
 
-        // відправник збільшив вагу: першому кур'єру вже завелика
         events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
                 Instant.now(), snapshot(shipmentId, KYIV, "20", "STANDARD")));
 
@@ -619,7 +602,6 @@ class DispatchFlowIntegrationTest {
                 .andExpect(jsonPath("$[0].pickedUp").value(false));
     }
 
-    // ---------------------------------------------------------------- helpers
 
     private void courier(long id, String zoneCode, String maxWeight, boolean online, Double lat, Double lon) {
         couriers.save(Courier.builder()
@@ -656,7 +638,6 @@ class DispatchFlowIntegrationTest {
                 .andExpect(jsonPath("$.online").value(online));
     }
 
-    /** Пропозиція в обхід пошуку — лише щоб перевірити захист Accept від гонок. */
     private long forceOffer(long shipmentId, long courierId) {
         var request = requests.findById(shipmentId).orElseThrow();
         request.setStatus(DispatchRequestStatus.OFFERED);
@@ -670,7 +651,6 @@ class DispatchFlowIntegrationTest {
                 .build()).getOfferId();
     }
 
-    /** Запускає дії одночасно; повертає результат або виняток кожної. */
     private static List<Object> concurrently(Callable<?>... actions) throws Exception {
         CyclicBarrier start = new CyclicBarrier(actions.length);
         try (ExecutorService executor = Executors.newFixedThreadPool(actions.length)) {

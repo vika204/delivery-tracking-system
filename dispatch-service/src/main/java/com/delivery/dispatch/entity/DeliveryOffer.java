@@ -6,7 +6,6 @@ import lombok.*;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
-/** Пропозиція доставки кур'єру (CourierProposal). Одночасно в кур'єра — не більше однієї PENDING. */
 @Entity
 @Table(name = "delivery_offers", indexes = {
         @Index(name = "idx_offer_status_expires", columnList = "status, expires_at"),
@@ -44,7 +43,6 @@ public class DeliveryOffer {
     @Column(name = "responded_at")
     private Instant respondedAt;
 
-    // Орієнтовна відстань кур'єра до точки забору на момент пропозиції.
     @Column(name = "distance_to_pickup_km")
     private Double distanceToPickupKm;
 }

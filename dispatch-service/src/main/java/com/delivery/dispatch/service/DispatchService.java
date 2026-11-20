@@ -38,16 +38,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Dispatch Context: пошук кур'єра, пропозиції, призначення та їх завершення.
- * <p>
- * Кур'єр має або одну пропозицію на розгляді, або одне активне призначення — не більше.
- * <p>
- * Порядок блокувань однаковий у всіх операціях — пропозиція → DispatchRequest → призначення → кур'єр,
- * тож паралельні операції (Kafka-споживачі, планувальники, HTTP) не взаємоблокуються.
- * Блокування рядка кур'єра серіалізує видачу пропозицій і прийняття: перевірки «немає пропозиції»
- * та «немає активної доставки» виконуються вже під ним.
- */
 @Service
 public class DispatchService {
 
@@ -90,11 +80,7 @@ public class DispatchService {
         this.clock = clock;
     }
 
-    // =====================================================================
-    // Реакція на події Shipment
-    // =====================================================================
 
-    /** ShipmentCreated → DispatchRequest (snapshot) і перша спроба знайти кур'єра. */
     @Transactional
     public void onShipmentCreated(ShipmentSnapshot snapshot) {
         createFromSnapshot(snapshot);
@@ -103,24 +89,18 @@ public class DispatchService {
     private void createFromSnapshot(ShipmentSnapshot snapshot) {
         Optional<DispatchRequest> existing = requestRepository.findByIdForUpdate(snapshot.shipmentId());
         if (existing.isPresent()) {
-            // уже створено (ShipmentDetailsUpdated або «надгробок» скасування прийшли раніше)
             log.info("Dispatch request already exists: shipmentId={}, status={}",
                     snapshot.shipmentId(), existing.get().getStatus());
             return;
         }
         DispatchRequest draft = newRequest(snapshot.shipmentId(), DispatchRequestStatus.SEARCHING);
         applySnapshot(draft, snapshot);
-        // ID призначений (shipmentId), тож save() робить merge і повертає керовану копію
         DispatchRequest request = requestRepository.save(draft);
         log.info("Courier search started: shipmentId={}, pickupCityCode={}, weight={}, type={}",
                 request.getShipmentId(), request.getPickupCityCode(), request.getParcelWeight(), request.getDeliveryType());
         dispatch(request);
     }
 
-    /**
-     * ShipmentDetailsUpdated (лише до призначення): оновлює snapshot. Активна пропозиція могла бути
-     * зроблена за старими даними (інша зона чи вага), тож її скасовуємо й шукаємо заново.
-     */
     @Transactional
     public void onShipmentDetailsUpdated(ShipmentSnapshot snapshot) {
         List<DeliveryOffer> pending = lockPendingOffers(snapshot.shipmentId());
@@ -144,7 +124,6 @@ public class DispatchService {
         dispatch(request);
     }
 
-    /** Зміни статусу доставки, що стосуються Dispatch (Context Map: Shipment → Dispatch). */
     @Transactional
     public void onShipmentStatusChanged(long shipmentId, String status, Long courierId) {
         switch (status) {
@@ -159,7 +138,6 @@ public class DispatchService {
     private void onShipmentCancelled(long shipmentId) {
         List<DeliveryOffer> pending = lockPendingOffers(shipmentId);
         DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElseGet(() -> {
-            // ShipmentCancelled випередив ShipmentCreated: «надгробок», щоб пізніший Created не запустив пошук.
             DispatchRequest tombstone = newRequest(shipmentId, DispatchRequestStatus.CANCELLED);
             return requestRepository.save(tombstone);
         });
@@ -190,11 +168,6 @@ public class DispatchService {
         }
     }
 
-    /**
-     * Shipment — джерело істини щодо того, хто везе посилку. Якщо кур'єр відмовився, а
-     * Shipment майже одночасно зафіксував забір посилки цим кур'єром, відмова «програє»:
-     * повертаємо його призначення й скасовуємо пошук заміни.
-     */
     private void reconcileAssignment(long shipmentId, Long courierId, boolean pickedUp) {
         List<DeliveryOffer> pending = lockPendingOffers(shipmentId);
         DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
@@ -249,15 +222,7 @@ public class DispatchService {
         }
     }
 
-    // =====================================================================
-    // Пошук кур'єра
-    // =====================================================================
 
-    /**
-     * Повторний пошук однієї доставки (планувальник, звільнення кур'єра) у власній транзакції.
-     * REQUIRES_NEW обов'язковий: виклик з AFTER_COMMIT-слухача інакше потрапив би в уже
-     * завершену транзакцію, і зміни не закомітилися б.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public DispatchRequestStatus dispatch(long shipmentId) {
         return requestRepository.findByIdForUpdate(shipmentId)
@@ -265,10 +230,6 @@ public class DispatchService {
                 .orElse(null);
     }
 
-    /**
-     * FindCourier → SendCourierProposal. Викликається з уже заблокованим DispatchRequest.
-     * Ранжування: менша відстань до точки забору → довше без замовлень.
-     */
     private DispatchRequestStatus dispatch(DispatchRequest request) {
         if (!request.isSearchable()) {
             return request.getStatus();
@@ -329,7 +290,6 @@ public class DispatchService {
         return request.getStatus();
     }
 
-    /** US-3.1: пошук триває довше за поріг — один раз повідомляємо про затримку (подію читає notification). */
     private void notifyDelayIfWaitingTooLong(DispatchRequest request) {
         Instant threshold = Instant.now(clock).minus(properties.searchDelayThreshold());
         if (request.getDelayNotifiedAt() != null || request.getCreatedAt().isAfter(threshold)) {
@@ -341,7 +301,6 @@ public class DispatchService {
                 request.getShipmentId(), request.getCreatedAt(), request.getSearchAttempts());
     }
 
-    /** Кур'єри, які вже відхилили, проґавили або покинули цю доставку, повторно її не отримують. */
     private Set<Long> excludedCouriers(long shipmentId) {
         Set<Long> excluded = new HashSet<>(offerRepository.findCourierIdsByShipmentIdAndStatusIn(
                 shipmentId, List.of(OfferStatus.REJECTED, OfferStatus.EXPIRED)));
@@ -349,7 +308,6 @@ public class DispatchService {
         return excluded;
     }
 
-    /** Повторна перевірка вже під блокуванням кур'єра: стан міг змінитися після вибірки кандидатів. */
     private boolean stillFree(Courier courier, DispatchRequest request) {
         return courier.isAvailable()
                 && courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) >= 0
@@ -377,35 +335,24 @@ public class DispatchService {
         return zones.distanceKm(lat, lon, request.getPickupLatitude(), request.getPickupLongitude());
     }
 
-    // =====================================================================
-    // Відповідь кур'єра на пропозицію
-    // =====================================================================
 
-    /**
-     * AcceptCourierProposal → CourierProposalAccepted, CourierAssigned (US-3.2).
-     * Пропозиція, призначення й подія COURIER_ASSIGNED в outbox фіксуються в одній транзакції.
-     * Відхиляється, якщо пропозиція чужа, прострочена, кур'єр офлайн або вже має активну доставку.
-     */
     @Transactional(noRollbackFor = OfferNoLongerAvailableException.class)
     public Assignment acceptOffer(long courierId, long offerId) {
         DeliveryOffer offer = lockOwnOffer(courierId, offerId);
 
         if (offer.getStatus() == OfferStatus.ACCEPTED) {
-            // повторне натискання «Прийняти»
             return assignmentRepository.findByCourierAndShipmentAndStatus(courierId, offer.getShipmentId(), AssignmentStatus.ACTIVE)
                     .stream().findFirst()
                     .orElseThrow(() -> new DispatchConflictException("Offer " + offerId + " was accepted but the assignment has ended"));
         }
         requirePending(offer);
         if (!offer.getExpiresAt().isAfter(LocalDateTime.now(clock))) {
-            // протерміновану пропозицію закриє планувальник і передасть доставку наступному кандидату
             throw new DispatchConflictException("Offer " + offerId + " has expired");
         }
 
         DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId())
                 .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + NOT_FOUND_SUFFIX));
         if (request.getStatus() != DispatchRequestStatus.OFFERED) {
-            // зміна зберігається: виняток не відкочує транзакцію (noRollbackFor)
             cancelOffers(List.of(offer), "shipment no longer waits for this offer");
             throw new OfferNoLongerAvailableException("Shipment " + offer.getShipmentId() + " is no longer available");
         }
@@ -433,14 +380,6 @@ public class DispatchService {
         return assignment;
     }
 
-    /**
-     * CourierWentOffline (US-3.5): пропозицію на розгляді одразу передаємо наступному кандидату,
-     * щоб посилка не чекала тайм-ауту. Активну доставку кур'єр завершує й офлайн.
-     * Порядок блокувань загальний: пропозиції → DispatchRequest → кур'єр.
-     * <p>
-     * Пропозиція, створена між вибіркою й блокуванням кур'єра, лишиться до тайм-ауту,
-     * але прийняти її офлайн не можна (див. {@link #acceptOffer}).
-     */
     @Transactional
     public void goOffline(long courierId) {
         List<DeliveryOffer> pending = offerRepository.findPendingByCourierForUpdate(courierId);
@@ -464,7 +403,6 @@ public class DispatchService {
         }
     }
 
-    /** RejectCourierProposal → CourierProposalRejected, пропозиція наступному кандидату (US-3.2). */
     @Transactional
     public void declineOffer(long courierId, long offerId) {
         DeliveryOffer offer = lockOwnOffer(courierId, offerId);
@@ -483,7 +421,6 @@ public class DispatchService {
         capacityFreed();
     }
 
-    /** Тайм-аут відповіді → CourierProposalExpired, пропозиція наступному кандидату. */
     @Transactional
     public boolean expireOffer(long offerId) {
         DeliveryOffer offer = offerRepository.findByIdForUpdate(offerId).orElse(null);
@@ -511,14 +448,7 @@ public class DispatchService {
         });
     }
 
-    // =====================================================================
-    // Відмова кур'єра від призначення
-    // =====================================================================
 
-    /**
-     * DeclineAssignment → CourierAssignmentDeclined, CourierUnassigned.
-     * Дозволено лише до забору посилки; кур'єр виключається з повторного пошуку (US-1.7, US-3.4).
-     */
     @Transactional
     public Assignment withdrawAssignment(long courierId, long assignmentId, String reason) {
         Assignment snapshot = assignmentRepository.findById(assignmentId)
@@ -559,9 +489,6 @@ public class DispatchService {
         return assignment;
     }
 
-    // =====================================================================
-    // Допоміжне
-    // =====================================================================
 
     private DeliveryOffer lockOwnOffer(long courierId, long offerId) {
         DeliveryOffer offer = offerRepository.findByIdForUpdate(offerId)
@@ -572,7 +499,6 @@ public class DispatchService {
         return offer;
     }
 
-    /** Викликається під блокуванням кур'єра, тож паралельний Accept побачить уже створене призначення. */
     private void requireCanTakeDelivery(Courier courier) {
         if (!courier.isAvailable()) {
             throw new DispatchConflictException("Courier " + courier.getUserId() + " is offline: go online to accept offers");
@@ -588,7 +514,6 @@ public class DispatchService {
         }
     }
 
-    /** Пропозиції блокуються раніше за DispatchRequest — той самий порядок, що й у acceptOffer. */
     private List<DeliveryOffer> lockPendingOffers(long shipmentId) {
         return offerRepository.findByShipmentIdAndStatusForUpdate(shipmentId, OfferStatus.PENDING);
     }
@@ -607,7 +532,6 @@ public class DispatchService {
         return pending.size();
     }
 
-    /** ReleaseCourier → CourierReleased. */
     private boolean endActiveAssignments(long shipmentId, AssignmentStatus endStatus, String reason) {
         List<Assignment> active = assignmentRepository.findByShipmentIdAndStatusForUpdate(shipmentId, AssignmentStatus.ACTIVE);
         for (Assignment assignment : active) {
@@ -620,7 +544,6 @@ public class DispatchService {
         return !active.isEmpty();
     }
 
-    /** Після коміту кур'єр може взяти ще одну доставку — пробуємо роздати чергу очікування. */
     private void capacityFreed() {
         applicationEvents.publishEvent(new CourierCapacityFreedEvent());
     }

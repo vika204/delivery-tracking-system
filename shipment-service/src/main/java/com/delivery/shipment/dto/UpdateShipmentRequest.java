@@ -9,10 +9,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/**
- * Часткове редагування до призначення кур'єра (US-1.6). Передаються лише змінені поля.
- * Адреса змінюється разом із кодом населеного пункту.
- */
 public record UpdateShipmentRequest(
         @Size(min = 1, max = 100) String senderName,
         @Pattern(regexp = PhoneNumber.PATTERN, message = PhoneNumber.MESSAGE) String senderPhone,

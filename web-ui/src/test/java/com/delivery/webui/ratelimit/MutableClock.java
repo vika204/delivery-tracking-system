@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-/** Test clock that only moves when told to. */
 final class MutableClock extends Clock {
 
     private Instant now = Instant.parse("2026-01-01T00:00:00Z");

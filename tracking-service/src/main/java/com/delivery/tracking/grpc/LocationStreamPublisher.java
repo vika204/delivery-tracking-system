@@ -16,12 +16,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-/**
- * Підписники gRPC Server Streaming за посилкою. Під час зупинки сервісу закриває їхні стріми зі
- * статусом UNAVAILABLE: інакше відкриті стріми тримали б gRPC-сервер до таймауту graceful shutdown,
- * а клієнти дізналися б про обрив лише після примусової зупинки. Клієнт (web-ui) перепідключається
- * і дозавантажує пропущені точки через REST.
- */
 @Component
 public class LocationStreamPublisher {
 
@@ -102,7 +96,6 @@ public class LocationStreamPublisher {
         log.info("gRPC streams completed for terminal shipment: shipmentId={}", shipmentId);
     }
 
-    /** ContextClosedEvent надходить раніше, ніж Spring зупиняє gRPC-сервер. */
     @EventListener(ContextClosedEvent.class)
     public void closeAllOnShutdown() {
         shuttingDown = true;

@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-/** Профіль кур'єра (сторінка courier-profile): передаються лише змінені поля. */
 public record UpdateCourierRequest(
         @Size(min = 1, max = 100) String displayName,
         @Size(min = 1, max = 32) String phone,

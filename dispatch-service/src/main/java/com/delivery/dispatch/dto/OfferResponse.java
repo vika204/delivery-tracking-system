@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
-/** Пропозиція доставки з деталями маршруту й винагороди (US-3.2). */
 public record OfferResponse(
         long offerId,
         long shipmentId,

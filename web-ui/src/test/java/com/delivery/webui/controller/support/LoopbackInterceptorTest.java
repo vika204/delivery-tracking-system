@@ -17,13 +17,11 @@ class LoopbackInterceptorTest {
     @LocalDevOnly("GPS history")
     static class Restricted {
         public void handle() {
-            // handler body is irrelevant: only the class annotation is inspected
         }
     }
 
     static class Open {
         public void handle() {
-            // handler body is irrelevant: only the class annotation is inspected
         }
     }
 

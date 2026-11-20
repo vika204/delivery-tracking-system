@@ -10,11 +10,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Підтвердження доставки за раніше розрахованою пропозицією ціни.
- * Маршрут, вага, тип доставки, відстань і ціна беруться з пропозиції, а не з запиту,
- * тож клієнт не може підмінити погоджену вартість. Статус задає система.
- */
 public record CreateShipmentRequest(
         @NotNull UUID quoteId,
         @NotBlank @Size(max = 100) String senderName,

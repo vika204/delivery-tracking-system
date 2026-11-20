@@ -2,10 +2,6 @@ package com.delivery.shipment.event;
 
 import java.math.BigDecimal;
 
-/**
- * Snapshot доставки для інших контекстів. Перші три поля — початковий контракт
- * (їх читає notification-service); решта потрібна Dispatch для DispatchRequest.
- */
 public record ShipmentPayload(
         Long shipmentId,
         Long userId,

@@ -1,6 +1,5 @@
 package com.delivery.tracking.exception;
 
-/** Точку не збережено: некоректні дані (400) або підозрілий стрибок позиції (422). */
 public class LocationRejectedException extends RuntimeException {
 
     public enum Reason {

@@ -15,12 +15,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
 
-/**
- * Запис GPS-точки через REST. Ті самі правила, що й для gRPC-потоків кур'єра:
- * {@link RoutePointValidator} і перевірка підозрілого стрибка в {@link CourierLiveLocationService}.
- * Збережена точка публікується підписникам gRPC Server Streaming після коміту.
- * Повтор з тим самим pointId повертає вже збережену точку без повторної публікації.
- */
 @Service
 public class LocationRecordingService {
 
@@ -62,7 +56,6 @@ public class LocationRecordingService {
                     request.longitude(),
                     LocalDateTime.ofInstant(request.recordedAt(), recordedAtZone)), request.pointId());
         } catch (DataIntegrityViolationException concurrentDuplicate) {
-            // той самий pointId щойно зберіг паралельний запит
             return replay(shipmentId, request).orElseThrow(() -> concurrentDuplicate);
         }
         if (!decision.saved()) {
@@ -81,7 +74,6 @@ public class LocationRecordingService {
                 .map(location -> new Recorded(ShipmentLocationResponse.from(location), true));
     }
 
-    /** @param replayed точку з цим pointId уже було збережено раніше */
     public record Recorded(ShipmentLocationResponse location, boolean replayed) {
     }
 }

@@ -11,10 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Запис GPS-точки кур'єра. Внутрішній API: що посилка призначена цьому кур'єру й уже в дорозі,
- * перевіряє викликач (web-ui через shipment-service); тут — коректність самої точки.
- */
 @RestController
 @RequestMapping("/tracking/shipments")
 public class LocationRecordingController {
@@ -25,7 +21,6 @@ public class LocationRecordingController {
         this.recordingService = recordingService;
     }
 
-    /** 201 — нова точка, 200 — повтор з тим самим pointId (точку вже збережено). */
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<ShipmentLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                            @RequestBody RecordLocationRequest request) {

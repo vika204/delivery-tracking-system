@@ -24,7 +24,6 @@ public class DispatchMetrics {
                 .register(registry);
     }
 
-    /** outcome: sent, accepted, declined, expired, cancelled */
     public void offer(String outcome) {
         Counter.builder("delivery.dispatch.offers")
                 .description("Courier offers by outcome")

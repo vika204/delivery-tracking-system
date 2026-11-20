@@ -18,10 +18,6 @@ public interface CourierRepository extends JpaRepository<Courier, Long> {
     @Query("select c from Courier c where c.userId = :userId")
     Optional<Courier> findByIdForUpdate(Long userId);
 
-    /**
-     * Вільні кур'єри на лінії, які можуть узяти посилку такої ваги: без пропозиції на розгляді
-     * й без активної доставки. Зона та виключення перевіряються в коді.
-     */
     @Query("""
             select c from Courier c
             where c.isAvailable = true

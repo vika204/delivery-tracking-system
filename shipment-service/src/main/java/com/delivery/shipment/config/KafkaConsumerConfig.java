@@ -11,10 +11,6 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
-/**
- * Повторювані помилки (зокрема конфлікт @Version із паралельною командою кур'єра) повторюються
- * з експоненційною затримкою; після вичерпання спроб або для зіпсованої події — запис у "-dlt".
- */
 @Configuration
 public class KafkaConsumerConfig {
 

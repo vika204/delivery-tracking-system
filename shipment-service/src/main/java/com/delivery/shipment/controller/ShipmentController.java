@@ -32,12 +32,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Shipment Context API.
- * <p>
- * Хто виконує дію, визначає заголовок {@code X-User-Id} (відправник або кур'єр).
- * Читання поки відкрите для внутрішніх сервісів (tracking, web-ui).
- */
 @RestController
 @RequestMapping("/shipments")
 public class ShipmentController {
@@ -52,8 +46,6 @@ public class ShipmentController {
         this.shipmentService = shipmentService;
         this.lifecycleService = lifecycleService;
     }
-
-    // ---------- Створення ----------
 
     @PostMapping
     public ResponseEntity<ShipmentResponse> createShipment(
@@ -71,8 +63,6 @@ public class ShipmentController {
         return response.body(ShipmentResponse.from(result.shipment()));
     }
 
-    // ---------- Читання ----------
-
     @GetMapping
     public List<ShipmentResponse> getShipments(
             @RequestParam(required = false) @Positive Long senderId,
@@ -87,7 +77,6 @@ public class ShipmentController {
                 new ShipmentSearchCriteria(senderId, courierId, status, statusGroup, createdFrom, createdTo), page, size));
     }
 
-    /** «Мої доставки» відправника (US-1.5). */
     @GetMapping("/mine")
     public List<ShipmentResponse> getMyShipments(
             @RequestHeader(RequestHeaders.USER_ID) @Positive long userId,
@@ -113,13 +102,11 @@ public class ShipmentController {
         return ShipmentResponse.from(shipmentService.getById(id));
     }
 
-    /** Таймлайн змін статусу (US-1.5). */
     @GetMapping("/{id}/history")
     public List<ShipmentHistoryEntryResponse> getHistory(@PathVariable Long id) {
         return shipmentService.history(id).stream().map(ShipmentHistoryEntryResponse::from).toList();
     }
 
-    /** Деталі для призначеного кур'єра: ініціали й телефони відправника та отримувача. */
     @GetMapping("/{id}/courier-view")
     public CourierShipmentView getCourierView(
             @PathVariable Long id,
@@ -131,7 +118,6 @@ public class ShipmentController {
         return CourierShipmentView.from(shipment);
     }
 
-    // ---------- Команди відправника ----------
 
     @PatchMapping("/{id}")
     public ShipmentUpdateResponse updateShipment(
@@ -156,7 +142,6 @@ public class ShipmentController {
         return ShipmentResponse.from(lifecycleService.cancel(id, userId, reason));
     }
 
-    // ---------- Команди кур'єра ----------
 
     @PostMapping("/{id}/start-trip")
     public ShipmentResponse startTrip(

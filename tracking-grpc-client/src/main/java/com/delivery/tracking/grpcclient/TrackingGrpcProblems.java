@@ -7,10 +7,6 @@ import org.springframework.http.ResponseEntity;
 
 import java.net.URI;
 
-/**
- * Перетворює фінальний gRPC-статус tracking-service (після всіх retries) на HTTP problem+json.
- * UNAVAILABLE -> 503 + Retry-After, щоб викликач повторив пізніше.
- */
 public final class TrackingGrpcProblems {
 
     public static final String RETRY_AFTER_SECONDS = "5";
