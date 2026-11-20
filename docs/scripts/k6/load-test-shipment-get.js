@@ -44,7 +44,7 @@ export function setup() {
   return { ids };
 }
 
-export default function (data) {
+export default function loadTest(data) {
   const id = data.ids[Math.floor(Math.random() * data.ids.length)];
   const res = http.get(`${BASE_URL}/shipments/${id}`, { tags: { name: 'GET /shipments/{id}' } });
   check(res, {

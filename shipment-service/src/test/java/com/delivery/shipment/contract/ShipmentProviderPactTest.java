@@ -11,7 +11,6 @@ import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.repository.ShipmentRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -51,15 +51,18 @@ class ShipmentStateMachineTest {
 
     @Test
     void deliveryRequiresPickup() {
-        assertThatThrownBy(() -> assigned().completeDelivery(COURIER, NOW))
+        var subject1 = assigned();
+        assertThatThrownBy(() -> subject1.completeDelivery(COURIER, NOW))
                 .isInstanceOf(ShipmentStatusConflictException.class);
     }
 
     @Test
     void onlyAssignedCourierCanAct() {
-        assertThatThrownBy(() -> assigned().confirmPickup(99, NOW))
+        var subject2 = assigned();
+        assertThatThrownBy(() -> subject2.confirmPickup(99, NOW))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
-        assertThatThrownBy(() -> waiting().startTripToPickup(COURIER, NOW))
+        var subject3 = waiting();
+        assertThatThrownBy(() -> subject3.startTripToPickup(COURIER, NOW))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
     }
 
@@ -84,7 +87,8 @@ class ShipmentStateMachineTest {
 
     @Test
     void onlySenderCanCancel() {
-        assertThatThrownBy(() -> waiting().cancelBySender(1, null, NOW))
+        var subject4 = waiting();
+        assertThatThrownBy(() -> subject4.cancelBySender(1, null, NOW))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
     }
 
@@ -130,9 +134,11 @@ class ShipmentStateMachineTest {
     void editingIsAllowedOnlyBeforeAssignment() {
         waiting().requireEditableBy(SENDER);
 
-        assertThatThrownBy(() -> assigned().requireEditableBy(SENDER))
+        var subject5 = assigned();
+        assertThatThrownBy(() -> subject5.requireEditableBy(SENDER))
                 .isInstanceOf(ShipmentStatusConflictException.class);
-        assertThatThrownBy(() -> waiting().requireEditableBy(1))
+        var subject6 = waiting();
+        assertThatThrownBy(() -> subject6.requireEditableBy(1))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
     }
 

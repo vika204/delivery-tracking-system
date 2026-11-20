@@ -128,13 +128,6 @@ forms.forEach(form => {
         if (!reducedMotion.matches) lastTap = performance.now();
     });
 
-    courier.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            courier.click();
-        }
-    });
-
     function smooth(value) {
         const x = Math.min(1, Math.max(0, value));
         return x * x * x * (x * (x * 6 - 15) + 10);

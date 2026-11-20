@@ -51,6 +51,8 @@ import java.util.Set;
 @Service
 public class DispatchService {
 
+    private static final String NOT_FOUND_SUFFIX = " not found";
+
     private static final Logger log = LoggerFactory.getLogger(DispatchService.class);
 
     private final DispatchRequestRepository requestRepository;
@@ -95,6 +97,10 @@ public class DispatchService {
     /** ShipmentCreated → DispatchRequest (snapshot) і перша спроба знайти кур'єра. */
     @Transactional
     public void onShipmentCreated(ShipmentSnapshot snapshot) {
+        createFromSnapshot(snapshot);
+    }
+
+    private void createFromSnapshot(ShipmentSnapshot snapshot) {
         Optional<DispatchRequest> existing = requestRepository.findByIdForUpdate(snapshot.shipmentId());
         if (existing.isPresent()) {
             // уже створено (ShipmentDetailsUpdated або «надгробок» скасування прийшли раніше)
@@ -120,7 +126,7 @@ public class DispatchService {
         List<DeliveryOffer> pending = lockPendingOffers(snapshot.shipmentId());
         Optional<DispatchRequest> found = requestRepository.findByIdForUpdate(snapshot.shipmentId());
         if (found.isEmpty()) {
-            onShipmentCreated(snapshot);
+            createFromSnapshot(snapshot);
             return;
         }
         DispatchRequest request = found.get();
@@ -397,7 +403,7 @@ public class DispatchService {
         }
 
         DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId())
-                .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + " not found"));
+                .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + NOT_FOUND_SUFFIX));
         if (request.getStatus() != DispatchRequestStatus.OFFERED) {
             // зміна зберігається: виняток не відкочує транзакцію (noRollbackFor)
             cancelOffers(List.of(offer), "shipment no longer waits for this offer");
@@ -443,7 +449,7 @@ public class DispatchService {
                 .flatMap(Optional::stream)
                 .toList();
         Courier courier = courierRepository.findByIdForUpdate(courierId)
-                .orElseThrow(() -> new DispatchNotFoundException("Courier " + courierId + " not found"));
+                .orElseThrow(() -> new DispatchNotFoundException("Courier " + courierId + NOT_FOUND_SUFFIX));
 
         if (courier.isAvailable()) {
             courier.setAvailable(false);
@@ -516,7 +522,7 @@ public class DispatchService {
     @Transactional
     public Assignment withdrawAssignment(long courierId, long assignmentId, String reason) {
         Assignment snapshot = assignmentRepository.findById(assignmentId)
-                .orElseThrow(() -> new DispatchNotFoundException("Assignment " + assignmentId + " not found"));
+                .orElseThrow(() -> new DispatchNotFoundException("Assignment " + assignmentId + NOT_FOUND_SUFFIX));
         if (!snapshot.getCourier().getUserId().equals(courierId)) {
             throw new DispatchAccessDeniedException("Assignment " + assignmentId + " belongs to another courier");
         }
@@ -559,7 +565,7 @@ public class DispatchService {
 
     private DeliveryOffer lockOwnOffer(long courierId, long offerId) {
         DeliveryOffer offer = offerRepository.findByIdForUpdate(offerId)
-                .orElseThrow(() -> new DispatchNotFoundException("Offer " + offerId + " not found"));
+                .orElseThrow(() -> new DispatchNotFoundException("Offer " + offerId + NOT_FOUND_SUFFIX));
         if (!offer.getCourier().getUserId().equals(courierId)) {
             throw new DispatchAccessDeniedException("Offer " + offerId + " belongs to another courier");
         }

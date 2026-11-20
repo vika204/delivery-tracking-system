@@ -30,10 +30,10 @@ let requestInProgress = false;
 let refreshTimer = null;
 let pageClosed = false;
 
-async function call(method, path = '', body) {
+async function call(method, path, body) {
     let response;
     try {
-        response = await fetch(api + path, {
+        response = await fetch(api + (path ?? ''), {
             method,
             cache: 'no-store',
             headers: body ? {'Content-Type': 'application/json'} : {},

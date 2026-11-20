@@ -58,7 +58,7 @@ public class TrackingStreamService {
             Context.CancellableContext grpcContext =
                     grpcClient.subscribe(shipmentId, connection);
             connection.attach(grpcContext);
-        } catch (RuntimeException ex) {
+        } catch (RuntimeException _) {
             connection.closeWithEvent(
                     "stream-error",
                     "Location stream unavailable"
@@ -171,7 +171,8 @@ public class TrackingStreamService {
                 emitter.send(SseEmitter.event()
                         .name(eventName)
                         .data(message));
-            } catch (IOException ignored) {
+            } catch (IOException _) {
+                // The connection may already be gone; cleanup still continues.
             } finally {
                 emitter.complete();
             }

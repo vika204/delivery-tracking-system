@@ -28,8 +28,8 @@ let current = null;
 let busy = false;
 let offerDeadline = 0;
 
-async function call(method, path = '', body) {
-    const response = await fetch(API + path, {
+async function call(method, path, body) {
+    const response = await fetch(API + (path ?? ''), {
         method,
         headers: body ? {'Content-Type': 'application/json'} : {},
         body: body ? JSON.stringify(body) : undefined
@@ -114,19 +114,19 @@ async function refresh() {
 
 toggle.addEventListener('click', () => {
     const online = toggle.getAttribute('aria-checked') !== 'true';
-    act('PUT', '/availability', {online}, online ? 'You are online.' : 'You are offline.');
+    void act('PUT', '/availability', {online}, online ? 'You are online.' : 'You are offline.');
 });
 
 acceptButton.addEventListener('click', () => {
     const offer = current?.offer;
-    if (offer) act('POST', `/offers/${offer.offerId}/accept`, null, `Shipment #${offer.shipmentId} accepted.`);
+    if (offer) void act('POST', `/offers/${offer.offerId}/accept`, null, `Shipment #${offer.shipmentId} accepted.`);
 });
 
 declineButton.addEventListener('click', () => {
     const offer = current?.offer;
-    if (offer) act('POST', `/offers/${offer.offerId}/decline`, null, `Shipment #${offer.shipmentId} declined.`);
+    if (offer) void act('POST', `/offers/${offer.offerId}/decline`, null, `Shipment #${offer.shipmentId} declined.`);
 });
 
-refresh();
-setInterval(() => { if (!busy) refresh(); }, REFRESH_MS);
+void refresh();
+setInterval(() => { if (!busy) void refresh(); }, REFRESH_MS);
 setInterval(renderCountdown, 1000);

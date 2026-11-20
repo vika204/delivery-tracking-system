@@ -17,7 +17,7 @@
     <script th:src="@{/js/components/cursor-webs.js}" defer></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="parcels-page notifications-page" th:fragment="notificationContent"
@@ -67,7 +67,7 @@
     <p class="notifications-limit" th:hidden="${notificationsError or #lists.size(notifications) < 50}">
         Showing the 50 latest notifications.
     </p>
-    <p class="notifications-refresh-error" role="status" hidden>Updates are temporarily unavailable. Your current list is still here.</p>
+    <output class="notifications-refresh-error" hidden>Updates are temporarily unavailable. Your current list is still here.</output>
 </main>
 </body>
 </html>

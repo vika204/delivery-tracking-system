@@ -25,8 +25,7 @@
     }
 
     function hasCompleteMarkup(candidate) {
-        return candidate &&
-            candidate.title &&
+        return candidate?.title &&
             candidate.message &&
             candidate.cancelButton &&
             candidate.confirmButton;
@@ -35,7 +34,7 @@
     function restoreFocus(request) {
         const target = request.returnFocus;
 
-        if (!target || !target.isConnected || typeof target.focus !== "function") {
+        if (!target?.isConnected || typeof target.focus !== "function") {
             return;
         }
 

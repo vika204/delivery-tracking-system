@@ -48,6 +48,7 @@ public class TrackingGrpcClient {
 
             @Override
             public void onCompleted() {
+                // intentionally empty
             }
         });
 

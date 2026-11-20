@@ -330,7 +330,7 @@ class ShipmentApiIntegrationTest {
         when(kafka.send(eq("shipment.events"), eq(String.valueOf(shipmentId)), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(new KafkaException("Kafka unavailable")));
 
-        new OutboxRelay(outbox, kafka, new SimpleMeterRegistry(), traceContext).publishPendingEvents();
+        new OutboxRelay(outbox, kafka, new SimpleMeterRegistry(), traceContext, java.time.Clock.systemUTC()).publishPendingEvents();
 
         OutboxEvent event = outbox.findAll().getFirst();
         assertThat(event.isPublished()).isFalse();

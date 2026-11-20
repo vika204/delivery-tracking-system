@@ -21,6 +21,9 @@ import java.util.Locale;
 @Service
 public class TrackingViewService {
 
+    private static final String DELIVERED = "DELIVERED";
+    private static final String CANCELLED = "CANCELLED";
+
     static final int LOCATION_PAGE_SIZE = 100;
     static final int MAX_LOCATION_COUNT = 500;
     private static final String NOT_AVAILABLE = "Not available";
@@ -82,7 +85,7 @@ public class TrackingViewService {
             }
 
             return details.deliveryAddress().trim();
-        } catch (RestClientException ex) {
+        } catch (RestClientException _) {
             return NOT_AVAILABLE;
         }
     }
@@ -107,7 +110,7 @@ public class TrackingViewService {
             }
 
             return response.courierName().trim();
-        } catch (RestClientException ex) {
+        } catch (RestClientException _) {
             return NOT_AVAILABLE;
         }
     }
@@ -160,7 +163,7 @@ public class TrackingViewService {
             }
 
             return LocationHistory.complete(validLocations);
-        } catch (RestClientException | InvalidLocationHistoryException ex) {
+        } catch (RestClientException | InvalidLocationHistoryException _) {
             return LocationHistory.unavailable();
         }
     }
@@ -213,14 +216,14 @@ public class TrackingViewService {
             case "ASSIGNED" -> "COURIER ASSIGNED";
             case "TO_PICKUP" -> "COURIER GOING TO PICKUP";
             case "IN_TRANSIT" -> "YOUR COURIER IS ON THE WAY";
-            case "DELIVERED" -> "DELIVERED";
-            case "CANCELLED" -> "CANCELLED";
+            case DELIVERED -> DELIVERED;
+            case CANCELLED -> CANCELLED;
             default -> status.replace('_', ' ');
         };
     }
 
     private boolean isTerminalStatus(String status) {
-        return "DELIVERED".equalsIgnoreCase(status) || "CANCELLED".equalsIgnoreCase(status);
+        return DELIVERED.equalsIgnoreCase(status) || CANCELLED.equalsIgnoreCase(status);
     }
 
     private record LocationHistory(

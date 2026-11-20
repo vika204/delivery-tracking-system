@@ -26,7 +26,7 @@ public class TrackingPageController {
         long id;
         try {
             id = Long.parseLong(shipmentId.trim());
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException _) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a numeric shipment ID, for example 15.");
         }
         if (id <= 0) {

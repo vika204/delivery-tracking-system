@@ -57,7 +57,8 @@ class CourierDashboardServiceTest {
         doThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.CONFLICT, "Conflict", null, null, null))
                 .when(client).acceptOffer(7, 7, 55);
 
-        assertThatThrownBy(() -> new CourierDashboardService(client).acceptOffer(7, 55))
+        CourierDashboardService service = new CourierDashboardService(client);
+        assertThatThrownBy(() -> service.acceptOffer(7, 55))
                 .isInstanceOf(HttpClientErrorException.class);
         verify(client, never()).status(7, 7);
     }

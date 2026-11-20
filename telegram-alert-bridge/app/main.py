@@ -20,9 +20,11 @@ logger = logging.getLogger("telegram-alert-bridge")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Telegram Alert Bridge starting up on port %d...", settings.port)
-    yield
-    logger.info("Telegram Alert Bridge shutting down, releasing connection pools...")
-    await telegram_service.close()
+    try:
+        yield
+    finally:
+        logger.info("Telegram Alert Bridge shutting down, releasing connection pools...")
+        await telegram_service.close()
 
 
 app = FastAPI(
@@ -37,4 +39,4 @@ app.include_router(alerts_router)
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.port, reload=False)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=settings.port, reload=False)

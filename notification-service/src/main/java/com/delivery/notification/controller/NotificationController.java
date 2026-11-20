@@ -1,5 +1,7 @@
 package com.delivery.notification.controller;
 
+import com.delivery.notification.dto.NotificationRequest;
+import com.delivery.notification.dto.NotificationResponse;
 import com.delivery.notification.entity.Notification;
 import com.delivery.notification.dto.NotificationResponse;
 import com.delivery.notification.repository.NotificationRepository;
@@ -21,18 +23,25 @@ public class NotificationController {
     }
 
     @PostMapping
-    public Notification createNotification(@RequestBody Notification notification) {
-        return notificationRepository.save(notification);
+    public NotificationResponse createNotification(@RequestBody NotificationRequest request) {
+        Notification notification = new Notification();
+        notification.setUserId(request.userId());
+        notification.setShipmentId(request.shipmentId());
+        notification.setType(request.type());
+        notification.setMessage(request.message());
+        notification.setRead(request.isRead());
+        return NotificationResponse.from(notificationRepository.save(notification));
     }
 
     @GetMapping
-    public List<Notification> getNotifications() {
-        return notificationRepository.findAll();
+    public List<NotificationResponse> getNotifications() {
+        return notificationRepository.findAll().stream().map(NotificationResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public Notification getNotification(@PathVariable Long id) {
+    public NotificationResponse getNotification(@PathVariable Long id) {
         return notificationRepository.findById(id)
+                .map(NotificationResponse::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 

@@ -96,8 +96,7 @@ public class ShipmentLifecycleService {
             String deliveryAddress = request.deliveryAddress() != null ? request.deliveryAddress().trim() : shipment.getDeliveryAddress();
             String deliveryCode = request.deliveryCityCode() != null ? request.deliveryCityCode() : shipment.getDeliveryCityCode();
             BigDecimal weight = request.weight() != null ? request.weight() : shipment.getWeight();
-            DeliveryType type = request.deliveryType() != null ? request.deliveryType()
-                    : shipment.getDeliveryType() == null ? DeliveryType.STANDARD : shipment.getDeliveryType();
+            DeliveryType type = resolveDeliveryType(request, shipment);
 
             RouteQuote route = pricingService.calculate(pickupCode, pickupAddress, deliveryCode, deliveryAddress, weight, type);
             breakdown = route.breakdown();
@@ -115,6 +114,13 @@ public class ShipmentLifecycleService {
         log.info("Shipment details updated: shipmentId={}, priceRecalculated={}, previousPrice={}, price={}",
                 shipmentId, priceRecalculated, previousPrice, shipment.getPrice());
         return new UpdateResult(shipment, priceRecalculated, previousPrice, breakdown);
+    }
+
+    private static DeliveryType resolveDeliveryType(UpdateShipmentRequest request, Shipment shipment) {
+        if (request.deliveryType() != null) {
+            return request.deliveryType();
+        }
+        return shipment.getDeliveryType() == null ? DeliveryType.STANDARD : shipment.getDeliveryType();
     }
 
     // ---------- Кур'єр ----------

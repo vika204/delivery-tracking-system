@@ -50,9 +50,11 @@ spec:
             requests:
               cpu: 10m
               memory: 16Mi
+              ephemeral-storage: 128Mi
             limits:
               cpu: 100m
               memory: 64Mi
+              ephemeral-storage: 512Mi
 
       containers:
         - name: auth-service
@@ -126,9 +128,11 @@ spec:
             requests:
               cpu: 250m
               memory: 384Mi
+              ephemeral-storage: 128Mi
             limits:
               cpu: 500m
               memory: 512Mi
+              ephemeral-storage: 512Mi
 
 
 ---

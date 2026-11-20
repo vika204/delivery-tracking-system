@@ -22,7 +22,7 @@ public class KafkaConsumerConfig {
     public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplate) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
-                (record, ex) -> new TopicPartition(record.topic() + "-dlt", -1)
+                (failed, ex) -> new TopicPartition(failed.topic() + "-dlt", -1)
         );
 
         ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(4);

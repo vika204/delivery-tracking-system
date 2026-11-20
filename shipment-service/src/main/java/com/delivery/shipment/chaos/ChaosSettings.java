@@ -42,7 +42,7 @@ public class ChaosSettings {
         if (delay > 0) {
             try {
                 Thread.sleep(delay);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException _) {
                 Thread.currentThread().interrupt();
             }
         }

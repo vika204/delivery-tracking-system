@@ -23,8 +23,8 @@ public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
     private static final Logger log = LoggerFactory.getLogger(GrpcAttemptLoggingInterceptor.class);
 
     @Override
-    public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-            MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+    public <Q, R> ClientCall<Q, R> interceptCall(
+            MethodDescriptor<Q, R> method, CallOptions callOptions, Channel next) {
         String methodName = method.getBareMethodName();
         long startedAt = System.nanoTime();
 
@@ -50,7 +50,7 @@ public class GrpcAttemptLoggingInterceptor implements ClientInterceptor {
 
         return new ForwardingClientCall.SimpleForwardingClientCall<>(next.newCall(method, tracedOptions)) {
             @Override
-            public void start(Listener<RespT> responseListener, Metadata headers) {
+            public void start(Listener<R> responseListener, Metadata headers) {
                 super.start(new ForwardingClientCallListener.SimpleForwardingClientCallListener<>(responseListener) {
                     @Override
                     public void onClose(Status status, Metadata trailers) {

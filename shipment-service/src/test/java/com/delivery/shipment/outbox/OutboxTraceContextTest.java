@@ -33,7 +33,7 @@ class OutboxTraceContextTest {
     void relaySpanContinuesTraceOfCapturedContext() {
         Span request = tracer.nextSpan().name("POST /shipments").start();
         String traceparent;
-        try (Tracer.SpanInScope ignored = tracer.withSpan(request)) {
+        try (var _ = tracer.withSpan(request)) {
             traceparent = traceContext.capture();
         }
         request.end();

@@ -4,7 +4,6 @@ import com.delivery.dispatch.config.KafkaTopicConfig;
 import com.delivery.dispatch.entity.OutboxEvent;
 import com.delivery.dispatch.repository.OutboxEventRepository;
 import io.micrometer.tracing.Span;
-import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -51,7 +50,7 @@ public class OutboxRelay {
             }
 
             Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
-            try (Tracer.SpanInScope ignored = traceContext.activate(span)) {
+            try (var _ = traceContext.activate(span)) {
                 kafkaTemplate.send(KafkaTopicConfig.DISPATCH_EVENTS_TOPIC, event.getAggregateId(), event.getPayload())
                         .whenComplete((result, ex) -> {
                             try {

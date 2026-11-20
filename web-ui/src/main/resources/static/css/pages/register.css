@@ -139,6 +139,11 @@ h1 span {
 }
 
 .hanger {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
     position: absolute;
     top: -85px;
     left: calc(50% - 370px);

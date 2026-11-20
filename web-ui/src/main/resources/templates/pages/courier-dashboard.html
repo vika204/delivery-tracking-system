@@ -21,7 +21,7 @@
     <script type="module" th:src="@{/js/pages/courier-dashboard.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 <main class="dashboard">
     <article class="dashboard-card">
@@ -147,7 +147,7 @@
                         </template>
                     </section>
 
-                    <p id="action-notice" class="action-notice" role="status" aria-live="polite"></p>
+                    <output id="action-notice" class="action-notice" aria-live="polite"></output>
                 </div>
             </div>
         </div>

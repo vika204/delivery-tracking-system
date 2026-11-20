@@ -31,11 +31,11 @@ class TrackingGrpcClientAutoConfigurationTest {
                     customizer.customize("other", other);
 
                     Map<?, ?> methodConfig = (Map<?, ?>) ((List<?>) tracking.get("methodConfig")).getFirst();
-                    Map<?, ?> retryPolicy = (Map<?, ?>) methodConfig.get("retryPolicy");
-                    assertThat(retryPolicy.get("maxAttempts")).isEqualTo(4.0);
-                    assertThat(retryPolicy.get("initialBackoff")).isEqualTo("0.050s");
-                    assertThat(retryPolicy.get("maxBackoff")).isEqualTo("4.000s");
-                    assertThat(retryPolicy.get("retryableStatusCodes")).isEqualTo(List.of("UNAVAILABLE"));
+                    Map<String, Object> retryPolicy = (Map<String, Object>) methodConfig.get("retryPolicy");
+                    assertThat(retryPolicy).containsEntry("maxAttempts", 4.0);
+                    assertThat(retryPolicy).containsEntry("initialBackoff", "0.050s");
+                    assertThat(retryPolicy).containsEntry("maxBackoff", "4.000s");
+                    assertThat(retryPolicy).containsEntry("retryableStatusCodes", List.of("UNAVAILABLE"));
                     assertThat(other).isEmpty();
                 });
     }
