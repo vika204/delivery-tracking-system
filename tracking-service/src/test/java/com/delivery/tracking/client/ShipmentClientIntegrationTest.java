@@ -146,7 +146,8 @@ class ShipmentClientIntegrationTest {
 
         try {
             trackingService.createShipment(key, 1L, request);
-        } catch (Exception ignored) {
+        } catch (Exception _) {
+            // expected: the upstream keeps answering 500 until retries are exhausted
         }
 
         wireMock.verify(

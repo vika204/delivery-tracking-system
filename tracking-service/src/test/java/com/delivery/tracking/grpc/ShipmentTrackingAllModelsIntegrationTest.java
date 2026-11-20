@@ -20,6 +20,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
@@ -69,6 +71,9 @@ class ShipmentTrackingAllModelsIntegrationTest {
     @Autowired
     private RouteUploadRepository routeUploadRepository;
 
+    @Autowired
+    private LocationStreamPublisher publisher;
+
     @MockitoBean
     private TrackingService trackingService;
 
@@ -99,15 +104,17 @@ class ShipmentTrackingAllModelsIntegrationTest {
 
                         @Override
                         public void onError(Throwable error) {
+                            // intentionally empty
                         }
 
                         @Override
                         public void onCompleted() {
+                            // intentionally empty
                         }
                     }
             ));
 
-            Thread.sleep(150);
+            await().atMost(Duration.ofSeconds(5)).until(() -> publisher.hasSubscribers(shipmentId));
             ShipmentRouteSummary routeSummary = uploadRoute(List.of(
                     routePoint("route-42", shipmentId, 50.4500, 30.5200, "2026-11-15T10:00:00Z"),
                     routePoint("route-42", shipmentId, 50.4510, 30.5210, "2026-11-15T10:00:10Z")
@@ -209,6 +216,7 @@ class ShipmentTrackingAllModelsIntegrationTest {
 
             @Override
             public void onCompleted() {
+                // intentionally empty
             }
         });
         points.forEach(requestObserver::onNext);

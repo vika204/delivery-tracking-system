@@ -10,7 +10,6 @@ import com.delivery.shipment.repository.OutboxEventRepository;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Span;
-import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +17,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -34,11 +34,13 @@ public class OutboxRelay {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final OutboxTraceContext traceContext;
     private final LongTaskTimer batchTimer;
+    private final Clock clock;
     private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
 
     public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate,
-                       MeterRegistry registry, OutboxTraceContext traceContext) {
+                       MeterRegistry registry, OutboxTraceContext traceContext, Clock clock) {
         this.traceContext = traceContext;
+        this.clock = clock;
         this.outboxRepository = outboxRepository;
         this.batchTimer = LongTaskTimer.builder("delivery.outbox.relay.batch")
                 .description("Outbox relay publishing cycles currently in progress")
@@ -64,7 +66,7 @@ public class OutboxRelay {
 
             // Спан відновлює трейс HTTP-запиту, що створив подію; Kafka-продюсер стає його нащадком
             Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
-            try (Tracer.SpanInScope ignored = traceContext.activate(span)) {
+            try (var _ = traceContext.activate(span)) {
                 kafkaTemplate.send(
                         topicFor(event),
                         event.getAggregateId(),
@@ -78,7 +80,7 @@ public class OutboxRelay {
 
                         int updated = outboxRepository.markPublished(
                                 eventId,
-                                LocalDateTime.now()
+                                LocalDateTime.now(clock)
                         );
 
                         if (updated == 1) {

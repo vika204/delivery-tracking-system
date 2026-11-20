@@ -59,19 +59,21 @@ public class ShipmentEventListener {
     }
 
     @DltHandler
-    public void handleDlt(ConsumerRecord<String, byte[]> record) {
+    public void handleDlt(ConsumerRecord<String, byte[]> consumerRecord) {
         metrics.deadLettered();
-        log.error(
-                "Shipment event moved to DLT: topic={}, partition={}, offset={}, key={}, originalTopic={}, exception={}, message={}, payload={}",
-                record.topic(),
-                record.partition(),
-                record.offset(),
-                record.key(),
-                header(record, KafkaHeaders.ORIGINAL_TOPIC),
-                header(record, KafkaHeaders.EXCEPTION_CAUSE_FQCN),
-                header(record, KafkaHeaders.EXCEPTION_MESSAGE),
-                record.value() == null ? null : new String(record.value(), StandardCharsets.UTF_8)
-        );
+        if (log.isErrorEnabled()) {
+            log.error(
+                    "Shipment event moved to DLT: topic={}, partition={}, offset={}, key={}, originalTopic={}, exception={}, message={}, payload={}",
+                    consumerRecord.topic(),
+                    consumerRecord.partition(),
+                    consumerRecord.offset(),
+                    consumerRecord.key(),
+                    header(consumerRecord, KafkaHeaders.ORIGINAL_TOPIC),
+                    header(consumerRecord, KafkaHeaders.EXCEPTION_CAUSE_FQCN),
+                    header(consumerRecord, KafkaHeaders.EXCEPTION_MESSAGE),
+                    consumerRecord.value() == null ? null : new String(consumerRecord.value(), StandardCharsets.UTF_8)
+            );
+        }
     }
 
     private void validate(ShipmentCreatedEvent event) {
@@ -83,8 +85,8 @@ public class ShipmentEventListener {
         }
     }
 
-    private String header(ConsumerRecord<String, byte[]> record, String name) {
-        Header header = record.headers().lastHeader(name);
+    private String header(ConsumerRecord<String, byte[]> consumerRecord, String name) {
+        Header header = consumerRecord.headers().lastHeader(name);
         return header == null ? null : new String(header.value(), StandardCharsets.UTF_8);
     }
 }

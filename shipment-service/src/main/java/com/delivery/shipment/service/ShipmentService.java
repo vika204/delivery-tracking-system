@@ -93,7 +93,7 @@ public class ShipmentService {
         String requestHash = hash(userId, request);
         try {
             return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
-        } catch (DataIntegrityViolationException concurrentDuplicate) {
+        } catch (DataIntegrityViolationException _) {
             // інший запит із тим самим ключем, але іншою пропозицією закомітився першим
             return transactionTemplate.execute(status -> replay(userId, idempotencyKey, requestHash));
         }
@@ -160,18 +160,22 @@ public class ShipmentService {
     }
 
     private CreationResult replay(long userId, String idempotencyKey, String requestHash) {
-        IdempotencyRecord record = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
+        IdempotencyRecord existing = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
                 .orElseThrow();
-        if (!record.getRequestHash().equals(requestHash)) {
+        if (!existing.getRequestHash().equals(requestHash)) {
             throw new IdempotencyKeyReuseException(idempotencyKey);
         }
-        return new CreationResult(getById(record.getShipmentId()), true);
+        return new CreationResult(load(existing.getShipmentId()), true);
     }
 
     // ---------- Читання ----------
 
     @Transactional(readOnly = true)
     public Shipment getById(Long id) {
+        return load(id);
+    }
+
+    private Shipment load(Long id) {
         return shipmentRepository.findById(id).orElseThrow(() -> new ShipmentNotFoundException(id));
     }
 
@@ -186,7 +190,7 @@ public class ShipmentService {
 
     @Transactional(readOnly = true)
     public List<ShipmentStatusHistory> history(Long shipmentId) {
-        getById(shipmentId);
+        load(shipmentId);
         return historyRepository.findByShipmentIdOrderByChangedAtAscHistoryIdAsc(shipmentId);
     }
 

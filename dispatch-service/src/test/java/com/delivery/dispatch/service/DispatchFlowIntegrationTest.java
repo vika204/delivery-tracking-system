@@ -307,7 +307,8 @@ class DispatchFlowIntegrationTest {
         DeliveryOffer offer = pendingOffer(shipmentId);
         expireNow(offer);
 
-        assertThatThrownBy(() -> dispatchService.acceptOffer(1, offer.getOfferId()))
+        long expiredOfferId = offer.getOfferId();
+        assertThatThrownBy(() -> dispatchService.acceptOffer(1, expiredOfferId))
                 .isInstanceOf(DispatchConflictException.class)
                 .hasMessageContaining("expired");
         assertThat(assignments.count()).isZero();
@@ -385,8 +386,8 @@ class DispatchFlowIntegrationTest {
         assignments.save(Assignment.builder().shipmentId(1L).courier(courier).status(AssignmentStatus.ACTIVE).build());
         assignments.save(Assignment.builder().shipmentId(2L).courier(courier).status(AssignmentStatus.COMPLETED).build());
 
-        assertThatThrownBy(() -> assignments.save(
-                Assignment.builder().shipmentId(3L).courier(courier).status(AssignmentStatus.ACTIVE).build()))
+        Assignment secondActive = Assignment.builder().shipmentId(3L).courier(courier).status(AssignmentStatus.ACTIVE).build();
+        assertThatThrownBy(() -> assignments.save(secondActive))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -399,7 +400,7 @@ class DispatchFlowIntegrationTest {
                 () -> dispatchService.acceptOffer(1, offerId),
                 () -> dispatchService.acceptOffer(1, offerId));
 
-        assertThat(results).allSatisfy(result -> assertThat(result).isInstanceOf(Assignment.class));
+        assertThat(results).isNotEmpty().allSatisfy(result -> assertThat(result).isInstanceOf(Assignment.class));
         assertThat(assignments.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(1L, AssignmentStatus.ACTIVE)).hasSize(1);
         assertThat(outbox.count()).isEqualTo(1);
     }
@@ -495,7 +496,8 @@ class DispatchFlowIntegrationTest {
         Assignment assignment = acceptCurrent(shipmentId, 1);
         events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
 
-        assertThatThrownBy(() -> dispatchService.withdrawAssignment(1, assignment.getAssignmentId(), null))
+        long pickedUpAssignmentId = assignment.getAssignmentId();
+        assertThatThrownBy(() -> dispatchService.withdrawAssignment(1, pickedUpAssignmentId, null))
                 .isInstanceOf(DispatchConflictException.class)
                 .hasMessageContaining("picked up");
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.IN_PROGRESS);

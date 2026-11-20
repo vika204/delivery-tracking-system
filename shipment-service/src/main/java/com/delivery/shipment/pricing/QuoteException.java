@@ -10,13 +10,15 @@ public class QuoteException extends RuntimeException {
         ALREADY_USED
     }
 
+    private static final String PREFIX = "Price quote ";
+
     private final Reason reason;
 
     public QuoteException(Reason reason, UUID quoteId) {
         super(switch (reason) {
-            case NOT_FOUND -> "Price quote " + quoteId + " not found";
-            case EXPIRED -> "Price quote " + quoteId + " has expired, request a new one";
-            case ALREADY_USED -> "Price quote " + quoteId + " is already used by another shipment";
+            case NOT_FOUND -> PREFIX + quoteId + " not found";
+            case EXPIRED -> PREFIX + quoteId + " has expired, request a new one";
+            case ALREADY_USED -> PREFIX + quoteId + " is already used by another shipment";
         });
         this.reason = reason;
     }

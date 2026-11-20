@@ -23,9 +23,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -124,8 +126,9 @@ class DeliveryInfoUnaryIntegrationTest {
 
         assertThat(info.status()).isEqualTo("IN_TRANSIT");
         assertThat(server.unaryCalls).hasValue(3);
-        assertThat(output).contains("gRPC retry attempt: method=GetShipmentDeliveryInfo, attempt=3");
-        assertThat(output).contains("gRPC attempt finished: method=GetShipmentDeliveryInfo, attempt=1, status=UNAVAILABLE");
+        assertThat(output)
+                .contains("gRPC retry attempt: method=GetShipmentDeliveryInfo, attempt=3")
+                .contains("gRPC attempt finished: method=GetShipmentDeliveryInfo, attempt=1, status=UNAVAILABLE");
     }
 
     @Test
@@ -177,20 +180,11 @@ class DeliveryInfoUnaryIntegrationTest {
         assertThat(server.unaryCalls.get()).isPositive();
     }
 
-        private static void awaitSuccess(Runnable call) throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
-        TrackingGrpcException last = null;
-
-        while (System.nanoTime() < deadline) {
-            try {
-                call.run();
-                return;
-            } catch (TrackingGrpcException ex) {
-                assertThat(ex.getCode()).isEqualTo(Status.Code.UNAVAILABLE);
-                last = ex;
-                Thread.sleep(200);
-            }
-        }
-        throw new AssertionError("call did not recover after server restart", last);
+        private static void awaitSuccess(Runnable call) {
+        await().atMost(Duration.ofSeconds(15))
+                .pollInterval(Duration.ofMillis(200))
+                .ignoreExceptionsMatching(ex -> ex instanceof TrackingGrpcException grpc
+                        && grpc.getCode() == Status.Code.UNAVAILABLE)
+                .untilAsserted(call::run);
     }
 }

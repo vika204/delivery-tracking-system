@@ -27,9 +27,9 @@ public class LocationRecordingController {
 
     /** 201 — нова точка, 200 — повтор з тим самим pointId (точку вже збережено). */
     @PostMapping("/{shipmentId}/locations")
-    public ResponseEntity<ShipmentLocationResponse> record(@PathVariable long shipmentId,
+    public ResponseEntity<ShipmentLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                            @RequestBody RecordLocationRequest request) {
-        LocationRecordingService.Recorded recorded = recordingService.record(shipmentId, request);
+        LocationRecordingService.Recorded recorded = recordingService.recordLocation(shipmentId, request);
         return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED).body(recorded.location());
     }
 }

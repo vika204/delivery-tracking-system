@@ -165,6 +165,7 @@ class ShipmentTrackingGrpcServiceIntegrationTest {
 
             @Override
             public void onNext(ShipmentLocationUpdate update) {
+                // intentionally empty
             }
 
             @Override

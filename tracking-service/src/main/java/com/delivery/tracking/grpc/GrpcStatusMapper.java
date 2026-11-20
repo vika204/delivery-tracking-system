@@ -26,7 +26,7 @@ final class GrpcStatusMapper {
     static StatusRuntimeException toStatus(Throwable error) {
         return switch (error) {
             case StatusRuntimeException status -> status;
-            case HttpClientErrorException.NotFound ignored -> Status.NOT_FOUND
+            case HttpClientErrorException.NotFound _ -> Status.NOT_FOUND
                     .withDescription("shipment not found").asRuntimeException();
             case HttpClientErrorException clientError -> Status.FAILED_PRECONDITION
                     .withDescription("shipment-service rejected request: " + clientError.getStatusCode()).asRuntimeException();

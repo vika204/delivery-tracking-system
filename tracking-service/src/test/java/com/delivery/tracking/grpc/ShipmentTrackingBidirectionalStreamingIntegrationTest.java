@@ -78,8 +78,7 @@ class ShipmentTrackingBidirectionalStreamingIntegrationTest {
                 report(15L, 50.4520, 30.5250, "2026-11-15T10:00:30Z")
         )).get(10, TimeUnit.SECONDS);
 
-        assertThat(decisions).hasSize(3);
-        assertThat(decisions).allSatisfy(d -> {
+        assertThat(decisions).hasSize(3).allSatisfy(d -> {
             assertThat(d.getShipmentId()).isEqualTo(15L);
             assertThat(d.getStatus()).isEqualTo(CourierLocationStatus.COURIER_LOCATION_STATUS_ACCEPTED);
             assertThat(d.getSaved()).isTrue();
@@ -90,8 +89,9 @@ class ShipmentTrackingBidirectionalStreamingIntegrationTest {
         assertThat(decisions.get(1).getDistanceMeters()).isGreaterThan(50.0);
         assertThat(trackingRepository.count()).isEqualTo(3);
 
-        assertThat(output).contains("gRPC server call started: method=StreamCourierLocations");
-        assertThat(output).contains("gRPC server call completed: method=StreamCourierLocations, status=OK");
+        assertThat(output)
+                .contains("gRPC server call started: method=StreamCourierLocations")
+                .contains("gRPC server call completed: method=StreamCourierLocations, status=OK");
     }
 
     @Test

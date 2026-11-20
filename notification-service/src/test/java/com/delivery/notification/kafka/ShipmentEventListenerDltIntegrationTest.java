@@ -38,7 +38,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -188,9 +187,9 @@ class ShipmentEventListenerDltIntegrationTest {
     }
 
     private Optional<ConsumerRecord<String, String>> pollDltRecord(String key) {
-        for (ConsumerRecord<String, String> record : dltConsumer.poll(Duration.ofSeconds(2))) {
-            if (key.equals(record.key())) {
-                return Optional.of(record);
+        for (ConsumerRecord<String, String> consumerRecord : dltConsumer.poll(Duration.ofSeconds(2))) {
+            if (key.equals(consumerRecord.key())) {
+                return Optional.of(consumerRecord);
             }
         }
         return Optional.empty();
@@ -199,8 +198,8 @@ class ShipmentEventListenerDltIntegrationTest {
     // будь-яка повторна спроба спершу проходить через перший retry-топік
     private boolean wasRetried(String key) {
         try (Consumer<String, String> retryConsumer = consumerFor(FIRST_RETRY_TOPIC)) {
-            for (ConsumerRecord<String, String> record : retryConsumer.poll(Duration.ofSeconds(3))) {
-                if (key.equals(record.key())) {
+            for (ConsumerRecord<String, String> consumerRecord : retryConsumer.poll(Duration.ofSeconds(3))) {
+                if (key.equals(consumerRecord.key())) {
                     return true;
                 }
             }
@@ -220,8 +219,8 @@ class ShipmentEventListenerDltIntegrationTest {
         return consumer;
     }
 
-    private String header(ConsumerRecord<String, String> record, String name) {
-        Header header = record.headers().lastHeader(name);
+    private String header(ConsumerRecord<String, String> consumerRecord, String name) {
+        Header header = consumerRecord.headers().lastHeader(name);
         return header == null ? null : new String(header.value(), StandardCharsets.UTF_8);
     }
 

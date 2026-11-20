@@ -106,7 +106,7 @@ public class CourierService {
         } else {
             dispatchService.goOffline(courierId);
         }
-        return status(get(courierId));
+        return status(load(courierId));
     }
 
     private void goOnline(long courierId) {
@@ -120,6 +120,10 @@ public class CourierService {
 
     @Transactional(readOnly = true)
     public Courier get(long courierId) {
+        return load(courierId);
+    }
+
+    private Courier load(long courierId) {
         return courierRepository.findById(courierId).orElseThrow(() -> notFound(courierId));
     }
 
@@ -130,13 +134,13 @@ public class CourierService {
 
     @Transactional(readOnly = true)
     public CourierStatusResponse status(long courierId) {
-        return status(get(courierId));
+        return status(load(courierId));
     }
 
     /** Поточна пропозиція кур'єра; протермінована, але ще не закрита планувальником, не показується. */
     @Transactional(readOnly = true)
     public Optional<OfferResponse> currentOffer(long courierId) {
-        get(courierId);
+        load(courierId);
         LocalDateTime now = LocalDateTime.now(clock);
         return offerRepository.findPendingByCourier(courierId).stream()
                 .filter(offer -> offer.getExpiresAt().isAfter(now))
@@ -146,7 +150,7 @@ public class CourierService {
 
     @Transactional(readOnly = true)
     public List<AssignmentResponse> assignments(long courierId, boolean activeOnly) {
-        get(courierId);
+        load(courierId);
         List<Assignment> assignments = activeOnly
                 ? assignmentRepository.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(courierId, AssignmentStatus.ACTIVE)
                 : assignmentRepository.findByCourierUserIdOrderByAssignmentIdDesc(courierId);
@@ -173,7 +177,9 @@ public class CourierService {
                 offer.getShipmentId(),
                 offer.getStatus(),
                 offer.getExpiresAt(),
-                Math.max(0, Duration.between(now, offer.getExpiresAt()).toSeconds()),
+                Math.max(0, Duration.between(
+                        now.atZone(clock.getZone()),
+                        offer.getExpiresAt().atZone(clock.getZone())).toSeconds()),
                 request == null ? null : request.getPickupAddress(),
                 request == null ? null : request.getDeliveryAddress(),
                 request == null ? null : request.getParcelWeight(),

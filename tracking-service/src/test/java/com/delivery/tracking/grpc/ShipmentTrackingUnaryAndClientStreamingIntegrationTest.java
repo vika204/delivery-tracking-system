@@ -30,6 +30,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
@@ -296,9 +298,10 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
         context.cancel(null);
 
         assertThat(statusOf(result)).isEqualTo(Status.Code.CANCELLED);
-        Thread.sleep(200);
-        assertThat(trackingRepository.count()).isZero();
-        assertThat(routeUploadRepository.count()).isZero();
+        await().during(Duration.ofMillis(200)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            assertThat(trackingRepository.count()).isZero();
+            assertThat(routeUploadRepository.count()).isZero();
+        });
     }
 
     @Test
@@ -317,10 +320,12 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
                         @Override
                         public void onError(Throwable error) {
+                            // intentionally empty
                         }
 
                         @Override
                         public void onCompleted() {
+                            // intentionally empty
                         }
                     }));
 
@@ -388,6 +393,7 @@ class ShipmentTrackingUnaryAndClientStreamingIntegrationTest {
 
             @Override
             public void onCompleted() {
+                // intentionally empty
             }
         };
     }

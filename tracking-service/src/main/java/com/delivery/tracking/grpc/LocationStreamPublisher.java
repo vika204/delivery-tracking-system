@@ -34,6 +34,11 @@ public class LocationStreamPublisher {
         this.mapper = mapper;
     }
 
+    boolean hasSubscribers(long shipmentId) {
+        Set<ServerCallStreamObserver<ShipmentLocationUpdate>> active = subscribers.get(shipmentId);
+        return active != null && !active.isEmpty();
+    }
+
     public void subscribe(long shipmentId, ServerCallStreamObserver<ShipmentLocationUpdate> observer) {
         if (shuttingDown) {
             observer.onError(shutdownStatus().asRuntimeException());

@@ -29,7 +29,8 @@ class OutboxRelayMetricsTest {
             return List.of();
         });
         OutboxRelay relay = new OutboxRelay(repository, kafka, registry,
-                new OutboxTraceContext(io.micrometer.tracing.Tracer.NOOP, io.micrometer.tracing.propagation.Propagator.NOOP));
+                new OutboxTraceContext(io.micrometer.tracing.Tracer.NOOP, io.micrometer.tracing.propagation.Propagator.NOOP),
+                java.time.Clock.systemUTC());
 
         relay.publishPendingEvents();
 

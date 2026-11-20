@@ -71,7 +71,7 @@ class LocationRecordingControllerIntegrationTest {
     void savesValidPointAndPublishesItToStreamSubscribers() throws Exception {
         Instant recordedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
-        record(15, "50.450100", "30.523400", recordedAt)
+        postLocation(15, "50.450100", "30.523400", recordedAt)
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.locationId").isNumber())
                 .andExpect(jsonPath("$.shipmentId").value(15))
@@ -86,11 +86,11 @@ class LocationRecordingControllerIntegrationTest {
 
     @Test
     void rejectsInvalidCoordinates() throws Exception {
-        record(15, "91", "30.5", Instant.now())
+        postLocation(15, "91", "30.5", Instant.now())
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.type").value("urn:delivery:problem:location-invalid"))
                 .andExpect(jsonPath("$.detail").value("latitude must be between -90 and 90"));
-        record(15, "50.4", "181", Instant.now()).andExpect(status().isBadRequest());
+        postLocation(15, "50.4", "181", Instant.now()).andExpect(status().isBadRequest());
 
         assertNothingSaved();
     }
@@ -101,7 +101,7 @@ class LocationRecordingControllerIntegrationTest {
                         .content("{\"latitude\": 50.45, \"longitude\": 30.52}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("recordedAt is required"));
-        record(15, "50.45", "30.52", Instant.now().plus(1, ChronoUnit.HOURS))
+        postLocation(15, "50.45", "30.52", Instant.now().plus(1, ChronoUnit.HOURS))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("recordedAt must not be in the future"));
 
@@ -113,17 +113,17 @@ class LocationRecordingControllerIntegrationTest {
         mockMvc.perform(post("/tracking/shipments/15/locations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recordedAt\": \"2026-11-19T10:00:00Z\"}"))
                 .andExpect(status().isBadRequest());
-        record(0, "50.45", "30.52", Instant.now()).andExpect(status().isBadRequest());
+        postLocation(0, "50.45", "30.52", Instant.now()).andExpect(status().isBadRequest());
 
         assertNothingSaved();
     }
 
     @Test
     void rejectsSuspiciousJumpFromPreviousPoint() throws Exception {
-        record(15, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
+        postLocation(15, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
 
         // Київ → Львів за одну точку
-        record(15, "49.8397", "24.0297", Instant.now())
+        postLocation(15, "49.8397", "24.0297", Instant.now())
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.type").value("urn:delivery:problem:location-suspicious-jump"));
 
@@ -135,10 +135,10 @@ class LocationRecordingControllerIntegrationTest {
         UUID pointId = UUID.randomUUID();
         Instant recordedAt = Instant.now();
 
-        record(15, pointId, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+        postLocation(15, pointId, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
         long storedId = trackingRepository.findAll().getFirst().getLocationId();
 
-        record(15, pointId, "50.4501", "30.5234", recordedAt)
+        postLocation(15, pointId, "50.4501", "30.5234", recordedAt)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.locationId").value(storedId));
 
@@ -150,8 +150,8 @@ class LocationRecordingControllerIntegrationTest {
     void samePointIdOnAnotherShipmentIsSeparatePoint() throws Exception {
         UUID pointId = UUID.randomUUID();
 
-        record(15, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
-        record(16, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
+        postLocation(15, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
+        postLocation(16, pointId, "50.4501", "30.5234", Instant.now()).andExpect(status().isCreated());
 
         assertThat(trackingRepository.count()).isEqualTo(2);
     }
@@ -166,7 +166,7 @@ class LocationRecordingControllerIntegrationTest {
                 .map(attempt -> CompletableFuture.supplyAsync(() -> {
                     try {
                         start.await();
-                        return record(15, pointId, "50.4501", "30.5234", recordedAt)
+                        return postLocation(15, pointId, "50.4501", "30.5234", recordedAt)
                                 .andReturn().getResponse().getStatus();
                     } catch (Exception e) {
                         throw new IllegalStateException(e);
@@ -182,8 +182,8 @@ class LocationRecordingControllerIntegrationTest {
     void pointsWithoutPointIdAreNotDeduplicated() throws Exception {
         Instant recordedAt = Instant.now();
 
-        record(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
-        record(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+        postLocation(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
+        postLocation(15, "50.4501", "30.5234", recordedAt).andExpect(status().isCreated());
 
         assertThat(trackingRepository.count()).isEqualTo(2);
     }
@@ -197,11 +197,11 @@ class LocationRecordingControllerIntegrationTest {
         assertNothingSaved();
     }
 
-    private ResultActions record(long shipmentId, String latitude, String longitude, Instant recordedAt) throws Exception {
-        return record(shipmentId, null, latitude, longitude, recordedAt);
+    private ResultActions postLocation(long shipmentId, String latitude, String longitude, Instant recordedAt) throws Exception {
+        return postLocation(shipmentId, null, latitude, longitude, recordedAt);
     }
 
-    private ResultActions record(long shipmentId, UUID pointId, String latitude, String longitude, Instant recordedAt)
+    private ResultActions postLocation(long shipmentId, UUID pointId, String latitude, String longitude, Instant recordedAt)
             throws Exception {
         String point = pointId == null ? "" : "\"pointId\": \"" + pointId + "\", ";
         return mockMvc.perform(post("/tracking/shipments/" + shipmentId + "/locations")

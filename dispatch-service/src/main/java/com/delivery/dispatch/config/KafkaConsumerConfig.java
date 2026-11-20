@@ -18,7 +18,7 @@ public class KafkaConsumerConfig {
     public CommonErrorHandler kafkaErrorHandler(KafkaTemplate<String, String> kafkaTemplate) {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(
                 kafkaTemplate,
-                (record, ex) -> new TopicPartition(record.topic() + KafkaTopicConfig.DLT_SUFFIX, -1)
+                (failed, ex) -> new TopicPartition(failed.topic() + KafkaTopicConfig.DLT_SUFFIX, -1)
         );
 
         ExponentialBackOffWithMaxRetries backOff = new ExponentialBackOffWithMaxRetries(4);

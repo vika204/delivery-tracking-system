@@ -39,7 +39,7 @@ public class LocationRecordingService {
         this.recordedAtZone = ZoneId.of(recordedAtZone);
     }
 
-    public Recorded record(long shipmentId, RecordLocationRequest request) {
+    public Recorded recordLocation(long shipmentId, RecordLocationRequest request) {
         if (shipmentId <= 0) {
             throw new LocationRejectedException(Reason.INVALID, "shipmentId must be positive");
         }

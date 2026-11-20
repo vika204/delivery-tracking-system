@@ -43,7 +43,7 @@ public class GlobalExceptionHandler
 
         try {
             problem = ex.getResponseBodyAs(ProblemDetail.class);
-        } catch (RuntimeException decodingError) {
+        } catch (RuntimeException _) {
             problem = null;
         }
 

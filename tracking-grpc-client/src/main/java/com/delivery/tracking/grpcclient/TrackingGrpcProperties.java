@@ -25,8 +25,8 @@ public record TrackingGrpcProperties(
     ) {
 
         public Duration backoff(int attempt) {
-            double millis = initialBackoff.toMillis() * Math.pow(backoffMultiplier, attempt - 1);
-            return Duration.ofMillis((long) Math.min(millis, maxBackoff.toMillis()));
+            double millis = (double) initialBackoff.toMillis() * Math.pow(backoffMultiplier, attempt - 1.0);
+            return Duration.ofMillis((long) Math.min(millis, (double) maxBackoff.toMillis()));
         }
     }
 }
