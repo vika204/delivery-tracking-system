@@ -108,6 +108,9 @@
             <p id="delivery-notice" class="delivery-notice" role="alert"></p>
 
             <div class="delivery-actions" id="delivery-actions" hidden>
+                <button type="button" class="delivery-button delivery-button--outline" id="withdraw-delivery" hidden>
+                    <span class="delivery-button__label">WITHDRAW</span>
+                </button>
                 <button type="button" class="delivery-button delivery-button--red web-button" id="advance-delivery">
                     <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                     <span class="delivery-button__label web-button__label" id="advance-label">CONFIRM PICKUP</span>

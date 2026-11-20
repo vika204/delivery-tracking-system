@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+    canWithdraw,
     formatValue,
     isRetriableFailure,
     locationPayload,
@@ -27,6 +28,13 @@ test('offers Confirm pickup before pickup and delivery afterwards', () => {
     assert.deepEqual(nextAction('IN_TRANSIT'), {action: 'deliver', label: 'MARK AS DELIVERED'});
     assert.equal(nextAction('DELIVERED'), null);
     assert.equal(nextAction('CANCELLED'), null);
+});
+
+test('allows withdrawal only before pickup', () => {
+    assert.equal(canWithdraw('ASSIGNED'), true);
+    assert.equal(canWithdraw('TO_PICKUP'), true);
+    assert.equal(canWithdraw('IN_TRANSIT'), false);
+    assert.equal(canWithdraw('DELIVERED'), false);
 });
 
 test('shares GPS only while the parcel is in transit', () => {

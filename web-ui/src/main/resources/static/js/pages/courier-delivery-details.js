@@ -1,4 +1,5 @@
 import {
+    canWithdraw,
     formatValue,
     isRetriableFailure,
     locationPayload,
@@ -18,6 +19,7 @@ const badge = el('shipment-status');
 const actions = el('delivery-actions');
 const advance = el('advance-delivery');
 const advanceLabel = el('advance-label');
+const withdraw = el('withdraw-delivery');
 const gpsStatus = el('gps-status');
 const notice = el('delivery-notice');
 
@@ -71,6 +73,7 @@ function render(shipment) {
     const action = nextAction(shipment.status);
     actions.hidden = !action;
     if (action) advanceLabel.textContent = action.label;
+    withdraw.hidden = !canWithdraw(shipment.status);
 
     if (sharesGps(shipment.status)) startGps(); else stopGps();
     if (shipment.status === 'DELIVERED' || shipment.status === 'CANCELLED') {
@@ -133,6 +136,28 @@ function stopGps() {
     pendingPoint = null;
     gpsStatus.hidden = true;
 }
+
+withdraw.addEventListener('click', async () => {
+    if (pageClosed || requestInProgress || !current || !canWithdraw(current.status)) return;
+    const approved = await window.WebExpressModal.confirm({
+        title: 'WITHDRAW FROM DELIVERY?',
+        message: 'The shipment will be offered to another courier.',
+        confirmLabel: 'WITHDRAW',
+        cancelLabel: 'KEEP DELIVERY'
+    });
+    if (!approved || pageClosed) return;
+    requestInProgress = true;
+    withdraw.disabled = advance.disabled = true;
+    notice.textContent = '';
+    try {
+        await call('POST', '/withdraw');
+        window.location.assign('/courier/dashboard');
+    } catch (error) {
+        if (!pageClosed) notice.textContent = error.message;
+        withdraw.disabled = advance.disabled = false;
+        requestInProgress = false;
+    }
+});
 
 advance.addEventListener('click', async () => {
     const action = current && nextAction(current.status);

@@ -32,6 +32,10 @@ export function nextAction(status) {
     return null;
 }
 
+export function canWithdraw(status) {
+    return status === 'ASSIGNED' || status === 'TO_PICKUP';
+}
+
 export function sharesGps(status) {
     return status === 'IN_TRANSIT';
 }
