@@ -143,13 +143,6 @@ public class ShipmentController {
     }
 
 
-    @PostMapping("/{id}/start-trip")
-    public ShipmentResponse startTrip(
-            @PathVariable Long id,
-            @RequestHeader(RequestHeaders.USER_ID) @Positive long courierId) {
-        return ShipmentResponse.from(lifecycleService.startTripToPickup(id, courierId));
-    }
-
     @PostMapping("/{id}/pickup")
     public ShipmentResponse confirmPickup(
             @PathVariable Long id,

@@ -3,6 +3,7 @@ package com.delivery.webui.controller;
 import com.delivery.webui.controller.support.LoopbackInterceptor;
 import com.delivery.webui.config.CourierDashboardProperties;
 import com.delivery.webui.client.CourierShipmentClient;
+import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.exception.ApiExceptionHandler;
 import com.delivery.webui.service.CourierDeliveryService;
@@ -43,19 +44,24 @@ class CourierDeliveryApiControllerTest {
 
     private MockRestServiceServer shipmentService;
     private MockRestServiceServer trackingService;
+    private MockRestServiceServer dispatchService;
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder shipment = RestClient.builder();
         RestClient.Builder tracking = RestClient.builder();
+        RestClient.Builder dispatch = RestClient.builder();
         shipmentService = MockRestServiceServer.bindTo(shipment).build();
         trackingService = MockRestServiceServer.bindTo(tracking).build();
+        dispatchService = MockRestServiceServer.bindTo(dispatch).build();
         CourierDeliveryService service = new CourierDeliveryService(
                 HttpServiceProxyFactory.builderFor(RestClientAdapter.create(shipment.baseUrl("http://shipment.test").build()))
                 .build().createClient(CourierShipmentClient.class),
                 HttpServiceProxyFactory.builderFor(RestClientAdapter.create(tracking.baseUrl("http://tracking.test").build()))
-                .build().createClient(TrackingLocationClient.class));
+                .build().createClient(TrackingLocationClient.class),
+                HttpServiceProxyFactory.builderFor(RestClientAdapter.create(dispatch.baseUrl("http://dispatch.test").build()))
+                .build().createClient(DispatchCourierDashboardClient.class));
         mockMvc = standaloneSetup(new CourierDeliveryApiController(service, new CourierDashboardProperties(COURIER)))
                 .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor())
                 .build();
@@ -165,6 +171,42 @@ class CourierDeliveryApiControllerTest {
     }
 
     @Test
+    void withdrawsFromAssignmentOfThisShipment() throws Exception {
+        expectActiveAssignments();
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments/31/withdraw"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("X-User-Id", "7"))
+                .andRespond(withSuccess("{\"assignmentId\": 31, \"status\": \"COURIER_WITHDREW\"}", MediaType.APPLICATION_JSON));
+
+        mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
+                .andExpect(status().isNoContent());
+        dispatchService.verify();
+    }
+
+    @Test
+    void withdrawalWithoutActiveAssignmentIsConflict() throws Exception {
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments?active=true"))
+                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+
+        mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:no-active-assignment"));
+        dispatchService.verify();
+    }
+
+    @Test
+    void withdrawalAfterPickupIsRejectedByDispatch() throws Exception {
+        expectActiveAssignments();
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments/31/withdraw"))
+                .andRespond(problem(HttpStatus.CONFLICT, "urn:delivery:problem:dispatch-conflict",
+                        "The parcel is already picked up: withdrawal is not available"));
+
+        mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("The parcel is already picked up: withdrawal is not available"));
+    }
+
+    @Test
     void completesDelivery() throws Exception {
         shipmentService.expect(requestTo("http://shipment.test/shipments/15/deliver"))
                 .andRespond(withNoContent());
@@ -182,6 +224,15 @@ class CourierDeliveryApiControllerTest {
                 }))
                 .andExpect(status().isForbidden());
         shipmentService.verify();
+    }
+
+    private void expectActiveAssignments() {
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments?active=true"))
+                .andExpect(header("X-User-Id", "7"))
+                .andRespond(withSuccess("""
+                        [{"assignmentId": 30, "shipmentId": 99, "status": "ACTIVE", "pickedUp": false},
+                         {"assignmentId": 31, "shipmentId": 15, "status": "ACTIVE", "pickedUp": false}]
+                        """, MediaType.APPLICATION_JSON));
     }
 
     private void expectCourierView(String status) {

@@ -33,7 +33,7 @@ class IdempotentShipmentEventHandlerTest {
     private final IdempotentShipmentEventHandler handler = new IdempotentShipmentEventHandler(processed, notifications);
 
     @ParameterizedTest
-    @CsvSource({"ASSIGNED,COURIER_ASSIGNED", "TO_PICKUP,COURIER_TO_PICKUP", "IN_TRANSIT,PACKAGE_PICKED_UP",
+    @CsvSource({"ASSIGNED,COURIER_ASSIGNED", "IN_TRANSIT,PACKAGE_PICKED_UP",
             "DELIVERED,DELIVERED", "CANCELLED,SHIPMENT_CANCELLED", "WAITING_FOR_COURIER,COURIER_REASSIGNMENT"})
     void createsStatusNotificationForEventSender(String status, NotificationType expected) {
         ShipmentStatusChangedEvent event = event(status);

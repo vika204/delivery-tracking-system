@@ -22,7 +22,6 @@ public record CourierShipmentView(
         BigDecimal distance,
         BigDecimal price,
         Instant assignedAt,
-        Instant tripStartedAt,
         Instant pickedUpAt,
         Instant deliveredAt
 ) {
@@ -45,7 +44,6 @@ public record CourierShipmentView(
                 shipment.getDistance(),
                 shipment.getPrice(),
                 shipment.getAssignedAt(),
-                shipment.getTripStartedAt(),
                 shipment.getPickedUpAt(),
                 shipment.getDeliveredAt()
         );

@@ -20,24 +20,30 @@ class ShipmentStateMachineTest {
         Shipment shipment = waiting();
 
         assertThat(shipment.assignCourier(COURIER, "Andrii", NOW)).isTrue();
-        assertThat(shipment.startTripToPickup(COURIER, NOW)).isTrue();
         assertThat(shipment.confirmPickup(COURIER, NOW)).isTrue();
         assertThat(shipment.completeDelivery(COURIER, NOW)).isTrue();
 
         assertThat(shipment.getStatus()).isEqualTo(ShipmentStatus.DELIVERED);
-        assertThat(shipment.getTripStartedAt()).isEqualTo(NOW);
         assertThat(shipment.getPickedUpAt()).isEqualTo(NOW);
         assertThat(shipment.getDeliveredAt()).isEqualTo(NOW);
     }
 
     @Test
-    void pickupCanBeConfirmedWithoutExplicitTripStart() {
+    void pickupMovesAssignedShipmentStraightToInTransit() {
         Shipment shipment = assigned();
 
         shipment.confirmPickup(COURIER, NOW);
 
         assertThat(shipment.getStatus()).isEqualTo(ShipmentStatus.IN_TRANSIT);
-        assertThat(shipment.getTripStartedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void pickupRequiresAssignment() {
+        var subject = waiting();
+        subject.setAssignedCourierId(COURIER);
+
+        assertThatThrownBy(() -> subject.confirmPickup(COURIER, NOW))
+                .isInstanceOf(ShipmentStatusConflictException.class);
     }
 
     @Test
@@ -62,13 +68,13 @@ class ShipmentStateMachineTest {
         assertThatThrownBy(() -> subject2.confirmPickup(99, NOW))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
         var subject3 = waiting();
-        assertThatThrownBy(() -> subject3.startTripToPickup(COURIER, NOW))
+        assertThatThrownBy(() -> subject3.confirmPickup(COURIER, NOW))
                 .isInstanceOf(ShipmentAccessDeniedException.class);
     }
 
     @Test
     void senderCanCancelBeforePickup() {
-        for (Shipment shipment : new Shipment[]{waiting(), assigned(), toPickup()}) {
+        for (Shipment shipment : new Shipment[]{waiting(), assigned()}) {
             shipment.cancelBySender(SENDER, "changed my mind", NOW);
             assertThat(shipment.getStatus()).isEqualTo(ShipmentStatus.CANCELLED);
             assertThat(shipment.getCancelledAt()).isEqualTo(NOW);
@@ -112,13 +118,12 @@ class ShipmentStateMachineTest {
 
     @Test
     void unassignReturnsShipmentToWaiting() {
-        Shipment shipment = toPickup();
+        Shipment shipment = assigned();
 
         assertThat(shipment.unassignCourier(COURIER)).isTrue();
 
         assertThat(shipment.getStatus()).isEqualTo(ShipmentStatus.WAITING_FOR_COURIER);
         assertThat(shipment.getAssignedCourierId()).isNull();
-        assertThat(shipment.getTripStartedAt()).isNull();
     }
 
     @Test
@@ -149,12 +154,6 @@ class ShipmentStateMachineTest {
     private static Shipment assigned() {
         Shipment shipment = waiting();
         shipment.assignCourier(COURIER, "Andrii", NOW);
-        return shipment;
-    }
-
-    private static Shipment toPickup() {
-        Shipment shipment = assigned();
-        shipment.startTripToPickup(COURIER, NOW);
         return shipment;
     }
 }

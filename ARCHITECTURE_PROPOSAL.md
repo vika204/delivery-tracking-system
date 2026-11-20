@@ -79,13 +79,11 @@
 ### Сценарій 2
 
 **Commands:**
-- StartTripToPickup
 - ConfirmParcelPickup
 - CompleteDelivery
 - UpdateCourierLocation
 
 **Domain events:**
-- CourierDepartedForPickup
 - ParcelPickedUp
 - CourierLocationUpdated
 - ShipmentDelivered
@@ -110,7 +108,6 @@ Shipment відповідає за створення доставки та ке
 
 ```
 CreateShipment > ShipmentCreated
-StartTripToPickup > CourierDepartedForPickup  (ініціатор - кур'єр, але змінюється стан Shipment)
 ConfirmParcelPickup > ParcelPickedUp
 CompleteDelivery > ShipmentDelivered
 CancelShipment > ShipmentCancelled

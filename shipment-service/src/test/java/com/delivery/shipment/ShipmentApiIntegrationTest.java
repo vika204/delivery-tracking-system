@@ -427,7 +427,6 @@ class ShipmentApiIntegrationTest {
     void courierCompletesDeliveryAndTimelineIsRecorded() throws Exception {
         long shipmentId = assignedShipment();
 
-        courier(COURIER, shipmentId, "start-trip").andExpect(jsonPath("$.status").value("TO_PICKUP"));
         courier(COURIER, shipmentId, "pickup").andExpect(jsonPath("$.status").value("IN_TRANSIT"));
         courier(COURIER, shipmentId, "deliver")
                 .andExpect(jsonPath("$.status").value("DELIVERED"))
@@ -435,10 +434,10 @@ class ShipmentApiIntegrationTest {
 
         mockMvc.perform(get("/shipments/" + shipmentId + "/history"))
                 .andExpect(jsonPath("$[*].toStatus").value(org.hamcrest.Matchers.contains(
-                        "WAITING_FOR_COURIER", "ASSIGNED", "TO_PICKUP", "IN_TRANSIT", "DELIVERED")));
+                        "WAITING_FOR_COURIER", "ASSIGNED", "IN_TRANSIT", "DELIVERED")));
         assertThat(events(ShipmentStatusChangedEvent.TYPE, ShipmentStatusChangedEvent.class))
                 .extracting(ShipmentStatusChangedEvent::status)
-                .containsExactly("ASSIGNED", "TO_PICKUP", "IN_TRANSIT", "DELIVERED");
+                .containsExactly("ASSIGNED", "IN_TRANSIT", "DELIVERED");
     }
 
     @Test

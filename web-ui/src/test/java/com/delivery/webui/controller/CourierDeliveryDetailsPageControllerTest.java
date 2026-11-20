@@ -40,6 +40,7 @@ class CourierDeliveryDetailsPageControllerTest {
                 )))
                 .andExpect(content().string(containsString("data-shipment-id=\"2154\"")))
                 .andExpect(content().string(containsString("id=\"gps-status\"")))
+                .andExpect(content().string(containsString("id=\"withdraw-delivery\"")))
                 .andExpect(content().string(not(containsString("Kyiv, Volodymyrska St, 12"))));
     }
 
