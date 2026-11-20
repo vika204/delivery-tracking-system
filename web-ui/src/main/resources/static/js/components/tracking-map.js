@@ -52,46 +52,45 @@ function showError(message) {
     errorElement.hidden = false;
 }
 
-function customizeMapStyle(style) {
-    for (const layer of style.layers) {
-        layer.paint ??= {};
+function fillColorFor(id) {
+    if (/water/.test(id)) return "#bccbc5";
+    if (/park|grass|wood|forest/.test(id)) return "#c5c6a8";
+    if (/building/.test(id)) return "#d7c3a5";
+    return "#e8d8bf";
+}
 
-        const id = layer.id.toLowerCase();
-
-        if (layer.type === "background") {
-            layer.paint["background-color"] = "#e7d6c2";
-        }
-
-        if (layer.type === "fill") {
-            layer.paint["fill-color"] =
-                /water/.test(id) ? "#bccbc5" :
-                    /park|grass|wood|forest/.test(id) ? "#c5c6a8" :
-                        /building/.test(id) ? "#d7c3a5" :
-                            "#e8d8bf";
-        }
-
-        if (layer.type === "line" &&
-            /road|highway|bridge|tunnel/.test(id)) {
-
-            layer.paint["line-color"] =
-                /casing/.test(id) ? "#d0baa0" : "#fbefdc";
-        }
-
-        if (layer.type === "symbol") {
-            if (layer.layout?.["text-field"]) {
-                layer.paint["text-color"] = "#76624e";
-                layer.paint["text-halo-color"] = "#f6e6cf";
-            }
-
-            if (/poi/.test(id)) {
-                layer.layout = {
-                    ...layer.layout,
-                    visibility: "none"
-                };
-            }
-        }
+function styleSymbolLayer(layer, id) {
+    if (layer.layout?.["text-field"]) {
+        layer.paint["text-color"] = "#76624e";
+        layer.paint["text-halo-color"] = "#f6e6cf";
     }
 
+    if (/poi/.test(id)) {
+        layer.layout = {
+            ...layer.layout,
+            visibility: "none"
+        };
+    }
+}
+
+function customizeLayer(layer) {
+    layer.paint ??= {};
+
+    const id = layer.id.toLowerCase();
+
+    if (layer.type === "background") {
+        layer.paint["background-color"] = "#e7d6c2";
+    } else if (layer.type === "fill") {
+        layer.paint["fill-color"] = fillColorFor(id);
+    } else if (layer.type === "line" && /road|highway|bridge|tunnel/.test(id)) {
+        layer.paint["line-color"] = /casing/.test(id) ? "#d0baa0" : "#fbefdc";
+    } else if (layer.type === "symbol") {
+        styleSymbolLayer(layer, id);
+    }
+}
+
+function customizeMapStyle(style) {
+    style.layers.forEach(customizeLayer);
     return style;
 }
 
@@ -507,4 +506,4 @@ if (typeof window !== "undefined") {
     });
 }
 
-initializeTrackingMap();
+void initializeTrackingMap();

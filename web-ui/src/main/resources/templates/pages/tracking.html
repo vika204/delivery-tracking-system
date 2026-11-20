@@ -16,7 +16,9 @@
     <!-- MapLibre -->
     <link rel="stylesheet"
           th:if="${tracking != null}"
-          href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css">
+          href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"
+          integrity="sha384-Nq6PQ+9vJPvw7U/VfDELyrWoGQMsy0gi6QShhaSrGzkpF5KkM40csg2leky+YMTd"
+          crossorigin="anonymous">
 
     <!-- Shared styles -->
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
@@ -35,7 +37,7 @@
 </head>
 
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="tracking-page" id="tracking">
@@ -179,7 +181,9 @@
 
 <!-- MapLibre library -->
 <script th:if="${tracking != null}"
-        src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js">
+        src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"
+        integrity="sha384-/L1njH4bbgNt9Uk3HwJ272N9fxJzRBQCxhtwGkZiqgl+Nxpq2ETUNZhNMNV1RgyW"
+        crossorigin="anonymous">
 </script>
 
 <!-- Safely serialized server-side tracking data -->

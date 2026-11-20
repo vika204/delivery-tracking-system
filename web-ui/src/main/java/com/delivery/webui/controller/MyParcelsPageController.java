@@ -13,6 +13,9 @@ import java.util.List;
 @Controller
 public class MyParcelsPageController {
 
+    private static final String NOT_AVAILABLE = "Not available";
+    private static final String STATUS_DELIVERED = "DELIVERED";
+
     private static final List<ParcelPreview> DEMO_PARCELS = List.of(
             new ParcelPreview(
                     15,
@@ -29,11 +32,11 @@ public class MyParcelsPageController {
                     "20 cm",
                     "250 UAH",
                     "Andrii Kovalenko",
-                    "Not available"
+                    NOT_AVAILABLE
             ),
             new ParcelPreview(
                     16,
-                    "DELIVERED",
+                    STATUS_DELIVERED,
                     "Kyiv, Saksahanskoho 28",
                     "Lviv, Svobody 10",
                     "Ivan Bondarenko",
@@ -46,7 +49,7 @@ public class MyParcelsPageController {
                     "15 cm",
                     "210 UAH",
                     "Olena Melnyk",
-                    "Not available"
+                    NOT_AVAILABLE
             ),
             new ParcelPreview(
                     17,
@@ -63,7 +66,7 @@ public class MyParcelsPageController {
                     "25 cm",
                     "290 UAH",
                     "Not assigned",
-                    "Not available"
+                    NOT_AVAILABLE
             )
     );
 
@@ -140,7 +143,7 @@ public class MyParcelsPageController {
         public String statusClass() {
             return switch (status) {
                 case "IN_TRANSIT" -> "transit";
-                case "DELIVERED" -> "delivered";
+                case STATUS_DELIVERED -> "delivered";
                 case "WAITING_FOR_COURIER" -> "waiting";
                 case "CANCELLED" -> "cancelled";
                 default -> "";
@@ -148,7 +151,7 @@ public class MyParcelsPageController {
         }
 
         public boolean delivered() {
-            return "DELIVERED".equals(status);
+            return STATUS_DELIVERED.equals(status);
         }
     }
 }

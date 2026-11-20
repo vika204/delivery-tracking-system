@@ -23,6 +23,8 @@ import java.util.Map;
 })
 public class UpstreamProblemAdvice {
 
+    private static final String ERRORS = "errors";
+
     @ExceptionHandler(RestClientResponseException.class)
     ProblemDetail rejected(RestClientResponseException ex) {
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
@@ -35,8 +37,8 @@ public class UpstreamProblemAdvice {
         if (upstream != null) {
             problem.setType(upstream.getType());
             Map<String, Object> properties = upstream.getProperties();
-            if (properties != null && properties.containsKey("errors")) {
-                problem.setProperty("errors", properties.get("errors"));
+            if (properties != null && properties.containsKey(ERRORS)) {
+                problem.setProperty(ERRORS, properties.get(ERRORS));
             }
         }
         return problem;
@@ -50,7 +52,7 @@ public class UpstreamProblemAdvice {
     private static ProblemDetail readProblem(RestClientResponseException ex) {
         try {
             return ex.getResponseBodyAs(ProblemDetail.class);
-        } catch (RuntimeException unreadableBody) {
+        } catch (RuntimeException _) {
             return null;
         }
     }

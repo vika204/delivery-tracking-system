@@ -18,17 +18,17 @@
     <script type="module" th:src="@{/js/pages/register.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="registration-page">
     <aside class="visual" aria-label="Web Express courier illustration">
-        <div class="hanger" role="button" tabindex="0"
+        <button type="button" class="hanger"
              aria-label="Gently swing the courier" title="Give me a little swing">
             <img th:src="@{/images/registration-spider.png}"
                  alt="Spider courier hanging upside down on a web with an EXPRESS package">
-        </div>
+        </button>
         <p class="visual-note">YOUR FRIENDLY NEIGHBORHOOD DELIVERY.</p>
     </aside>
 
@@ -111,7 +111,7 @@
                 <p class="footer-note">Already have an account?
                     <a th:href="@{/login}">Log in</a>
                 </p>
-                <p class="status" role="status" aria-live="polite"></p>
+                <output class="status" aria-live="polite"></output>
             </form>
         </div>
 
@@ -149,7 +149,7 @@
                     <label for="courier-work-zone">WORK ZONE</label>
                     <input id="courier-work-zone" type="text" autocomplete="off"
                            placeholder="Enter city or village..." maxlength="100"
-                           aria-autocomplete="list"
+                           role="combobox" aria-autocomplete="list"
                            aria-controls="courier-work-zone-suggestions"
                            aria-expanded="false" required>
                     <input id="courier-work-zone-code" type="hidden">
@@ -206,7 +206,7 @@
                 <p class="footer-note">Already have an account?
                     <a th:href="@{/login}">Log in</a>
                 </p>
-                <p class="status" role="status" aria-live="polite"></p>
+                <output class="status" aria-live="polite"></output>
             </form>
         </div>
     </section>

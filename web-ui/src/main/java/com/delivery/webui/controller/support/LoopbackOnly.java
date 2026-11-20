@@ -22,7 +22,7 @@ public final class LoopbackOnly {
     static boolean isLoopback(String remoteAddress) {
         try {
             return remoteAddress != null && InetAddress.getByName(remoteAddress).isLoopbackAddress();
-        } catch (UnknownHostException ex) {
+        } catch (UnknownHostException _) {
             return false;
         }
     }

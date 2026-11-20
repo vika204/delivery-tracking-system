@@ -38,3 +38,11 @@ input:focus-visible {
     outline: 2px solid var(--red);
     outline-offset: 4px;
 }
+
+output {
+    display: block;
+}
+
+output[hidden] {
+    display: none;
+}

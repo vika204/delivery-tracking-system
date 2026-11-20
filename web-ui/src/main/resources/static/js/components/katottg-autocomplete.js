@@ -220,7 +220,7 @@ export function createKatottgAutocomplete({
 
     document.addEventListener('click', event => {
         const field = event.target.closest('.katottg-field');
-        if (!field || !field.contains(input)) close();
+        if (!field?.contains(input)) close();
     });
 
     return Object.freeze({

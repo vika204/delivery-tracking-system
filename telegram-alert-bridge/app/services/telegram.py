@@ -47,7 +47,7 @@ class TelegramService:
                 logger.error("Telegram API rejected message (HTTP %d): %s", response.status_code, response.text)
                 raise TelegramDeliveryError(response.status_code, response.text)
         except httpx.RequestError as exc:
-            logger.error("Network error while communicating with Telegram: %s", type(exc).__name__)
+            logger.exception("Network error while communicating with Telegram: %s", type(exc).__name__)
             raise TelegramDeliveryError(502, f"Network error contacting Telegram: {exc}")
 
 

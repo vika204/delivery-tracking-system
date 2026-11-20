@@ -25,6 +25,8 @@ body::after {
     border-radius: 10px;
     background: var(--cream);
     box-shadow: 4px 5px 0 rgba(42, 24, 18, .12);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transform-origin: center;
 }
 
 .parcel-card::before {
@@ -288,11 +290,6 @@ body::after {
 }
 
 /* Плавне збільшення карток при наведенні */
-
-.parcel-card {
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-    transform-origin: center;
-}
 
 .parcel-card:hover {
     transform: scale(1.02);

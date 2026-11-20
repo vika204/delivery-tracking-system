@@ -12,6 +12,9 @@ import org.springframework.web.client.RestClientException;
 @Controller
 public class TrackingPageController {
 
+    private static final String VIEW = "pages/tracking";
+    private static final String ERROR_MESSAGE = "errorMessage";
+
     private final TrackingViewService trackingViewService;
     private final boolean trackingStreamEnabled;
 
@@ -47,7 +50,7 @@ public class TrackingPageController {
         model.addAttribute("trackingInput", trackingInput);
 
         if (trackingInput.isBlank()) {
-            return "pages/tracking";
+            return VIEW;
         }
 
         try {
@@ -55,10 +58,10 @@ public class TrackingPageController {
 
             if (id <= 0) {
                 model.addAttribute(
-                        "errorMessage",
+                        ERROR_MESSAGE,
                         "Shipment ID must be a positive number."
                 );
-                return "pages/tracking";
+                return VIEW;
             }
 
             model.addAttribute(
@@ -66,25 +69,25 @@ public class TrackingPageController {
                     trackingViewService.getLiveTracking(id)
             );
 
-        } catch (NumberFormatException ex) {
+        } catch (NumberFormatException _) {
             model.addAttribute(
-                    "errorMessage",
+                    ERROR_MESSAGE,
                     "Enter a numeric shipment ID, for example 15."
             );
 
-        } catch (HttpClientErrorException.NotFound ex) {
+        } catch (HttpClientErrorException.NotFound _) {
             model.addAttribute(
-                    "errorMessage",
+                    ERROR_MESSAGE,
                     "Shipment not found. Check the ID and try again."
             );
 
-        } catch (RestClientException | IllegalStateException ex) {
+        } catch (RestClientException | IllegalStateException _) {
             model.addAttribute(
-                    "errorMessage",
+                    ERROR_MESSAGE,
                     "Shipment information is temporarily unavailable."
             );
         }
 
-        return "pages/tracking";
+        return VIEW;
     }
 }

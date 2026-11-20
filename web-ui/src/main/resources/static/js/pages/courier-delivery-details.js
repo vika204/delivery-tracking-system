@@ -28,10 +28,10 @@ let sending = false;
 // точка, яку не вдалося доставити через збій; надсилається повторно з тим самим pointId
 let pendingPoint = null;
 
-async function call(method, path = '', body) {
+async function call(method, path, body) {
     let response;
     try {
-        response = await fetch(api + path, {
+        response = await fetch(api + (path ?? ''), {
             method,
             headers: body ? {'Content-Type': 'application/json'} : {},
             body: body ? JSON.stringify(body) : undefined

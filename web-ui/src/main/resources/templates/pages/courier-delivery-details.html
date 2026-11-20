@@ -23,7 +23,7 @@
     <script type="module" th:src="@{/js/pages/courier-delivery-details.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 <main class="delivery-details-page" th:attr="data-shipment-id=${shipmentId}">
     <a th:href="@{/courier/dashboard}" href="/courier/dashboard" class="back-link">
@@ -104,7 +104,7 @@
 
             <hr class="dashed-rule">
 
-            <p id="gps-status" class="gps-status" role="status" aria-live="polite" hidden></p>
+            <output id="gps-status" class="gps-status" aria-live="polite" hidden></output>
             <p id="delivery-notice" class="delivery-notice" role="alert"></p>
 
             <div class="delivery-actions" id="delivery-actions" hidden>

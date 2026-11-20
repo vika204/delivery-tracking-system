@@ -17,7 +17,7 @@ async def handle_alert(payload: AlertmanagerWebhook):
         await telegram_service.send_message(formatted_message)
         return {"status": "ok", "delivered": True}
     except TelegramDeliveryError as exc:
-        logger.error("Failed to forward alert to Telegram: %s", exc)
+        logger.exception("Failed to forward alert to Telegram: %s", exc)
 
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

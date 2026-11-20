@@ -23,7 +23,7 @@
     <script defer th:src="@{/js/pages/landing.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 
 <div class="landing-page" id="top">
     <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>

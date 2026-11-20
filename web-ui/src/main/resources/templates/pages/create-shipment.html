@@ -26,7 +26,7 @@
     <script type="module" th:src="@{/js/pages/create-shipment.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="create-shipment-page">
@@ -55,7 +55,7 @@
                                        placeholder="Enter city or village..."
                                        autocomplete="off"
                                        maxlength="100"
-                                       aria-autocomplete="list"
+                                       role="combobox" aria-autocomplete="list"
                                        aria-controls="pickup-city-suggestions"
                                        aria-expanded="false">
                                 <input type="hidden" id="pickup-city-code">
@@ -75,7 +75,7 @@
                                        type="text"
                                        id="pickup-street"
                                        placeholder="e.g. Khreshchatyk St, 1"
-                                       autocomplete="street-address"
+                                       autocomplete="address-line1"
                                        maxlength="150">
                             </div>
                         </div>
@@ -91,7 +91,7 @@
                                        placeholder="Enter city or village..."
                                        autocomplete="off"
                                        maxlength="100"
-                                       aria-autocomplete="list"
+                                       role="combobox" aria-autocomplete="list"
                                        aria-controls="delivery-city-suggestions"
                                        aria-expanded="false">
                                 <input type="hidden" id="delivery-city-code">
@@ -111,7 +111,7 @@
                                        type="text"
                                        id="delivery-street"
                                        placeholder="e.g. Svobody Ave, 10"
-                                       autocomplete="street-address"
+                                       autocomplete="address-line1"
                                        maxlength="150">
                             </div>
                         </div>
@@ -257,9 +257,9 @@
                     <div class="summary-heading">
                         <h3>YOUR PARCEL</h3>
                     </div>
-                    <p class="summary-note" id="quote-status" role="status" aria-live="polite">
+                    <output class="summary-note" id="quote-status" aria-live="polite">
                         Price is calculated by WEB EXPRESS once the route and weight are filled in.
-                    </p>
+                    </output>
 
                     <div class="summary-grid">
                         <div class="summary-item">

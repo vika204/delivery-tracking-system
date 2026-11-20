@@ -23,7 +23,7 @@
     <script defer th:src="@{/js/pages/profile.js}"></script>
 </head>
 <body>
-<canvas id="cursor-webs" aria-hidden="true"></canvas>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
 <main class="profile-page">
@@ -111,7 +111,7 @@
         </div>
     </article>
 
-    <p id="profile-message" class="profile-notice" role="status" aria-live="polite" hidden></p>
+    <output id="profile-message" class="profile-notice" aria-live="polite" hidden></output>
 </main>
 </body>
 </html>
