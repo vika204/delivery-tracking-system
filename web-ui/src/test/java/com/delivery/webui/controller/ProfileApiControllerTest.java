@@ -1,5 +1,8 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.CourierDashboardProperties;
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.UserProfileClient;
 import com.delivery.webui.client.dto.DispatchCourierProfile;
@@ -38,8 +41,8 @@ class ProfileApiControllerTest {
             """;
     private final UserProfileClient users = mock(UserProfileClient.class);
     private final DispatchCourierDashboardClient couriers = mock(DispatchCourierDashboardClient.class);
-    private final MockMvc mvc = standaloneSetup(new ProfileApiController(users, couriers, 42, 7))
-            .setControllerAdvice(new ApiExceptionHandler()).build();
+    private final MockMvc mvc = standaloneSetup(new ProfileApiController(users, couriers, new ShipmentCreationProperties(42), new CourierDashboardProperties(7)))
+            .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor()).build();
 
     @Test
     void readsCurrentClientIgnoringCallerSuppliedIdentity() throws Exception {

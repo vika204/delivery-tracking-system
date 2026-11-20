@@ -1,5 +1,7 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.CourierDashboardProperties;
 import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.exception.ApiExceptionHandler;
@@ -55,8 +57,8 @@ class CourierDeliveryApiControllerTest {
                 .build().createClient(CourierShipmentClient.class),
                 HttpServiceProxyFactory.builderFor(RestClientAdapter.create(tracking.baseUrl("http://tracking.test").build()))
                 .build().createClient(TrackingLocationClient.class));
-        mockMvc = standaloneSetup(new CourierDeliveryApiController(service, COURIER))
-                .setControllerAdvice(new ApiExceptionHandler())
+        mockMvc = standaloneSetup(new CourierDeliveryApiController(service, new CourierDashboardProperties(COURIER)))
+                .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor())
                 .build();
     }
 

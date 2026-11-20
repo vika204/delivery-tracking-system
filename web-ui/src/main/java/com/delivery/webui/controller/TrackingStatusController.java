@@ -3,8 +3,7 @@ package com.delivery.webui.controller;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.dto.TrackingShipmentResponse;
 import com.delivery.webui.controller.dto.TrackingShipmentStatusResponse;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +16,7 @@ import java.util.Locale;
 
 @RestController
 @RequestMapping("/api/tracking/shipments")
+@LocalDevOnly("Shipment status")
 public class TrackingStatusController {
 
     private final TrackingShipmentClient shipmentClient;
@@ -30,14 +30,11 @@ public class TrackingStatusController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     public TrackingShipmentStatusResponse getStatus(
-            @PathVariable long shipmentId,
-            HttpServletRequest request
+            @PathVariable long shipmentId
     ) {
         if (shipmentId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
-
-        LoopbackOnly.require(request, "Shipment status");
 
         TrackingShipmentResponse shipment = shipmentClient.getShipmentById(shipmentId);
 

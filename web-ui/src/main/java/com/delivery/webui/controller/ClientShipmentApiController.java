@@ -1,10 +1,9 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ClientShipmentClient;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -16,20 +15,20 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/shipments")
+@LocalDevOnly("Client shipment API")
 public class ClientShipmentApiController {
 
     private final ClientShipmentClient client;
     private final long senderId;
 
     public ClientShipmentApiController(ClientShipmentClient client,
-                                       @Value("${shipment.creation.sender-id}") long senderId) {
+                                       ShipmentCreationProperties properties) {
         this.client = client;
-        this.senderId = senderId;
+        this.senderId = properties.senderId();
     }
 
     @ModelAttribute
-    void requireLocalAccess(HttpServletRequest request, HttpServletResponse response) {
-        LoopbackOnly.require(request, "Client shipment API");
+    void noStore(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
     }
 

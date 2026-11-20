@@ -1,10 +1,9 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.NotificationClient;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,19 +16,19 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/notifications")
+@LocalDevOnly("Notifications")
 public class NotificationApiController {
 
     private final NotificationClient client;
     private final long userId;
 
-    public NotificationApiController(NotificationClient client, @Value("${shipment.creation.sender-id}") long userId) {
+    public NotificationApiController(NotificationClient client, ShipmentCreationProperties properties) {
         this.client = client;
-        this.userId = userId;
+        this.userId = properties.senderId();
     }
 
     @ModelAttribute
-    void requireLocalAccess(HttpServletRequest request, HttpServletResponse response) {
-        LoopbackOnly.require(request, "Notifications");
+    void noStore(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
     }
 

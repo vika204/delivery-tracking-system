@@ -2,8 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,6 +24,7 @@ import java.util.List;
         name = "enabled",
         havingValue = "true"
 )
+@LocalDevOnly("GPS history")
 public class TrackingLocationBackfillController {
 
     private static final int MAX_LIMIT = 100;
@@ -48,12 +48,9 @@ public class TrackingLocationBackfillController {
     public List<TrackingLocationResponse> getLocations(
             @PathVariable long shipmentId,
             @RequestParam(defaultValue = "0") long afterLocationId,
-            @RequestParam(defaultValue = "100") int limit,
-            HttpServletRequest request
+            @RequestParam(defaultValue = "100") int limit
     ) {
         validateQuery(shipmentId, afterLocationId, limit);
-
-        LoopbackOnly.require(request, "GPS history");
 
         try {
             List<TrackingLocationResponse> locations = locationClient.getShipmentLocations(shipmentId, afterLocationId, limit);

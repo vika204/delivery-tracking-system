@@ -1,5 +1,7 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ShipmentCreationClient;
 import com.delivery.webui.exception.ApiExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +44,8 @@ class ShipmentCreationApiControllerTest {
         shipmentService = MockRestServiceServer.bindTo(builder).build();
         ShipmentCreationClient client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://shipment.test").build()))
                 .build().createClient(ShipmentCreationClient.class);
-        mockMvc = standaloneSetup(new ShipmentCreationApiController(client, SENDER))
-                .setControllerAdvice(new ApiExceptionHandler())
+        mockMvc = standaloneSetup(new ShipmentCreationApiController(client, new ShipmentCreationProperties(SENDER)))
+                .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor())
                 .build();
     }
 

@@ -1,12 +1,11 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.NotificationClient;
 import com.delivery.webui.client.dto.NotificationResponse;
-import com.delivery.webui.controller.support.LoopbackOnly;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import com.delivery.webui.viewmodel.NotificationViewModel;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,20 +17,20 @@ import org.springframework.web.client.RestClientException;
 import java.util.List;
 
 @Controller
+@LocalDevOnly("Notifications")
 public class NotificationsPageController {
 
     static final int LIMIT = 50;
     private final NotificationClient client;
     private final long userId;
 
-    public NotificationsPageController(NotificationClient client, @Value("${shipment.creation.sender-id}") long userId) {
+    public NotificationsPageController(NotificationClient client, ShipmentCreationProperties properties) {
         this.client = client;
-        this.userId = userId;
+        this.userId = properties.senderId();
     }
 
     @ModelAttribute
-    void requireLocalAccess(HttpServletRequest request, HttpServletResponse response) {
-        LoopbackOnly.require(request, "Notifications");
+    void noStore(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
     }
 
