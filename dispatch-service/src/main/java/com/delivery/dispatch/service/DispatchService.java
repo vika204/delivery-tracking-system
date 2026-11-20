@@ -128,8 +128,7 @@ public class DispatchService {
     public void onShipmentStatusChanged(long shipmentId, String status, Long courierId) {
         switch (status) {
             case "CANCELLED" -> onShipmentCancelled(shipmentId);
-            case "TO_PICKUP" -> reconcileAssignment(shipmentId, courierId, false);
-            case "IN_TRANSIT" -> reconcileAssignment(shipmentId, courierId, true);
+            case "IN_TRANSIT" -> onParcelPickedUp(shipmentId, courierId);
             case "DELIVERED" -> onShipmentDelivered(shipmentId);
             default -> log.debug("Shipment status not relevant for dispatch: shipmentId={}, status={}", shipmentId, status);
         }
@@ -168,7 +167,7 @@ public class DispatchService {
         }
     }
 
-    private void reconcileAssignment(long shipmentId, Long courierId, boolean pickedUp) {
+    private void onParcelPickedUp(long shipmentId, Long courierId) {
         List<DeliveryOffer> pending = lockPendingOffers(shipmentId);
         DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
         if (request == null || courierId == null) {
@@ -212,10 +211,10 @@ public class DispatchService {
             }
         }
 
-        if (pickedUp && kept.getPickedUpAt() == null) {
+        if (kept.getPickedUpAt() == null) {
             kept.setPickedUpAt(Instant.now(clock));
         }
-        request.setStatus(pickedUp ? DispatchRequestStatus.IN_PROGRESS : DispatchRequestStatus.ASSIGNED);
+        request.setStatus(DispatchRequestStatus.IN_PROGRESS);
         touch(request);
         if (releasedOthers) {
             capacityFreed();
