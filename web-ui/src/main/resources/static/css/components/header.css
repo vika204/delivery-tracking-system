@@ -135,7 +135,33 @@
     display: none;
 }
 
+.site-header__notifications {
+    position: relative;
+}
+
+.site-header__notification-dot {
+    position: absolute;
+    top: 4px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+}
+
+.site-header__notification-dot[hidden] {
+    display: none;
+}
+
 @media (max-width: 760px) {
+    .site-header__notifications {
+        display: none;
+    }
+
+    .site-header__menu .site-header__notifications {
+        display: block;
+    }
+
     .site-header {
         padding-right: 12px;
         padding-left: 12px;

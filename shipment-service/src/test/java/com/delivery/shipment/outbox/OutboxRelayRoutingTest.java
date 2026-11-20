@@ -1,10 +1,11 @@
 package com.delivery.shipment.outbox;
 
-import com.delivery.events.ShipmentCreatedEvent;
-import com.delivery.events.ShipmentDetailsUpdatedEvent;
-import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.config.KafkaTopicConfig;
 import com.delivery.shipment.entity.OutboxEvent;
+import com.delivery.shipment.event.ShipmentCreatedEvent;
+import com.delivery.shipment.event.ShipmentDetailsUpdatedEvent;
+import com.delivery.shipment.event.ShipmentStatusChangedEvent;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

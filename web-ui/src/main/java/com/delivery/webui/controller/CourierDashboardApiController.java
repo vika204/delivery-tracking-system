@@ -1,5 +1,6 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.controller.dto.CourierDashboardView;
 import com.delivery.webui.controller.support.LoopbackOnly;
 import com.delivery.webui.service.CourierDashboardService;
@@ -58,6 +59,4 @@ public class CourierDashboardApiController {
         return dashboardService.declineOffer(courierId, offerId);
     }
 
-    public record AvailabilityRequest(boolean online) {
-    }
 }

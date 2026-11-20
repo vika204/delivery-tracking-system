@@ -7,6 +7,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -21,14 +22,17 @@ class ProfilePageControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void opensProfilePrototype() throws Exception {
+    void opensProfileWithRealDataEndpointAndFixedPortrait() throws Exception {
         mockMvc.perform(get("/profile"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/profile"))
                 .andExpect(model().attribute("headerState", "CLIENT"))
                 .andExpect(model().attribute("activePage", "profile"))
                 .andExpect(content().string(containsString("MY PROFILE")))
-                .andExpect(content().string(containsString("Olena Kovalenko")))
+                .andExpect(content().string(containsString("data-profile-url=\"/api/profile\"")))
+                .andExpect(content().string(not(containsString("olena@example.com"))))
+                .andExpect(content().string(not(containsString("type=\"file\""))))
+                .andExpect(content().string(containsString("id=\"we-modal\"")))
                 .andExpect(content().string(containsString("src=\"/images/profile-spider.png\"")))
                 .andExpect(content().string(containsString("EDIT PROFILE")))
                 .andExpect(content().string(containsString("src=\"/js/pages/profile.js\"")));

@@ -1,5 +1,7 @@
 package com.delivery.shipment.chaos;
 
+import com.delivery.shipment.exception.ChaosFailureException;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

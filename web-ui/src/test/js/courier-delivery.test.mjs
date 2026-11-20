@@ -59,5 +59,8 @@ test('retries the same point only after network or server failures', () => {
 
 test('formats detail values', () => {
     assert.equal(formatValue(2.4, 'kg'), '2.4 kg');
+    assert.equal(formatValue(0.02, 'km'), '20 m');
+    assert.equal(formatValue(1.2, 'km'), '1.2 km');
+    assert.equal(formatValue(null, 'km'), '—');
     assert.equal(formatValue(null, 'kg'), '—');
 });

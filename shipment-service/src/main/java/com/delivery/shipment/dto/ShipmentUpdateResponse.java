@@ -1,6 +1,5 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.pricing.PriceBreakdown;
 
 import java.math.BigDecimal;
 

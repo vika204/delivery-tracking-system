@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle}">Notifications — WEB EXPRESS</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/images/spider-icon.svg}">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Barlow+Condensed:wght@600;700;800;900&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap">
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/components/header.css}">
+    <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/notifications.css}">
+    <script th:src="@{/js/components/header.js}" defer></script>
+    <script th:src="@{/js/components/cursor-webs.js}" defer></script>
+</head>
+<body>
+<div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
+<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+
+<main class="parcels-page notifications-page" th:fragment="notificationContent"
+      th:attr="data-notification-read-through=${notificationReadThrough},data-notification-refresh-url=@{/notifications(fragment=true)}">
+    <section class="parcel-list" aria-label="Shipment notifications" aria-live="polite">
+        <article class="parcel-card parcel-state" th:if="${notificationsError}" role="alert">
+            <div class="parcel-inner">
+                <h2>NOTIFICATIONS ARE TEMPORARILY UNAVAILABLE.</h2>
+                <p>Please try again in a moment.</p>
+            </div>
+        </article>
+
+        <th:block th:if="${!notificationsError}">
+            <article class="parcel-card notification-card parcel-card--subtle" th:each="notification : ${notifications}"
+                     th:classappend="${!notification.read()} ? 'notification-card--unread' : ''"
+                     th:attr="data-notification-id=${notification.notificationId()}">
+                <img class="notification-new-icon" th:if="${!notification.read()}"
+                     th:src="@{/images/notification-icon.svg}" width="52" height="52" alt="New notification">
+                <div class="parcel-inner">
+                    <div class="parcel-top">
+                        <h2 class="parcel-number" th:text="${notification.eventTitle()}">SHIPMENT UPDATE</h2>
+                        <time class="notification-time"
+                              th:datetime="${notification.createdAt()}"
+                              th:text="${notification.dateTimeText()}"></time>
+                    </div>
+                    <hr class="dashed-rule">
+                    <p class="notification-shipment" th:text="|SHIPMENT #${notification.shipmentId()}|">SHIPMENT</p>
+                    <p class="field-value notification-message" th:text="${notification.message()}"></p>
+                    <div class="parcel-actions">
+                        <a class="btn btn-red web-button"
+                           th:href="@{/my-parcels/{id}(id=${notification.shipmentId()},from='notifications')}">
+                            <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                            <span class="btn-label web-button__label">DETAILS</span>
+                        </a>
+                    </div>
+                </div>
+            </article>
+
+            <article class="parcel-card parcel-state" th:if="${#lists.isEmpty(notifications)}">
+                <div class="parcel-inner">
+                    <h2>NO NOTIFICATIONS YET.</h2>
+                    <p>Your shipment updates will appear here.</p>
+                </div>
+            </article>
+        </th:block>
+    </section>
+    <p class="notifications-limit" th:hidden="${notificationsError or #lists.size(notifications) < 50}">
+        Showing the 50 latest notifications.
+    </p>
+    <output class="notifications-refresh-error" hidden>Updates are temporarily unavailable. Your current list is still here.</output>
+</main>
+</body>
+</html>

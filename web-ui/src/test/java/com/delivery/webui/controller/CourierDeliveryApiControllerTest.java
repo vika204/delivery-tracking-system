@@ -2,7 +2,7 @@ package com.delivery.webui.controller;
 
 import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.TrackingLocationClient;
-import com.delivery.webui.controller.support.UpstreamProblemAdvice;
+import com.delivery.webui.exception.ApiExceptionHandler;
 import com.delivery.webui.service.CourierDeliveryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +13,8 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import static org.springframework.test.web.client.ExpectedCount.never;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.anything;
@@ -49,10 +51,12 @@ class CourierDeliveryApiControllerTest {
         shipmentService = MockRestServiceServer.bindTo(shipment).build();
         trackingService = MockRestServiceServer.bindTo(tracking).build();
         CourierDeliveryService service = new CourierDeliveryService(
-                new CourierShipmentClient(shipment.baseUrl("http://shipment.test").build()),
-                new TrackingLocationClient(tracking.baseUrl("http://tracking.test").build()));
+                HttpServiceProxyFactory.builderFor(RestClientAdapter.create(shipment.baseUrl("http://shipment.test").build()))
+                .build().createClient(CourierShipmentClient.class),
+                HttpServiceProxyFactory.builderFor(RestClientAdapter.create(tracking.baseUrl("http://tracking.test").build()))
+                .build().createClient(TrackingLocationClient.class));
         mockMvc = standaloneSetup(new CourierDeliveryApiController(service, COURIER))
-                .setControllerAdvice(new UpstreamProblemAdvice())
+                .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
 

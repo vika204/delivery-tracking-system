@@ -1,5 +1,7 @@
 package com.delivery.shipment.geo;
 
+import com.delivery.shipment.exception.AddressNotGeocodableException;
+
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

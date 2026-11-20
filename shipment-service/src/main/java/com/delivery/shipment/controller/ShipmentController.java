@@ -1,5 +1,6 @@
 package com.delivery.shipment.controller;
 
+import com.delivery.shipment.controller.support.RequestHeaders;
 import com.delivery.shipment.dto.CancelShipmentRequest;
 import com.delivery.shipment.dto.CourierShipmentView;
 import com.delivery.shipment.dto.CreateShipmentRequest;
@@ -15,7 +16,7 @@ import com.delivery.shipment.exception.ShipmentAccessDeniedException;
 import com.delivery.shipment.service.ShipmentLifecycleService;
 import com.delivery.shipment.service.ShipmentSearchCriteria;
 import com.delivery.shipment.service.ShipmentService;
-import com.delivery.shipment.web.RequestHeaders;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

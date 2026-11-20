@@ -68,9 +68,7 @@ export function formatPrice(uah) {
     return uah == null ? '—' : `${Number(uah).toFixed(2)} UAH`;
 }
 
-export function formatDistance(km) {
-    return km == null ? '—' : `${Number(km)} km`;
-}
+export {formatDistance} from './format-distance.js';
 
 /** Пропозицію треба розрахувати заново: прострочена, використана або не знайдена. */
 export function isQuoteProblem(problem) {

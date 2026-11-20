@@ -16,11 +16,13 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/profile.css}">
 
     <script defer th:src="@{/js/components/header.js}"></script>
     <script defer th:src="@{/js/components/cursor-webs.js}"></script>
-    <script defer th:src="@{/js/pages/profile.js}"></script>
+    <script defer th:src="@{/js/components/modal.js}"></script>
+    <script type="module" th:src="@{/js/pages/profile.js}"></script>
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
@@ -50,26 +52,27 @@
                     <section id="profile-view" aria-label="Profile information">
                         <div class="profile-data">
                             <span class="profile-label">FULL NAME</span>
-                            <span class="profile-name" id="display-name">Olena Kovalenko</span>
+                            <span class="profile-name" id="display-name">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">EMAIL ADDRESS</span>
-                            <span class="profile-value" id="display-email">olena@example.com</span>
+                            <span class="profile-value" id="display-email">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">PHONE NUMBER</span>
-                            <span class="profile-value" id="display-phone">+380 67 000 00 00</span>
+                            <span class="profile-value" id="display-phone">Not available</span>
                         </div>
 
                         <div class="profile-actions">
-                            <button type="button" class="profile-button profile-button--red web-button" id="edit-button">
+                            <button type="button" class="profile-button profile-button--red web-button" id="edit-button" disabled>
                                 <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                                 <span class="profile-button__label web-button__label">EDIT PROFILE</span>
                             </button>
                         </div>
                     </section>
 
-                    <form id="profile-form" hidden aria-label="Edit profile" autocomplete="on">
+                    <form id="profile-form" hidden aria-label="Edit profile" autocomplete="on" novalidate
+                          th:attr="data-profile-url=@{/api/profile}">
                         <div class="profile-fields">
                             <div class="profile-field">
                                 <label for="first-name">FIRST NAME</label>
@@ -90,7 +93,7 @@
                                 <label for="phone">PHONE NUMBER</label>
                                 <input id="phone" name="phone" type="tel"
                                        required maxlength="25"
-                                       pattern="[+0-9() .-]{7,25}"
+                                       pattern="[+0-9\(\) .\-]{7,25}"
                                        title="Use digits, spaces, +, parentheses or dashes"
                                        autocomplete="tel">
                             </div>
@@ -111,7 +114,8 @@
         </div>
     </article>
 
-    <output id="profile-message" class="profile-notice" aria-live="polite" hidden></output>
+    <output id="profile-message" class="profile-notice" aria-live="polite">Loading profile...</output>
 </main>
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

@@ -1,85 +1,72 @@
 package com.delivery.webui.client;
 
+import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.DispatchCourierOffer;
 import com.delivery.webui.client.dto.DispatchCourierProfile;
 import com.delivery.webui.client.dto.DispatchCourierStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
+import com.delivery.webui.client.dto.UpdateCourierProfileRequest;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.service.annotation.GetExchange;
+import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PatchExchange;
+import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.service.annotation.PutExchange;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
-/** Courier API у dispatch-service; кожен запит іде від імені кур'єра (X-User-Id). */
-@Component
-public class DispatchCourierDashboardClient {
+@HttpExchange("/couriers")
+public interface DispatchCourierDashboardClient {
 
-    static final String USER_ID = "X-User-Id";
+    @GetExchange("/{id}")
+    DispatchCourierProfile profile(@PathVariable("id") long courierId);
 
-    private final RestClient restClient;
+    @PatchExchange(value = "/{id}", contentType = MediaType.APPLICATION_JSON_VALUE)
+    DispatchCourierProfile updateProfile(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId,
+            @RequestBody UpdateCourierProfileRequest profile
+    );
 
-    @Autowired
-    public DispatchCourierDashboardClient(RestClient.Builder builder, @Value("${dispatch.client.base-url}") String baseUrl) {
-        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(3));
-        this.restClient = builder.baseUrl(baseUrl).requestFactory(requestFactory).build();
-    }
+    @GetExchange("/{id}/status")
+    DispatchCourierStatus status(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId
+    );
 
-    public DispatchCourierDashboardClient(RestClient restClient) {
-        this.restClient = restClient;
-    }
+    @GetExchange("/{id}/offers/current")
+    DispatchCourierOffer currentOffer(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId
+    );
 
-    public DispatchCourierProfile profile(long courierId) {
-        return restClient.get().uri("/couriers/{id}", courierId)
-                .retrieve().body(DispatchCourierProfile.class);
-    }
+    @GetExchange("/{id}/assignments?active=true")
+    List<DispatchCourierAssignment> activeAssignments(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId
+    );
 
-    public DispatchCourierStatus status(long courierId) {
-        return restClient.get().uri("/couriers/{id}/status", courierId)
-                .header(USER_ID, String.valueOf(courierId))
-                .retrieve().body(DispatchCourierStatus.class);
-    }
+    @PutExchange(value = "/{id}/availability", contentType = MediaType.APPLICATION_JSON_VALUE)
+    void setAvailability(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId,
+            @RequestBody AvailabilityRequest request
+    );
 
-    /** null — пропозиції немає (204). */
-    public DispatchCourierOffer currentOffer(long courierId) {
-        return restClient.get().uri("/couriers/{id}/offers/current", courierId)
-                .header(USER_ID, String.valueOf(courierId))
-                .retrieve().body(DispatchCourierOffer.class);
-    }
+    @PostExchange("/{id}/offers/{offerId}/accept")
+    void acceptOffer(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId,
+            @PathVariable("offerId") long offerId
+    );
 
-    public List<DispatchCourierAssignment> activeAssignments(long courierId) {
-        List<DispatchCourierAssignment> assignments = restClient.get()
-                .uri("/couriers/{id}/assignments?active=true", courierId)
-                .header(USER_ID, String.valueOf(courierId))
-                .retrieve().body(new ParameterizedTypeReference<>() {});
-        return assignments == null ? List.of() : assignments;
-    }
-
-    public void setAvailability(long courierId, boolean online) {
-        restClient.put().uri("/couriers/{id}/availability", courierId)
-                .header(USER_ID, String.valueOf(courierId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("online", online))
-                .retrieve().toBodilessEntity();
-    }
-
-    public void acceptOffer(long courierId, long offerId) {
-        restClient.post().uri("/couriers/{id}/offers/{offerId}/accept", courierId, offerId)
-                .header(USER_ID, String.valueOf(courierId))
-                .retrieve().toBodilessEntity();
-    }
-
-    public void declineOffer(long courierId, long offerId) {
-        restClient.post().uri("/couriers/{id}/offers/{offerId}/decline", courierId, offerId)
-                .header(USER_ID, String.valueOf(courierId))
-                .retrieve().toBodilessEntity();
-    }
+    @PostExchange("/{id}/offers/{offerId}/decline")
+    void declineOffer(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId,
+            @PathVariable("offerId") long offerId
+    );
 }

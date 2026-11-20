@@ -1,5 +1,7 @@
 package com.delivery.shipment.chaos;
 
+import com.delivery.shipment.exception.ChaosFailureException;
+
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ThreadLocalRandom;

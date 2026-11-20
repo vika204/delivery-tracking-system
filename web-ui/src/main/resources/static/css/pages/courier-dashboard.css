@@ -76,6 +76,7 @@ p {
 }
 
 .portrait {
+    position: relative;
     width: min(244px, 100%);
     aspect-ratio: 1;
     margin: 0 auto 8px;
@@ -92,6 +93,14 @@ p {
     object-fit: cover;
     object-position: center;
     transform: scale(1.1);
+}
+
+.portrait img.open-to-work-frame {
+    position: absolute;
+    inset: 0;
+    object-fit: contain;
+    transform: none;
+    pointer-events: none;
 }
 
 .courier-name {

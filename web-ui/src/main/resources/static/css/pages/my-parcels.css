@@ -176,6 +176,11 @@ body::after {
     box-shadow: 3px 4px #2a1812;
 }
 
+.btn[aria-disabled="true"] {
+    opacity: .55;
+    pointer-events: none;
+}
+
 .btn-label {
     position: relative;
     z-index: 2;
@@ -216,6 +221,8 @@ body::after {
 .detail-actions {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
 }
 
 .parcel-state {
@@ -235,6 +242,16 @@ body::after {
 
 .parcel-state .btn {
     margin-top: 22px;
+}
+
+.parcel-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 23px;
+    font: 800 18px var(--font-condensed);
 }
 
 @media (max-width: 650px) {
@@ -295,6 +312,10 @@ body::after {
     transform: scale(1.02);
     box-shadow: 5px 7px 0 rgba(42, 24, 18, 0.18);
     z-index: 2;
+}
+
+.parcel-card--subtle:hover {
+    transform: scale(1.005);
 }
 
 @media (prefers-reduced-motion: reduce) {

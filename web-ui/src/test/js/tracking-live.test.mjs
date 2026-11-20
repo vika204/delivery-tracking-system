@@ -5,6 +5,7 @@ import {
     loadLocationBackfill,
     startLiveTracking
 } from "../../main/resources/static/js/components/tracking-live.js";
+import {TrackingLocationStore} from "../../main/resources/static/js/components/tracking-map-state.js";
 
 test("opens the first EventSource and receives GPS updates", async () => {
     const harness = createHarness();
@@ -244,6 +245,125 @@ test("complete with a non-terminal status reconnects safely", async () => {
     assert.deepEqual(harness.timers.delays(), [1000]);
 });
 
+test("refreshes ASSIGNED and IN_TRANSIT on connection events without status polling", async () => {
+    const statuses = ["ASSIGNED", "IN_TRANSIT"];
+    const harness = createHarness({
+        fetchStatus: async () => ({shipmentId: 15, status: statuses.shift()})
+    });
+
+    await harness.sources[0].emit("open");
+    assert.equal(harness.deliveryStatus.textContent, "COURIER ASSIGNED");
+    harness.timers.runNext();
+    assert.equal(harness.timers.size, 0);
+    await harness.sources[0].emit("error");
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources.length, 1);
+    assert.equal(harness.sources[0].closed, true);
+    assert.deepEqual(harness.timers.delays(), [1000]);
+});
+
+for (const status of ["DELIVERED", "CANCELLED"]) {
+    test(`stream completion confirms ${status} without another GPS point and preserves the route`, async () => {
+        const harness = createHarness({
+            initialLocations: [location(10)],
+            fetchStatus: async () => ({shipmentId: 15, status})
+        });
+
+        await harness.sources[0].emit("complete");
+        assert.equal(harness.deliveryStatus.textContent, status);
+        assert.equal(harness.sources[0].closeCount, 1);
+        assert.equal(harness.status.element.hidden, true);
+        assert.equal(harness.timers.size, 0);
+        assert.deepEqual(harness.mapApi.locationIds(), [10]);
+        await harness.sources[0].emit("complete");
+        assert.equal(harness.sources[0].closeCount, 1);
+    });
+}
+
+test("disabled streaming starts no status requests, timers or page listeners", async () => {
+    let requests = 0;
+    const harness = createHarness({
+        config: {shipmentId: 15, streamEnabled: false},
+        mapApi: null,
+        createEventSource: null,
+        fetchBackfill: null,
+        fetchStatus: async () => {
+            requests += 1;
+            return {shipmentId: 15, status: "ASSIGNED"};
+        }
+    });
+
+    await Promise.resolve();
+    assert.equal(requests, 0);
+    assert.equal(harness.sources.length, 0);
+    assert.equal(harness.timers.size, 0);
+    assert.equal(harness.page.listeners.size, 0);
+});
+
+test("a network failure preserves the confirmed status and retries later", async () => {
+    let requests = 0;
+    const harness = createHarness({
+        fetchStatus: async () => {
+            if (++requests === 1) throw new Error("Network unavailable");
+            return {shipmentId: 15, status: "DELIVERED"};
+        }
+    });
+
+    await harness.sources[0].emit("complete");
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closed, true);
+    assert.deepEqual(harness.timers.delays(), [1000]);
+    await harness.timers.runNext();
+    await harness.sources[1].emit("open");
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+});
+
+test("opening and SSE completion share one pending status request", async () => {
+    const pending = deferred();
+    let requests = 0;
+    const harness = createHarness({
+        fetchStatus: () => {
+            requests += 1;
+            return pending.promise;
+        }
+    });
+
+    const refresh = harness.sources[0].emit("open");
+    const completion = harness.sources[0].emit("complete");
+    await Promise.resolve();
+    assert.equal(requests, 1);
+    assert.equal(harness.timers.size, 0);
+    pending.resolve({shipmentId: 15, status: "DELIVERED"});
+    await Promise.all([refresh, completion]);
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+    assert.equal(harness.timers.size, 0);
+});
+
+test("leaving the page ignores a late status response and cancels timers", async () => {
+    const pending = deferred();
+    const harness = createHarness({
+        fetchStatus: () => pending.promise
+    });
+
+    const refresh = harness.sources[0].emit("open");
+    harness.page.emit("pagehide");
+    pending.resolve({shipmentId: 15, status: "DELIVERED"});
+    await refresh;
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closeCount, 1);
+    assert.equal(harness.timers.size, 0);
+});
+
+test("ignores status belonging to a different shipment", async () => {
+    const harness = createHarness({
+        fetchStatus: async () => ({shipmentId: 99, status: "DELIVERED"})
+    });
+
+    await harness.sources[0].emit("open");
+    assert.equal(harness.deliveryStatus.textContent, "YOUR COURIER IS ON THE WAY");
+    assert.equal(harness.sources[0].closed, false);
+});
+
 test("temporary status failure reconnects but permanent rejection stops", async () => {
     const temporary = createHarness({
         fetchStatus: async () => {
@@ -401,7 +521,7 @@ test("backfills points missed while SSE was disconnected", async () => {
     assert.equal(harness.status.text.textContent, "LIVE");
 });
 
-test("merges buffered SSE and REST points in locationId order", async () => {
+test("concurrent SSE and REST points are restored in locationId order without duplicates", async () => {
     const pendingBackfill = deferred();
     const harness = createHarness({
         initialLocations: [location(10)],
@@ -444,11 +564,11 @@ test("REST backfill failure preserves the route and schedules retry", async () =
 
     assert.deepEqual(harness.mapApi.locationIds(), [9, 10]);
     assert.equal(harness.mapApi.historyComplete, false);
-    assert.equal(harness.sources[0].closed, true);
+    assert.equal(harness.sources[0].closed, false);
     assert.deepEqual(harness.timers.delays(), [1000]);
 });
 
-test("incomplete backfill does not leap over buffered SSE points", async () => {
+test("incomplete backfill does not leap over concurrent SSE points", async () => {
     const pendingBackfill = deferred();
     const harness = createHarness({
         initialLocations: [location(10)],
@@ -468,10 +588,15 @@ test("incomplete backfill does not leap over buffered SSE points", async () => {
     assert.deepEqual(harness.timers.delays(), [1000]);
 });
 
-test("bounds the SSE buffer and retries without skipping overflowed points", async () => {
+test("restores more than 500 concurrent events in bounded batches without an SSE buffer", async () => {
     const pendingBackfill = deferred();
+    const requestedAfterIds = [];
     const harness = createHarness({
-        fetchBackfill: () => pendingBackfill.promise
+        fetchBackfill: (_shipmentId, afterLocationId) => {
+            requestedAfterIds.push(afterLocationId);
+            if (requestedAfterIds.length === 1) return pendingBackfill.promise;
+            return Promise.resolve({locations: [location(501)], complete: true});
+        }
     });
     const synchronization = harness.sources[0].emit("open");
 
@@ -479,13 +604,244 @@ test("bounds the SSE buffer and retries without skipping overflowed points", asy
         harness.sources[0].emit("location", locationEvent(locationId));
     }
 
-    pendingBackfill.resolve({locations: [], complete: true});
+    pendingBackfill.resolve({
+        locations: Array.from({length: 500}, (_, index) => location(index + 1)),
+        complete: false
+    });
     await synchronization;
 
     assert.equal(harness.mapApi.locationIds().length, 500);
     assert.equal(harness.mapApi.locationIds().at(-1), 500);
     assert.equal(harness.mapApi.historyComplete, false);
     assert.deepEqual(harness.timers.delays(), [1000]);
+    assert.equal(harness.sources[0].closed, false);
+    await harness.timers.runNext();
+    assert.deepEqual(requestedAfterIds, [0, 500]);
+    assert.deepEqual(harness.mapApi.locationIds(), Array.from({length: 501}, (_, index) => index + 1));
+    assert.equal(harness.mapApi.currentLocationId, 501);
+    assert.equal(harness.mapApi.historyComplete, true);
+    assert.equal(harness.status.text.textContent, "LIVE");
+});
+
+test("does not append a later SSE point until REST has caught up to its ID", async () => {
+    let requests = 0;
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchBackfill: async () => ({
+            locations: ++requests === 1 ? [location(11)] : [location(12), location(13)],
+            complete: true
+        })
+    });
+    const opening = harness.sources[0].emit("open");
+    harness.sources[0].emit("location", locationEvent(13));
+    await opening;
+
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11]);
+    assert.equal(harness.mapApi.historyComplete, false);
+    assert.equal(harness.mapApi.currentLocationId, null);
+    await harness.timers.runNext();
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11, 12, 13]);
+    assert.equal(harness.mapApi.currentLocationId, 13);
+});
+
+test("a new connection waits for an older REST request then checks the gap again", async () => {
+    const pending = deferred();
+    const started = deferred();
+    const cursors = [];
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchBackfill: (_shipmentId, cursor) => {
+            cursors.push(cursor);
+            if (cursors.length === 1) {
+                started.resolve();
+                return pending.promise;
+            }
+            return Promise.resolve({locations: [location(12)], complete: true});
+        }
+    });
+    const firstOpening = harness.sources[0].emit("open");
+    await started.promise;
+    await harness.sources[0].emit("error");
+    harness.timers.runNext();
+    const secondOpening = harness.sources[1].emit("open");
+    pending.resolve({locations: [location(11)], complete: true});
+    await Promise.all([firstOpening, secondOpening]);
+
+    assert.deepEqual(cursors, [10, 11]);
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11, 12]);
+    assert.equal(harness.mapApi.historyComplete, true);
+    assert.equal(activeSourceCount(harness.sources), 1);
+});
+
+test("terminal completion fetches the final history after an already pending REST request", async () => {
+    const pending = deferred();
+    const started = deferred();
+    let status = "IN_TRANSIT";
+    const cursors = [];
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchStatus: async () => ({shipmentId: 15, status}),
+        fetchBackfill: (_shipmentId, cursor) => {
+            cursors.push(cursor);
+            if (cursors.length === 1) {
+                started.resolve();
+                return pending.promise;
+            }
+            return Promise.resolve({locations: [location(11)], complete: true});
+        }
+    });
+    const opening = harness.sources[0].emit("open");
+    await started.promise;
+    status = "DELIVERED";
+    const completion = harness.sources[0].emit("complete");
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+    pending.resolve({locations: [], complete: true});
+    await Promise.all([opening, completion]);
+    assert.equal(harness.deliveryStatus.textContent, "DELIVERED");
+    assert.equal(harness.sources[0].closeCount, 1);
+
+    await harness.timers.runNext();
+    assert.deepEqual(cursors, [10, 10]);
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11]);
+    assert.equal(harness.timers.size, 0);
+    assert.equal(harness.sources.length, 1);
+    assert.equal(harness.status.element.hidden, true);
+});
+
+test("failed final backfill retries without opening another stream for a terminal shipment", async () => {
+    let requests = 0;
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchStatus: async () => ({shipmentId: 15, status: "CANCELLED"}),
+        fetchBackfill: async () => {
+            if (++requests === 1) throw new Error("History unavailable");
+            return {locations: [location(11)], complete: true};
+        }
+    });
+    await harness.sources[0].emit("complete");
+    assert.equal(harness.deliveryStatus.textContent, "CANCELLED");
+    assert.equal(harness.sources[0].closeCount, 1);
+    assert.equal(harness.status.element.hidden, true);
+    await harness.timers.runNext();
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11]);
+    assert.equal(harness.sources.length, 1);
+    assert.equal(harness.timers.size, 0);
+});
+
+test("ignores invalid JSON, wrong shipments, invalid IDs and coordinates in SSE", async () => {
+    const harness = createHarness({initialLocations: [location(10)]});
+    const source = harness.sources[0];
+    await source.emit("open");
+    const invalid = [
+        {data: "{"},
+        {data: "null"},
+        {data: JSON.stringify(location(11, 99))},
+        {data: JSON.stringify(location(0))},
+        {data: JSON.stringify(location(1.5))},
+        {data: JSON.stringify({...location(11), latitude: 100})},
+        {data: JSON.stringify({...location(11), longitude: -200})}
+    ];
+    for (const event of invalid) source.emit("location", event);
+    assert.deepEqual(harness.mapApi.locationIds(), [10]);
+    source.emit("location", locationEvent(11));
+    source.emit("location", locationEvent(11));
+    source.emit("location", locationEvent(9));
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 11]);
+});
+
+test("invalid SSE values during backfill do not prevent history from becoming complete", async () => {
+    const harness = createHarness();
+    const opening = harness.sources[0].emit("open");
+    harness.sources[0].emit("location", {data: JSON.stringify(location(100, 99))});
+    harness.sources[0].emit("location", {
+        data: JSON.stringify({...location(200), latitude: 100})
+    });
+    await opening;
+    assert.equal(harness.mapApi.historyComplete, true);
+    assert.equal(harness.status.text.textContent, "LIVE");
+    assert.deepEqual(harness.timers.delays(), [10000]);
+});
+
+test("the existing map store rejects invalid REST coordinates without breaking the route", async () => {
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchBackfill: async () => ({
+            locations: [{...location(11), latitude: 100}, location(12)],
+            complete: true
+        })
+    });
+    await harness.sources[0].emit("open");
+    assert.deepEqual(harness.mapApi.locationIds(), [10, 12]);
+    assert.equal(harness.mapApi.currentLocationId, 12);
+    assert.equal(harness.status.text.textContent, "LIVE");
+});
+
+for (const page of [null, {}, [location(11, 99)], [location(0)], [location(10)], [location(12), location(11)]]) {
+    test(`rejects an invalid GPS history page: ${JSON.stringify(page)}`, async () => {
+        await assert.rejects(loadLocationBackfill({
+            shipmentId: 15,
+            afterLocationId: 10,
+            fetchPage: async () => page
+        }), /Invalid GPS history/);
+    });
+}
+
+test("limits each history batch without a separate probe request", async () => {
+    const requests = [];
+    const result = await loadLocationBackfill({
+        shipmentId: 15,
+        afterLocationId: 0,
+        pageSize: 2,
+        maxLocations: 3,
+        fetchPage: async (_shipmentId, cursor, limit) => {
+            requests.push({cursor, limit});
+            return Array.from({length: limit}, (_, index) => location(cursor + index + 1));
+        }
+    });
+    assert.deepEqual(requests, [{cursor: 0, limit: 2}, {cursor: 2, limit: 1}]);
+    assert.equal(result.locations.length, 3);
+    assert.equal(result.complete, false);
+});
+
+test("leaving the page ignores a pending history response", async () => {
+    const pending = deferred();
+    const started = deferred();
+    const harness = createHarness({
+        initialLocations: [location(10)],
+        fetchBackfill: () => {
+            started.resolve();
+            return pending.promise;
+        }
+    });
+    const opening = harness.sources[0].emit("open");
+    await started.promise;
+    harness.page.emit("pagehide");
+    harness.page.emit("beforeunload");
+    pending.resolve({locations: [location(11)], complete: true});
+    await opening;
+    assert.deepEqual(harness.mapApi.locationIds(), [10]);
+    assert.equal(harness.sources[0].closeCount, 1);
+    assert.equal(harness.timers.size, 0);
+});
+
+test("an EventSource constructor failure retries with backoff and jitter", async () => {
+    const timers = new FakeTimers();
+    let attempts = 0;
+    const result = startLiveTracking(baseOptions({
+        setTimer: timers.setTimer,
+        clearTimer: timers.clearTimer,
+        random: () => 0,
+        createEventSource: () => {
+            attempts += 1;
+            throw new Error("Cannot connect");
+        }
+    }));
+    assert.equal(result, null);
+    assert.deepEqual(timers.delays(), [900]);
+    timers.runNext();
+    assert.equal(attempts, 2);
+    assert.deepEqual(timers.delays(), [1800]);
 });
 
 function createHarness(overrides = {}) {
@@ -576,23 +932,18 @@ function createFakeMapApi(received, initialLocations = []) {
     const locations = [...initialLocations].sort(
         (left, right) => left.locationId - right.locationId
     );
+    const store = new TrackingLocationStore(15, locations);
 
     return {
         historyComplete: true,
         currentLocationId: locations.at(-1)?.locationId ?? 0,
         bulkCalls: 0,
         appendLocation(locationToAppend) {
-            const locationId = Number(locationToAppend?.locationId);
-
-            if (!Number.isSafeInteger(locationId) || locationId <= 0 ||
-                Number(locationToAppend?.shipmentId) !== 15 ||
-                locationId <= (locations.at(-1)?.locationId ?? 0)) {
-                return false;
-            }
-
-            locations.push(locationToAppend);
-            received.push(locationToAppend);
-            this.currentLocationId = locationId;
+            const normalized = store.append(locationToAppend);
+            if (!normalized) return false;
+            locations.push(normalized);
+            received.push(normalized);
+            this.currentLocationId = normalized.locationId;
             return true;
         },
         appendLocations(batch, {updateCurrentPosition = true} = {}) {
@@ -648,17 +999,21 @@ class FakeEventSource {
     closed = false;
     closeCount = 0;
     url = null;
+    readyState = 0;
 
     addEventListener(name, listener) {
         this.listeners.set(name, listener);
     }
 
     emit(name, event = {}) {
+        if (name === "open") this.readyState = 1;
+        if (name === "error") this.readyState = 0;
         return this.listeners.get(name)?.(event);
     }
 
     close() {
         this.closed = true;
+        this.readyState = 2;
         this.closeCount += 1;
     }
 }

@@ -6,23 +6,15 @@ import com.delivery.notification.entity.NotificationType;
 import java.time.LocalDateTime;
 
 public record NotificationResponse(
-        Long notificationId,
-        Long userId,
-        Long shipmentId,
+        long notificationId,
+        long shipmentId,
         NotificationType type,
         String message,
-        boolean isRead,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean read
 ) {
-
-    public static NotificationResponse from(Notification n) {
-        return new NotificationResponse(
-                n.getNotificationId(),
-                n.getUserId(),
-                n.getShipmentId(),
-                n.getType(),
-                n.getMessage(),
-                n.isRead(),
-                n.getCreatedAt());
+    public static NotificationResponse from(Notification notification) {
+        return new NotificationResponse(notification.getNotificationId(), notification.getShipmentId(),
+                notification.getType(), notification.getMessage(), notification.getCreatedAt(), notification.isRead());
     }
 }

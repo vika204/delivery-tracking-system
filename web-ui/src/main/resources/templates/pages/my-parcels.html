@@ -12,9 +12,12 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
     <script th:src="@{/js/components/header.js}" defer></script>
     <script th:src="@{/js/components/cursor-webs.js}" defer></script>
+    <script th:src="@{/js/components/modal.js}" defer></script>
+    <script th:src="@{/js/components/shipment-cancel.js}" defer></script>
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
@@ -24,20 +27,18 @@
     <section aria-label="My parcels">
         <div class="parcel-list" aria-live="polite">
             <article class="parcel-card parcel-state"
-                     th:if="${parcelsLoading}">
-                <div class="parcel-inner">
-                    <h2>LOADING YOUR PARCELS...</h2>
-                </div>
-            </article>
-
-            <article class="parcel-card parcel-state"
                      th:if="${parcelsError}">
                 <div class="parcel-inner">
                     <h2>PARCELS ARE TEMPORARILY UNAVAILABLE.</h2>
+                    <p>Please try again in a moment.</p>
+                    <a class="btn btn-red web-button" th:href="@{/my-parcels}">
+                        <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                        <span class="btn-label web-button__label">TRY AGAIN</span>
+                    </a>
                 </div>
             </article>
 
-            <th:block th:if="${!parcelsLoading and !parcelsError}">
+            <th:block th:if="${!parcelsError}">
                 <article class="parcel-card"
                          th:each="parcel : ${parcels}">
                     <div class="parcel-inner">
@@ -45,12 +46,12 @@
                             <h2 class="parcel-number"
                                 th:classappend="${parcel.delivered()} ? 'special' : ''"
                                 th:text="|SHIPMENT #${parcel.shipmentId()}|">
-                                SHIPMENT #15
+                                SHIPMENT
                             </h2>
-                            <span class="status"
+                            <span class="status" data-shipment-status
                                   th:classappend="${parcel.statusClass()}"
                                   th:text="${parcel.statusLabel()}">
-                                IN TRANSIT
+                                STATUS
                             </span>
                         </div>
 
@@ -61,25 +62,31 @@
                                 <span class="field-label">DESTINATION</span>
                                 <span class="field-value"
                                       th:text="${parcel.deliveryAddress()}">
-                                    Kyiv, Khreshchatyk 12
+                                    Not available
                                 </span>
                             </div>
                             <div class="field">
                                 <span class="field-label">COURIER</span>
                                 <span class="field-value"
                                       th:text="${parcel.courierName()}">
-                                    Andrii Kovalenko
+                                    Not available
                                 </span>
                             </div>
                         </div>
 
                         <div class="parcel-actions">
+                            <button class="btn btn-outline" type="button"
+                                    th:if="${parcel.cancellable()}"
+                                    th:attr="data-cancel-url=@{/api/shipments/{id}/cancel(id=${parcel.shipmentId()})}">
+                                <span class="btn-label">CANCEL SHIPMENT</span>
+                            </button>
                             <a class="btn btn-outline"
                                th:href="@{/my-parcels/{id}(id=${parcel.shipmentId()})}">
                                 <span class="btn-label">DETAILS</span>
                             </a>
-                            <a class="btn btn-red web-button"
-                               th:href="@{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')}">
+                            <a class="btn btn-red web-button" data-track-shipment
+                               th:href="${parcel.trackable()} ? @{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')} : null"
+                               th:attr="aria-disabled=${!parcel.trackable()} ? 'true' : null,tabindex=${!parcel.trackable()} ? '-1' : null">
                                 <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                                 <span class="btn-label web-button__label">TRACK PACKAGE</span>
                             </a>
@@ -90,17 +97,26 @@
                 <article class="parcel-card parcel-state"
                          th:if="${#lists.isEmpty(parcels)}">
                     <div class="parcel-inner">
-                        <h2>YOU HAVE NO PARCELS YET.</h2>
-                        <p>Your deliveries will appear here.</p>
-                        <button type="button" class="btn btn-red web-button" disabled>
+                        <h2 th:text="${page == 0} ? 'YOU HAVE NO PARCELS YET.' : 'NO PARCELS ON THIS PAGE.'">YOU HAVE NO PARCELS YET.</h2>
+                        <p th:if="${page == 0}">Your deliveries will appear here.</p>
+                        <a class="btn btn-red web-button" th:href="@{/ship}">
                             <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                             <span class="btn-label web-button__label">CREATE A SHIPMENT</span>
-                        </button>
+                        </a>
                     </div>
                 </article>
             </th:block>
         </div>
+        <nav class="parcel-pagination" aria-label="Parcel pages"
+             th:if="${!parcelsError and (page > 0 or hasNext)}">
+            <a class="btn btn-outline" th:if="${page > 0}"
+               th:href="@{/my-parcels(page=${page - 1})}">PREVIOUS</a>
+            <span th:text="|PAGE ${page + 1}|">PAGE 1</span>
+            <a class="btn btn-outline" th:if="${hasNext}"
+               th:href="@{/my-parcels(page=${page + 1})}">NEXT</a>
+        </nav>
     </section>
 </main>
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

@@ -21,17 +21,18 @@ class CourierProfilePageControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void opensCourierProfilePrototype() throws Exception {
+    void opensCourierProfileWithRealDataEndpointAndFixedPortrait() throws Exception {
         mockMvc.perform(get("/courier/profile"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/courier-profile"))
-                .andExpect(content().string(containsString("Andrii Kovalenko")))
-                .andExpect(content().string(containsString("andrii@gmail.com")))
-                .andExpect(content().string(containsString("+380 67 123 45 67")))
+                .andExpect(content().string(containsString("data-profile-url=\"/api/courier/profile\"")))
+                .andExpect(content().string(not(containsString("andrii@gmail.com"))))
+                .andExpect(content().string(not(containsString("type=\"file\""))))
                 .andExpect(content().string(containsString("WORK ZONE")))
                 .andExpect(content().string(containsString("MAX PACKAGE WEIGHT")))
                 .andExpect(content().string(containsString("courier-dashboard-portrait.webp")))
-                .andExpect(content().string(containsString("courier-profile.js")))
+                .andExpect(content().string(containsString("/js/pages/profile.js")))
+                .andExpect(content().string(containsString("id=\"we-modal\"")))
                 .andExpect(content().string(containsString("site-header")))
                 .andExpect(content().string(containsString("href=\"/courier/dashboard\"")))
                 .andExpect(content().string(containsString("href=\"/courier/profile\"")));

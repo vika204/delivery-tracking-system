@@ -26,7 +26,7 @@
     margin: 0 0 5px;
 
     color: #78634e;
-    font: 700 10px/1.2 var(--font-condensed);
+    font: 800 10px/1.2 var(--font-condensed);
     letter-spacing: 0.14em;
 }
 
@@ -34,8 +34,7 @@
     margin: 0;
 
     color: var(--ink);
-    font-size: 13px;
-    line-height: 1.45;
+    font: 600 13px/1.45 var(--font-body);
     overflow-wrap: anywhere;
 }
 
@@ -50,13 +49,13 @@
     margin: 0;
 
     color: var(--ink);
-    font: 400 32px/1 var(--font-display);
+    font: 900 32px/1 var(--font-condensed);
     letter-spacing: -0.01em;
 }
 
 .tracking-card__field--status dd {
     color: var(--red);
-    font: 700 20px/1.15 var(--font-condensed);
+    font: 900 20px/1.15 var(--font-condensed);
 }
 
 @media (max-width: 760px) {

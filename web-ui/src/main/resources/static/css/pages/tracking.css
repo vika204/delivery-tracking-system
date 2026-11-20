@@ -2,6 +2,7 @@
     max-width: 1120px;
     margin: auto;
     padding: 30px 30px 28px;
+    font-weight: 600;
 }
 
 .tracking-heading {
@@ -15,13 +16,13 @@
 
 .tracking-heading__eyebrow {
     margin: 0 0 13px;
-    font: 700 13px var(--font-condensed);
+    font: 800 13px var(--font-condensed);
     letter-spacing: 0.125em;
 }
 
 .tracking-heading h1 {
     margin: 0;
-    font: 400 clamp(36px, 4.6vw, 64px)/1.02 var(--font-display);
+    font: 900 clamp(36px, 4.6vw, 64px)/1.02 var(--font-condensed);
     letter-spacing: -0.017em;
     text-shadow: 1px 1px rgba(15, 11, 8, 0.15);
 }
@@ -53,7 +54,7 @@
     outline: none;
     background: none;
     color: var(--ink);
-    font-size: 13px;
+    font: 600 13px var(--font-body);
 }
 
 .tracking-search button {
@@ -64,7 +65,7 @@
     color: #fff0db;
     box-shadow: 2px 2px #2a1812;
 
-    font: 700 15px var(--font-condensed);
+    font: 800 15px var(--font-condensed);
 }
 
 .tracking-search button:hover {

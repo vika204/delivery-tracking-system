@@ -36,6 +36,15 @@
                 TRACK
             </a>
 
+            <a class="site-header__desktop-only site-header__notifications"
+               th:href="@{/notifications}"
+               th:attr="data-notification-status-url=@{/api/notifications/unread},data-notification-read-url=@{/api/notifications/read}"
+               th:classappend="${currentPage == 'notifications'} ? 'active' : ''">
+                NOTIFICATIONS
+                <span class="site-header__notification-dot" role="img" aria-label="New notifications"
+                      data-notification-indicator hidden></span>
+            </a>
+
             <div class="site-header__profile" data-profile-menu>
                 <button class="site-header__profile-button"
                         th:classappend="${currentPage == 'profile'} ? 'active' : ''"
@@ -75,6 +84,14 @@
                        th:href="@{/profile}"
                        th:classappend="${currentPage == 'profile'} ? 'active' : ''">
                         MY PROFILE
+                    </a>
+                    <a class="site-header__mobile-only site-header__notifications"
+                       role="menuitem"
+                       th:href="@{/notifications}"
+                       th:classappend="${currentPage == 'notifications'} ? 'active' : ''">
+                        NOTIFICATIONS
+                        <span class="site-header__notification-dot" role="img" aria-label="New notifications"
+                              data-notification-indicator hidden></span>
                     </a>
                     <button type="button" role="menuitem">LOG OUT</button>
                 </div>

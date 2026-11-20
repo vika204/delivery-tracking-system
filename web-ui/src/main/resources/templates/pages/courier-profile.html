@@ -16,13 +16,15 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/profile.css}">
     <link rel="stylesheet" th:href="@{/css/components/katottg-autocomplete.css}">
     <link rel="stylesheet" th:href="@{/css/pages/courier-profile.css}">
 
     <script defer th:src="@{/js/components/header.js}"></script>
     <script defer th:src="@{/js/components/cursor-webs.js}"></script>
-    <script type="module" th:src="@{/js/pages/courier-profile.js}"></script>
+    <script defer th:src="@{/js/components/modal.js}"></script>
+    <script type="module" th:src="@{/js/pages/profile.js}"></script>
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
@@ -45,45 +47,56 @@
                          width="1024"
                          height="1024"
                          draggable="false">
+                    <img class="open-to-work-frame"
+                         th:src="@{/images/open-to-work.png}"
+                         src="/images/open-to-work.png"
+                         alt="Open to work"
+                         draggable="false">
                 </figure>
 
                 <div class="profile-information">
                     <section id="profile-view" aria-label="Courier profile information">
                         <div class="profile-data">
                             <span class="profile-label">FULL NAME</span>
-                            <span class="profile-name" id="display-full-name">Andrii Kovalenko</span>
+                            <span class="profile-name" id="display-name">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">EMAIL ADDRESS</span>
-                            <span class="profile-value" id="display-email">andrii@gmail.com</span>
+                            <span class="profile-value" id="display-email">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">PHONE NUMBER</span>
-                            <span class="profile-value" id="display-phone">+380 67 123 45 67</span>
+                            <span class="profile-value" id="display-phone">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">WORK ZONE</span>
-                            <span class="profile-value" id="display-work-zone">Kyiv</span>
+                            <span class="profile-value" id="display-work-zone">Not available</span>
                         </div>
                         <div class="profile-data">
                             <span class="profile-label">MAX PACKAGE WEIGHT</span>
-                            <span class="profile-value" id="display-max-weight">20 kg</span>
+                            <span class="profile-value" id="display-max-weight">Not available</span>
                         </div>
 
                         <div class="profile-actions">
-                            <button type="button" class="profile-button profile-button--red web-button" id="edit-button">
+                            <button type="button" class="profile-button profile-button--red web-button" id="edit-button" disabled>
                                 <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                                 <span class="profile-button__label web-button__label">EDIT PROFILE</span>
                             </button>
                         </div>
                     </section>
 
-                    <form id="profile-form" hidden aria-label="Edit courier profile" autocomplete="on" novalidate>
+                    <form id="profile-form" hidden aria-label="Edit courier profile" autocomplete="on" novalidate
+                          th:attr="data-profile-url=@{/api/courier/profile}">
                         <div class="profile-fields courier-profile-fields">
                             <div class="profile-field profile-field--wide">
-                                <label for="full-name">FULL NAME</label>
-                                <input id="full-name" name="fullName" type="text"
-                                       required maxlength="140" autocomplete="name">
+                                <label for="first-name">FIRST NAME</label>
+                                <input id="first-name" name="firstName" type="text"
+                                       required maxlength="70" autocomplete="given-name">
+                            </div>
+                            <div class="profile-field profile-field--wide">
+                                <label for="last-name">LAST NAME</label>
+                                <input id="last-name" name="lastName" type="text"
+                                       required maxlength="70" autocomplete="family-name">
                             </div>
                             <div class="profile-field profile-field--wide">
                                 <label for="email">EMAIL ADDRESS</label>
@@ -93,7 +106,7 @@
                             <div class="profile-field profile-field--wide">
                                 <label for="phone">PHONE NUMBER</label>
                                 <input id="phone" name="phone" type="tel"
-                                       required maxlength="25" pattern="[+0-9() .-]{7,25}"
+                                       required maxlength="25" pattern="[+0-9\(\) .\-]{7,25}"
                                        title="Use digits, spaces, +, parentheses or dashes" autocomplete="tel">
                             </div>
                             <div class="profile-field profile-field--wide katottg-field">
@@ -117,7 +130,7 @@
                                 <label for="max-weight">MAX PACKAGE WEIGHT</label>
                                 <div class="weight-input">
                                     <input id="max-weight" name="maxWeight" type="number"
-                                           required min="1" max="1000" step="1" inputmode="numeric">
+                                           required min="0.01" max="1000" step="0.01" inputmode="decimal">
                                     <span aria-hidden="true">kg</span>
                                 </div>
                             </div>
@@ -138,7 +151,8 @@
         </div>
     </article>
 
-    <output id="profile-message" class="profile-notice" aria-live="polite" hidden></output>
+    <output id="profile-message" class="profile-notice" aria-live="polite">Loading profile...</output>
 </main>
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

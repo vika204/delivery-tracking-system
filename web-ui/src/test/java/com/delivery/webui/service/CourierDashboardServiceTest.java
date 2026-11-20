@@ -45,8 +45,8 @@ class CourierDashboardServiceTest {
         CourierDashboardView view = new CourierDashboardService(client).acceptOffer(7, 55);
 
         InOrder order = inOrder(client);
-        order.verify(client).acceptOffer(7, 55);
-        order.verify(client).status(7);
+        order.verify(client).acceptOffer(7, 7, 55);
+        order.verify(client).status(7, 7);
         assertThat(view.state()).isEqualTo("BUSY");
         assertThat(view.online()).isTrue();
         assertThat(view.deliveries()).containsExactly(delivery);
@@ -55,18 +55,25 @@ class CourierDashboardServiceTest {
     @Test
     void doesNotRefreshWhenDispatchRejectsAction() {
         doThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.CONFLICT, "Conflict", null, null, null))
-                .when(client).acceptOffer(7, 55);
+                .when(client).acceptOffer(7, 7, 55);
 
         CourierDashboardService service = new CourierDashboardService(client);
         assertThatThrownBy(() -> service.acceptOffer(7, 55))
                 .isInstanceOf(HttpClientErrorException.class);
-        verify(client, never()).status(7);
+        verify(client, never()).status(7, 7);
+    }
+
+    @Test
+    void treatsMissingAssignmentsBodyAsEmptyList() {
+        stubView(new DispatchCourierStatus(7, false, "UNAVAILABLE", 0, null), null);
+
+        assertThat(new CourierDashboardService(client).view(7).deliveries()).isEmpty();
     }
 
     private void stubView(DispatchCourierStatus status, List<DispatchCourierAssignment> deliveries) {
-        when(client.profile(7)).thenReturn(new DispatchCourierProfile(7L, "Olena"));
-        when(client.status(7)).thenReturn(status);
-        when(client.currentOffer(7)).thenReturn(null);
-        when(client.activeAssignments(7)).thenReturn(deliveries);
+        when(client.profile(7)).thenReturn(new DispatchCourierProfile(7L, "Olena", null, null, null, null));
+        when(client.status(7, 7)).thenReturn(status);
+        when(client.currentOffer(7, 7)).thenReturn(null);
+        when(client.activeAssignments(7, 7)).thenReturn(deliveries);
     }
 }
