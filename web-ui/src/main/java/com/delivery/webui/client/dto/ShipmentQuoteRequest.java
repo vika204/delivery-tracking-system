@@ -1,6 +1,5 @@
 package com.delivery.webui.client.dto;
 
-
 import java.math.BigDecimal;
 
 public record ShipmentQuoteRequest(
@@ -8,7 +7,6 @@ public record ShipmentQuoteRequest(
         String pickupCityCode,
         String deliveryAddress,
         String deliveryCityCode,
-        BigDecimal weight,
-        String deliveryType
+        BigDecimal weight
 ) {
 }

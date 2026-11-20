@@ -125,7 +125,6 @@ public class ShipmentService {
                 .height(request.height())
                 .distance(quote.getDistanceKm())
                 .price(quote.getTotalPrice())
-                .deliveryType(quote.getDeliveryType())
                 .quoteId(quote.getQuoteId())
                 .status(ShipmentStatus.WAITING_FOR_COURIER)
                 .build());

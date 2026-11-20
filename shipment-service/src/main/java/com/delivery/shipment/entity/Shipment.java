@@ -84,10 +84,6 @@ public class Shipment {
     @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "delivery_type")
-    private DeliveryType deliveryType;
-
     @Column(name = "quote_id")
     private UUID quoteId;
 
@@ -170,7 +166,7 @@ public class Shipment {
     public void updateRoute(
             String pickupAddress, String pickupCityCode, double pickupLatitude, double pickupLongitude,
             String deliveryAddress, String deliveryCityCode, double deliveryLatitude, double deliveryLongitude,
-            BigDecimal weight, DeliveryType deliveryType, BigDecimal distance, BigDecimal price
+            BigDecimal weight, BigDecimal distance, BigDecimal price
     ) {
         this.pickupAddress = pickupAddress;
         this.pickupCityCode = pickupCityCode;
@@ -181,7 +177,6 @@ public class Shipment {
         this.deliveryLatitude = deliveryLatitude;
         this.deliveryLongitude = deliveryLongitude;
         this.weight = weight;
-        this.deliveryType = deliveryType;
         this.distance = distance;
         this.price = price;
     }
@@ -210,7 +205,6 @@ public class Shipment {
         tripStartedAt = null;
         return true;
     }
-
 
     public boolean startTripToPickup(long courierId, Instant at) {
         requireAssignedCourier(courierId);
@@ -249,7 +243,6 @@ public class Shipment {
         deliveredAt = at;
         return true;
     }
-
 
     public boolean isSender(long userId) {
         return Objects.equals(this.userId, userId);

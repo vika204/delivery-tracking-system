@@ -75,7 +75,7 @@ class CourierControllerTest {
         when(dispatchService.acceptOffer(10, 55)).thenReturn(assignment);
         when(courierService.describe(assignment)).thenReturn(new AssignmentResponse(
                 3, 15, AssignmentStatus.ACTIVE, false, null, null, null, null,
-                "Kyiv, A", "Kyiv, B", null, null, null, "STANDARD"));
+                "Kyiv, A", "Kyiv, B", null, null, null));
 
         mockMvc.perform(post("/couriers/10/offers/55/accept").header("X-User-Id", "10"))
                 .andExpect(status().isOk())

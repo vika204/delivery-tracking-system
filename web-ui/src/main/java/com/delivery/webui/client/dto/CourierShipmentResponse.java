@@ -13,8 +13,7 @@ public record CourierShipmentResponse(
         BigDecimal width,
         BigDecimal height,
         BigDecimal distance,
-        BigDecimal price,
-        String deliveryType
+        BigDecimal price
 ) {
 
     public record Contact(String initials, String phone) {

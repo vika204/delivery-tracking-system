@@ -2,7 +2,6 @@ package com.delivery.shipment.service;
 
 import com.delivery.shipment.config.TariffProperties;
 import com.delivery.shipment.dto.PriceBreakdown;
-import com.delivery.shipment.entity.DeliveryType;
 
 import org.springframework.stereotype.Component;
 
@@ -18,11 +17,10 @@ public class PriceCalculator {
         this.tariff = tariff;
     }
 
-    public PriceBreakdown calculate(BigDecimal distanceKm, BigDecimal weightKg, DeliveryType deliveryType) {
+    public PriceBreakdown calculate(BigDecimal distanceKm, BigDecimal weightKg) {
         BigDecimal distanceCharge = money(distanceKm.multiply(tariff.pricePerKm()));
         BigDecimal weightCharge = money(weightKg.multiply(tariff.pricePerKg()));
-        BigDecimal subtotal = money(tariff.basePrice().add(distanceCharge).add(weightCharge));
-        BigDecimal multiplier = multiplier(deliveryType);
+        BigDecimal total = money(tariff.basePrice().add(distanceCharge).add(weightCharge));
 
         return new PriceBreakdown(
                 money(tariff.basePrice()),
@@ -32,15 +30,8 @@ public class PriceCalculator {
                 weightKg,
                 tariff.pricePerKg(),
                 weightCharge,
-                subtotal,
-                deliveryType,
-                multiplier,
-                money(subtotal.multiply(multiplier))
+                total
         );
-    }
-
-    private BigDecimal multiplier(DeliveryType deliveryType) {
-        return deliveryType == DeliveryType.EXPRESS ? tariff.expressMultiplier() : BigDecimal.ONE;
     }
 
     private static BigDecimal money(BigDecimal value) {

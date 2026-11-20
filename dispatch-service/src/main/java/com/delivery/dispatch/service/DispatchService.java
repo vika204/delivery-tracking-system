@@ -96,8 +96,8 @@ public class DispatchService {
         DispatchRequest draft = newRequest(snapshot.shipmentId(), DispatchRequestStatus.SEARCHING);
         applySnapshot(draft, snapshot);
         DispatchRequest request = requestRepository.save(draft);
-        log.info("Courier search started: shipmentId={}, pickupCityCode={}, weight={}, type={}",
-                request.getShipmentId(), request.getPickupCityCode(), request.getParcelWeight(), request.getDeliveryType());
+        log.info("Courier search started: shipmentId={}, pickupCityCode={}, weight={}",
+                request.getShipmentId(), request.getPickupCityCode(), request.getParcelWeight());
         dispatch(request);
     }
 
@@ -571,7 +571,6 @@ public class DispatchService {
         request.setParcelWeight(snapshot.weight());
         request.setDistanceKm(snapshot.distance());
         request.setPrice(snapshot.price());
-        request.setDeliveryType(snapshot.deliveryType());
         touch(request);
     }
 

@@ -46,7 +46,7 @@ class ShipmentCreationClientTest {
                 .andExpect(content().json("""
                         {"pickupAddress": "Київ, Khreshchatyk 1", "pickupCityCode": "UA80000000000093317",
                          "deliveryAddress": "Львів, Svobody 10", "deliveryCityCode": "UA46060250010015970",
-                         "weight": 2.5, "deliveryType": "EXPRESS"}
+                         "weight": 2.5}
                         """))
                 .andRespond(withSuccess("""
                         {"quoteId": "%s", "expiresAt": "2026-11-19T12:15:00Z", "distanceKm": 540.2,
@@ -54,7 +54,7 @@ class ShipmentCreationClientTest {
                         """.formatted(QUOTE), MediaType.APPLICATION_JSON));
 
         var quote = client.quote(42, new ShipmentQuoteRequest("Київ, Khreshchatyk 1", "UA80000000000093317",
-                "Львів, Svobody 10", "UA46060250010015970", new BigDecimal("2.5"), "EXPRESS"));
+                "Львів, Svobody 10", "UA46060250010015970", new BigDecimal("2.5")));
 
         assertThat(quote.quoteId()).isEqualTo(QUOTE);
         assertThat(quote.totalPrice()).isEqualByComparingTo("1340.70");

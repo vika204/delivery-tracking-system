@@ -55,8 +55,6 @@ public class DispatchRequest {
     @Column(name = "price")
     private BigDecimal price;
 
-    @Column(name = "delivery_type", length = 20)
-    private String deliveryType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
@@ -76,10 +74,6 @@ public class DispatchRequest {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    public boolean isExpress() {
-        return "EXPRESS".equals(deliveryType);
-    }
 
     public boolean isSearchable() {
         return status == DispatchRequestStatus.SEARCHING || status == DispatchRequestStatus.WAITING_FOR_COURIERS;

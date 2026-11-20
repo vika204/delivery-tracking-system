@@ -192,7 +192,7 @@ class CourierDeliveryApiControllerTest {
                         {"shipmentId": 15, "status": "%s", "pickupAddress": "Київ, A", "deliveryAddress": "Київ, B",
                          "recipient": {"initials": "M. S.", "phone": "+380671234567"},
                          "weight": 2.4, "length": 40, "width": 30, "height": 20, "distance": 7.3, "price": 142,
-                         "deliveryType": "STANDARD", "assignedAt": "2026-11-19T09:00:00Z"}
+                         "assignedAt": "2026-11-19T09:00:00Z"}
                         """.formatted(status), MediaType.APPLICATION_JSON));
     }
 

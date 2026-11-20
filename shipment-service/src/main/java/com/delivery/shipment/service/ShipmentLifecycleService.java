@@ -4,7 +4,6 @@ import com.delivery.shipment.dto.PriceBreakdown;
 import com.delivery.shipment.dto.RouteQuote;
 import com.delivery.shipment.dto.UpdateShipmentRequest;
 import com.delivery.shipment.entity.ActorType;
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.ProcessedEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
@@ -53,7 +52,6 @@ public class ShipmentLifecycleService {
         this.clock = clock;
     }
 
-
     @Transactional
     public Shipment cancel(long shipmentId, long senderId, String reason) {
         Shipment shipment = load(shipmentId);
@@ -89,15 +87,14 @@ public class ShipmentLifecycleService {
             String deliveryAddress = request.deliveryAddress() != null ? request.deliveryAddress().trim() : shipment.getDeliveryAddress();
             String deliveryCode = request.deliveryCityCode() != null ? request.deliveryCityCode() : shipment.getDeliveryCityCode();
             BigDecimal weight = request.weight() != null ? request.weight() : shipment.getWeight();
-            DeliveryType type = resolveDeliveryType(request, shipment);
 
-            RouteQuote route = pricingService.calculate(pickupCode, pickupAddress, deliveryCode, deliveryAddress, weight, type);
+            RouteQuote route = pricingService.calculate(pickupCode, pickupAddress, deliveryCode, deliveryAddress, weight);
             breakdown = route.breakdown();
 
             shipment.updateRoute(
                     pickupAddress, pickupCode, route.pickup().latitude(), route.pickup().longitude(),
                     deliveryAddress, deliveryCode, route.delivery().latitude(), route.delivery().longitude(),
-                    weight, type, route.distanceKm(), breakdown.total()
+                    weight, route.distanceKm(), breakdown.total()
             );
         }
 
@@ -108,14 +105,6 @@ public class ShipmentLifecycleService {
                 shipmentId, priceRecalculated, previousPrice, shipment.getPrice());
         return new UpdateResult(shipment, priceRecalculated, previousPrice, breakdown);
     }
-
-    private static DeliveryType resolveDeliveryType(UpdateShipmentRequest request, Shipment shipment) {
-        if (request.deliveryType() != null) {
-            return request.deliveryType();
-        }
-        return shipment.getDeliveryType() == null ? DeliveryType.STANDARD : shipment.getDeliveryType();
-    }
-
 
     @Transactional
     public Shipment startTripToPickup(long shipmentId, long courierId) {
@@ -146,7 +135,6 @@ public class ShipmentLifecycleService {
         }
         return shipment;
     }
-
 
     @Transactional
     public void onDispatchEvent(DispatchEvent event) {

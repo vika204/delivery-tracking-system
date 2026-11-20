@@ -20,7 +20,7 @@ public interface DispatchRequestRepository extends JpaRepository<DispatchRequest
     @Query("""
             select r.shipmentId from DispatchRequest r
             where r.status in :statuses
-            order by case when r.deliveryType = 'EXPRESS' then 0 else 1 end, r.createdAt
+            order by r.createdAt, r.shipmentId
             """)
     List<Long> findQueue(List<DispatchRequestStatus> statuses, Pageable pageable);
 

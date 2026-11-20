@@ -18,7 +18,6 @@ public record OfferResponse(
         BigDecimal distanceKm,
         Double distanceToPickupKm,
         BigDecimal price,
-        String deliveryType,
         Instant createdAt
 ) {
 }

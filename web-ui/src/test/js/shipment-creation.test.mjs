@@ -18,8 +18,7 @@ const route = {
     pickupCityCode: 'UA80000000000093317',
     deliveryAddress: 'Львів, Svobody 10',
     deliveryCityCode: 'UA46060250010015970',
-    weight: '2.5',
-    deliveryType: 'EXPRESS'
+    weight: '2.5'
 };
 
 test('builds quote request only for a complete route and positive weight', () => {
@@ -27,7 +26,7 @@ test('builds quote request only for a complete route and positive weight', () =>
     assert.equal(quoteRequestFrom({...route, deliveryCityCode: ''}), null);
     assert.equal(quoteRequestFrom({...route, weight: '0'}), null);
     assert.equal(quoteRequestFrom({...route, weight: 'abc'}), null);
-    assert.equal(quoteRequestFrom({...route, deliveryType: ''}).deliveryType, 'STANDARD');
+    assert.equal(Object.hasOwn(quoteRequestFrom(route), 'deliveryType'), false);
 });
 
 test('builds create request from the quote and contact details', () => {

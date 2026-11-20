@@ -11,7 +11,6 @@ public record DispatchCourierOffer(
         BigDecimal parcelWeight,
         BigDecimal distanceKm,
         Double distanceToPickupKm,
-        BigDecimal price,
-        String deliveryType
+        BigDecimal price
 ) {
 }

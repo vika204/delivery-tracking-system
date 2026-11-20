@@ -115,8 +115,7 @@ a {
     position: relative;
 }
 
-.field input,
-.field select {
+.field input {
     width: 100%;
     height: 53px;
     padding: 0 15px;
@@ -140,8 +139,7 @@ a {
     border-color: #795e4f;
 }
 
-.field input:focus,
-.field select:focus {
+.field input:focus {
     border-color: var(--red);
     background: #fffdf8;
     box-shadow: 0 0 0 3px rgba(188, 44, 29, .12);
@@ -359,10 +357,6 @@ a {
 .modal-actions {
     display: grid;
     gap: 12px;
-}
-
-.delivery-type-row {
-    margin-top: 16px;
 }
 
 .summary-note {

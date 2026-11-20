@@ -1,7 +1,10 @@
 package com.delivery.dispatch.event;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.math.BigDecimal;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record ShipmentSnapshot(
         Long shipmentId,
         Long userId,
@@ -16,7 +19,6 @@ public record ShipmentSnapshot(
         Double deliveryLongitude,
         BigDecimal weight,
         BigDecimal distance,
-        BigDecimal price,
-        String deliveryType
+        BigDecimal price
 ) {
 }

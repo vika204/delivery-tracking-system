@@ -6,7 +6,6 @@ import au.com.dius.pact.provider.junit5.PactVerificationInvocationContextProvide
 import au.com.dius.pact.provider.junitsupport.Provider;
 import au.com.dius.pact.provider.junitsupport.State;
 import au.com.dius.pact.provider.junitsupport.loader.PactFolder;
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.repository.ShipmentRepository;
@@ -101,7 +100,6 @@ class ShipmentProviderPactTest {
                 .height(new BigDecimal("15.00"))
                 .distance(new BigDecimal("540.00"))
                 .price(new BigDecimal("885.00"))
-                .deliveryType(DeliveryType.STANDARD)
                 .status(ShipmentStatus.WAITING_FOR_COURIER)
                 .build());
     }

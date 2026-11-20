@@ -3,7 +3,6 @@ package com.delivery.shipment.service;
 import com.delivery.shipment.config.TariffProperties;
 import com.delivery.shipment.dto.PriceBreakdown;
 import com.delivery.shipment.dto.RouteQuote;
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.PriceQuote;
 import com.delivery.shipment.exception.QuoteException;
 import com.delivery.shipment.geo.Coordinates;
@@ -51,15 +50,14 @@ public class PricingService {
             String pickupAddress,
             String deliveryCityCode,
             String deliveryAddress,
-            BigDecimal weight,
-            DeliveryType deliveryType
+            BigDecimal weight
     ) {
         Coordinates pickup = routingClient.geocode(pickupCityCode, pickupAddress);
         Coordinates delivery = routingClient.geocode(deliveryCityCode, deliveryAddress);
         BigDecimal distanceKm = BigDecimal.valueOf(routingClient.routeDistanceKm(pickup, delivery))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return new RouteQuote(pickup, delivery, distanceKm, calculator.calculate(distanceKm, weight, deliveryType));
+        return new RouteQuote(pickup, delivery, distanceKm, calculator.calculate(distanceKm, weight));
     }
 
     @Transactional
@@ -69,10 +67,9 @@ public class PricingService {
             String pickupAddress,
             String deliveryCityCode,
             String deliveryAddress,
-            BigDecimal weight,
-            DeliveryType deliveryType
+            BigDecimal weight
     ) {
-        RouteQuote route = calculate(pickupCityCode, pickupAddress, deliveryCityCode, deliveryAddress, weight, deliveryType);
+        RouteQuote route = calculate(pickupCityCode, pickupAddress, deliveryCityCode, deliveryAddress, weight);
         PriceBreakdown price = route.breakdown();
         Instant now = Instant.now(clock);
 
@@ -89,20 +86,18 @@ public class PricingService {
                 .deliveryLongitude(route.delivery().longitude())
                 .distanceKm(route.distanceKm())
                 .weight(weight)
-                .deliveryType(deliveryType)
                 .basePrice(price.basePrice())
                 .pricePerKm(price.pricePerKm())
                 .pricePerKg(price.pricePerKg())
                 .distanceCharge(price.distanceCharge())
                 .weightCharge(price.weightCharge())
-                .deliveryTypeMultiplier(price.deliveryTypeMultiplier())
                 .totalPrice(price.total())
                 .calculatedAt(now)
                 .expiresAt(now.plus(tariff.quoteTtl()))
                 .build());
 
-        log.info("Price quote calculated: quoteId={}, userId={}, distanceKm={}, weight={}, type={}, total={}",
-                quote.getQuoteId(), userId, route.distanceKm(), weight, deliveryType, price.total());
+        log.info("Price quote calculated: quoteId={}, userId={}, distanceKm={}, weight={}, total={}",
+                quote.getQuoteId(), userId, route.distanceKm(), weight, price.total());
         return quote;
     }
 
@@ -131,9 +126,6 @@ public class PricingService {
                 quote.getWeight(),
                 quote.getPricePerKg(),
                 quote.getWeightCharge(),
-                quote.getBasePrice().add(quote.getDistanceCharge()).add(quote.getWeightCharge()),
-                quote.getDeliveryType(),
-                quote.getDeliveryTypeMultiplier(),
                 quote.getTotalPrice()
         );
     }

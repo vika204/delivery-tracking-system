@@ -1,6 +1,5 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 
@@ -22,7 +21,6 @@ public record CourierShipmentView(
         BigDecimal height,
         BigDecimal distance,
         BigDecimal price,
-        DeliveryType deliveryType,
         Instant assignedAt,
         Instant tripStartedAt,
         Instant pickedUpAt,
@@ -46,7 +44,6 @@ public record CourierShipmentView(
                 shipment.getHeight(),
                 shipment.getDistance(),
                 shipment.getPrice(),
-                shipment.getDeliveryType(),
                 shipment.getAssignedAt(),
                 shipment.getTripStartedAt(),
                 shipment.getPickedUpAt(),

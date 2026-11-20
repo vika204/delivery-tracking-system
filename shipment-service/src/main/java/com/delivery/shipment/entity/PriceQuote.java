@@ -53,10 +53,6 @@ public class PriceQuote {
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "delivery_type", nullable = false)
-    private DeliveryType deliveryType;
-
     @Column(name = "base_price", nullable = false)
     private BigDecimal basePrice;
 
@@ -71,9 +67,6 @@ public class PriceQuote {
 
     @Column(name = "weight_charge", nullable = false)
     private BigDecimal weightCharge;
-
-    @Column(name = "delivery_type_multiplier", nullable = false)
-    private BigDecimal deliveryTypeMultiplier;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;

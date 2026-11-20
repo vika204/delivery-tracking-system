@@ -10,7 +10,6 @@ public record TariffProperties(
         BigDecimal basePrice,
         BigDecimal pricePerKm,
         BigDecimal pricePerKg,
-        BigDecimal expressMultiplier,
         Duration quoteTtl
 ) {
 }

@@ -1,7 +1,5 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.entity.DeliveryType;
-
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,11 +14,6 @@ public record QuoteRequest(
         @NotBlank @Pattern(regexp = "UA\\d{17}", message = "must be a KATOTTG settlement code") String pickupCityCode,
         @NotBlank @Size(max = 255) String deliveryAddress,
         @NotBlank @Pattern(regexp = "UA\\d{17}", message = "must be a KATOTTG settlement code") String deliveryCityCode,
-        @NotNull @Positive @DecimalMax("1000") BigDecimal weight,
-        DeliveryType deliveryType
+        @NotNull @Positive @DecimalMax("1000") BigDecimal weight
 ) {
-
-    public DeliveryType deliveryTypeOrDefault() {
-        return deliveryType == null ? DeliveryType.STANDARD : deliveryType;
-    }
 }

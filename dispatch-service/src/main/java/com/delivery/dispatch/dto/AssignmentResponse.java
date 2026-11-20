@@ -19,7 +19,6 @@ public record AssignmentResponse(
         String deliveryAddress,
         BigDecimal parcelWeight,
         BigDecimal distanceKm,
-        BigDecimal price,
-        String deliveryType
+        BigDecimal price
 ) {
 }

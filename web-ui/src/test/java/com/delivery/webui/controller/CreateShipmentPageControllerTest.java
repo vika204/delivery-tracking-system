@@ -48,7 +48,8 @@ class CreateShipmentPageControllerTest {
                 .andExpect(content().string(containsString("name=\"pickupAddress\"")))
                 .andExpect(content().string(containsString("name=\"deliveryAddress\"")))
                 .andExpect(content().string(containsString("id=\"sender-phone\"")))
-                .andExpect(content().string(containsString("id=\"delivery-type\"")))
+                .andExpect(content().string(not(containsString("id=\"delivery-type\""))))
+                .andExpect(content().string(not(containsString("name=\"deliveryType\""))))
                 .andExpect(content().string(containsString("id=\"summary-price\"")))
                 .andExpect(content().string(containsString("id=\"confirm-create\"")))
                 .andExpect(content().string(not(containsString("design preview"))));

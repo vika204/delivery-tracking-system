@@ -1,6 +1,5 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 
@@ -30,7 +29,6 @@ public record ShipmentResponse(
         BigDecimal height,
         BigDecimal distance,
         BigDecimal price,
-        DeliveryType deliveryType,
         UUID quoteId,
         ShipmentStatus status,
         Long assignedCourierId,
@@ -67,7 +65,6 @@ public record ShipmentResponse(
                 shipment.getHeight(),
                 shipment.getDistance(),
                 shipment.getPrice(),
-                shipment.getDeliveryType(),
                 shipment.getQuoteId(),
                 shipment.getStatus(),
                 shipment.getAssignedCourierId(),

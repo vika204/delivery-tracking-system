@@ -83,8 +83,7 @@ public class ShipmentEventOutbox {
                 shipment.getDeliveryLongitude(),
                 shipment.getWeight(),
                 shipment.getDistance(),
-                shipment.getPrice(),
-                shipment.getDeliveryType() == null ? null : shipment.getDeliveryType().name()
+                shipment.getPrice()
         );
     }
 

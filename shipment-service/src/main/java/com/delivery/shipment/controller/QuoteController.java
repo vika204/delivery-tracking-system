@@ -36,8 +36,7 @@ public class QuoteController {
                 request.pickupAddress(),
                 request.deliveryCityCode(),
                 request.deliveryAddress(),
-                request.weight(),
-                request.deliveryTypeOrDefault()
+                request.weight()
         );
         return ResponseEntity.status(201).body(QuoteResponse.from(quote));
     }

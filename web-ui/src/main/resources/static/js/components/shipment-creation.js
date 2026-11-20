@@ -15,7 +15,6 @@ export function quoteRequestFrom(fields) {
         deliveryAddress: text(fields.deliveryAddress),
         deliveryCityCode: text(fields.deliveryCityCode),
         weight: positiveNumber(fields.weight),
-        deliveryType: text(fields.deliveryType) || 'STANDARD'
     };
     const complete = request.pickupAddress && request.pickupCityCode
         && request.deliveryAddress && request.deliveryCityCode && request.weight !== null;

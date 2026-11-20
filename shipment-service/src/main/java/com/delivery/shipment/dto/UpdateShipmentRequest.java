@@ -1,6 +1,5 @@
 package com.delivery.shipment.dto;
 
-import com.delivery.shipment.entity.DeliveryType;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.Pattern;
@@ -21,8 +20,7 @@ public record UpdateShipmentRequest(
         @Positive @DecimalMax("1000") BigDecimal weight,
         @Positive @DecimalMax("500") BigDecimal length,
         @Positive @DecimalMax("500") BigDecimal width,
-        @Positive @DecimalMax("500") BigDecimal height,
-        DeliveryType deliveryType
+        @Positive @DecimalMax("500") BigDecimal height
 ) {
 
     @AssertTrue(message = "pickupAddress and pickupCityCode must be changed together")
@@ -39,10 +37,10 @@ public record UpdateShipmentRequest(
     public boolean isNotEmpty() {
         return senderName != null || senderPhone != null || recipientName != null || recipientPhone != null
                 || pickupAddress != null || deliveryAddress != null || weight != null
-                || length != null || width != null || height != null || deliveryType != null;
+                || length != null || width != null || height != null;
     }
 
     public boolean changesRouteOrPrice() {
-        return pickupAddress != null || deliveryAddress != null || weight != null || deliveryType != null;
+        return pickupAddress != null || deliveryAddress != null || weight != null;
     }
 }

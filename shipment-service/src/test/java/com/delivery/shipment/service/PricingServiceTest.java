@@ -2,7 +2,6 @@ package com.delivery.shipment.service;
 
 import com.delivery.shipment.config.TariffProperties;
 import com.delivery.shipment.dto.QuoteResponse;
-import com.delivery.shipment.entity.DeliveryType;
 import com.delivery.shipment.entity.PriceQuote;
 import com.delivery.shipment.geo.Coordinates;
 import com.delivery.shipment.geo.RoutingClient;
@@ -37,7 +36,7 @@ class PricingServiceTest {
         PriceQuoteRepository repository = mock(PriceQuoteRepository.class);
         TariffProperties tariff = new TariffProperties(
                 new BigDecimal("50.00"), new BigDecimal("1.50"), new BigDecimal("10.00"),
-                new BigDecimal("1.5"), Duration.ofMinutes(15));
+                Duration.ofMinutes(15));
         PricingService service = new PricingService(routing, new PriceCalculator(tariff),
                 repository, tariff, Clock.fixed(Instant.parse("2026-11-19T17:00:00Z"), ZoneOffset.UTC));
         String cityCode = "UA80000000000093317";
@@ -51,7 +50,7 @@ class PricingServiceTest {
         when(repository.save(any(PriceQuote.class))).thenAnswer(call -> call.getArgument(0));
 
         PriceQuote quote = service.createQuote(42, cityCode, pickupAddress, cityCode, deliveryAddress,
-                BigDecimal.ONE, DeliveryType.STANDARD);
+                BigDecimal.ONE);
 
         verify(repository).save(quote);
         assertThat(quote.getDistanceKm()).isEqualByComparingTo(expectedKm);

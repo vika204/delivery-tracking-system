@@ -180,7 +180,6 @@ public class CourierService {
                 request == null ? null : request.getDistanceKm(),
                 offer.getDistanceToPickupKm(),
                 request == null ? null : request.getPrice(),
-                request == null ? null : request.getDeliveryType(),
                 offer.getCreatedAt()
         );
     }
@@ -205,8 +204,7 @@ public class CourierService {
                 request == null ? null : request.getDeliveryAddress(),
                 request == null ? null : request.getParcelWeight(),
                 request == null ? null : request.getDistanceKm(),
-                request == null ? null : request.getPrice(),
-                request == null ? null : request.getDeliveryType()
+                request == null ? null : request.getPrice()
         );
     }
 

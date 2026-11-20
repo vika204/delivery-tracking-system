@@ -94,7 +94,6 @@ function startCreateShipment() {
             deliveryAddress: deliveryAddress.value,
             deliveryCityCode: deliveryAutocomplete?.getSelection()?.code,
             weight: value('weight'),
-            deliveryType: value('delivery-type'),
             senderName: value('sender-name'),
             senderPhone: value('sender-phone'),
             recipientName: value('recipient-name'),

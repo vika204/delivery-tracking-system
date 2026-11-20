@@ -16,7 +16,6 @@ public record ShipmentPayload(
         Double deliveryLongitude,
         BigDecimal weight,
         BigDecimal distance,
-        BigDecimal price,
-        String deliveryType
+        BigDecimal price
 ) {
 }

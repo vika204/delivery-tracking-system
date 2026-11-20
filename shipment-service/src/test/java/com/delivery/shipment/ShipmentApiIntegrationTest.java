@@ -116,35 +116,37 @@ class ShipmentApiIntegrationTest {
         quotes.deleteAll();
     }
 
-
     @Test
     void quoteShowsDistanceAndPriceBreakdown() throws Exception {
-        JsonNode quote = quote(SENDER, "2.5", "STANDARD");
+        JsonNode quote = quote(SENDER, "2.5");
 
         assertThat(quote.get("distanceKm").asDouble()).isBetween(400.0, 750.0);
         JsonNode breakdown = quote.get("breakdown");
         assertThat(breakdown.get("basePrice").decimalValue()).isEqualByComparingTo("50.00");
         assertThat(breakdown.get("weightCharge").decimalValue()).isEqualByComparingTo("25.00");
-        assertThat(breakdown.get("deliveryTypeMultiplier").decimalValue()).isEqualByComparingTo("1");
+        assertThat(breakdown.has("deliveryTypeMultiplier")).isFalse();
         assertThat(quote.get("totalPrice").decimalValue()).isEqualByComparingTo(breakdown.get("total").decimalValue());
         assertThat(quote.get("pickup").get("latitude").asDouble()).isBetween(50.0, 51.0);
     }
 
     @Test
-    void expressQuoteIsOneAndAHalfTimesStandard() throws Exception {
-        JsonNode standard = quote(SENDER, "2.5", "STANDARD");
-        JsonNode express = quote(SENDER, "2.5", "EXPRESS");
+    void quoteUsesOnePriceFormula() throws Exception {
+        JsonNode result = quote(SENDER, "2.5");
+        java.math.BigDecimal expected = new java.math.BigDecimal("50.00")
+                .add(result.get("distanceKm").decimalValue().multiply(new java.math.BigDecimal("1.50")))
+                .add(new java.math.BigDecimal("25.00"))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
 
-        assertThat(express.get("totalPrice").decimalValue())
-                .isEqualByComparingTo(standard.get("totalPrice").decimalValue().multiply(new java.math.BigDecimal("1.5"))
-                        .setScale(2, java.math.RoundingMode.HALF_UP));
+        assertThat(result.get("totalPrice").decimalValue()).isEqualByComparingTo(expected);
+        assertThat(result.get("breakdown").has("deliveryType")).isFalse();
+        assertThat(result.get("breakdown").has("subtotal")).isFalse();
     }
 
     @Test
     void quoteWithUnknownSettlementIsRejected() throws Exception {
         mockMvc.perform(post("/shipments/quotes").header("X-User-Id", SENDER)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(quoteJson("UA99000000000000000", "1", "STANDARD")))
+                        .content(quoteJson("UA99000000000000000", "1")))
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.type").value("urn:delivery:problem:address-not-geocodable"));
     }
@@ -153,14 +155,13 @@ class ShipmentApiIntegrationTest {
     void quoteRequiresUser() throws Exception {
         mockMvc.perform(post("/shipments/quotes")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(quoteJson(LVIV, "1", "STANDARD")))
+                        .content(quoteJson(LVIV, "1")))
                 .andExpect(status().isBadRequest());
     }
 
-
     @Test
     void createsShipmentFromQuoteWithAgreedPriceAndEvent() throws Exception {
-        JsonNode quote = quote(SENDER, "2.5", "EXPRESS");
+        JsonNode quote = quote(SENDER, "2.5");
         double registeredBefore = registered();
 
         JsonNode shipment = json(create(SENDER, quote, "key-1").andExpect(status().isOk()));
@@ -168,7 +169,7 @@ class ShipmentApiIntegrationTest {
         assertThat(shipment.get("status").asText()).isEqualTo("WAITING_FOR_COURIER");
         assertThat(shipment.get("price").decimalValue()).isEqualByComparingTo(quote.get("totalPrice").decimalValue());
         assertThat(shipment.get("distance").decimalValue()).isEqualByComparingTo(quote.get("distanceKm").decimalValue());
-        assertThat(shipment.get("deliveryType").asText()).isEqualTo("EXPRESS");
+        assertThat(shipment.has("deliveryType")).isFalse();
         assertThat(shipment.get("userId").asLong()).isEqualTo(SENDER);
         assertThat(registered()).isEqualTo(registeredBefore + 1);
 
@@ -177,7 +178,7 @@ class ShipmentApiIntegrationTest {
         assertThat(event.payload().pickupCityCode()).isEqualTo(KYIV);
         assertThat(event.payload().pickupLatitude()).isNotNull();
         assertThat(event.payload().weight()).isEqualByComparingTo("2.5");
-        assertThat(event.payload().deliveryType()).isEqualTo("EXPRESS");
+        assertThat(jsonMapper.valueToTree(event.payload()).has("deliveryType")).isFalse();
 
         mockMvc.perform(get("/shipments/" + id(shipment) + "/history"))
                 .andExpect(jsonPath("$.length()").value(1))
@@ -187,7 +188,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void replayWithSameKeyReturnsSameShipment() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         long first = id(json(create(SENDER, quote, "key-replay")));
 
         create(SENDER, quote, "key-replay")
@@ -199,8 +200,8 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void sameKeyWithDifferentDataIsRejected() throws Exception {
-        JsonNode first = quote(SENDER, "1", "STANDARD");
-        JsonNode second = quote(SENDER, "1", "STANDARD");
+        JsonNode first = quote(SENDER, "1");
+        JsonNode second = quote(SENDER, "1");
         create(SENDER, first, "key-changed").andExpect(status().isOk());
 
         create(SENDER, second, "key-changed")
@@ -211,9 +212,9 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void sameKeyOfAnotherSenderCreatesSeparateShipment() throws Exception {
-        long first = id(json(create(SENDER, quote(SENDER, "1", "STANDARD"), "shared-key").andExpect(status().isOk())));
+        long first = id(json(create(SENDER, quote(SENDER, "1"), "shared-key").andExpect(status().isOk())));
 
-        long second = id(json(create(43, quote(43, "1", "STANDARD"), "shared-key")
+        long second = id(json(create(43, quote(43, "1"), "shared-key")
                 .andExpect(status().isOk())
                 .andExpect(header().doesNotExist("Idempotent-Replayed"))));
 
@@ -223,7 +224,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void replayStillReturnsShipmentAfterQuoteExpired() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         long first = id(json(create(SENDER, quote, "key-late-retry")));
         var stored = quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow();
         stored.setExpiresAt(Instant.now().minusSeconds(60));
@@ -237,7 +238,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void concurrentRetriesWithSameKeyCreateOneShipment() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         CyclicBarrier start = new CyclicBarrier(2);
 
         List<CompletableFuture<MockHttpServletResponse>> attempts = List.of(1, 2).stream()
@@ -261,7 +262,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void quoteCannotBeUsedTwice() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         create(SENDER, quote, "key-a").andExpect(status().isOk());
 
         create(SENDER, quote, "key-b")
@@ -271,7 +272,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void expiredQuoteIsRejected() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         var stored = quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow();
         stored.setExpiresAt(Instant.now().minusSeconds(1));
         quotes.save(stored);
@@ -284,7 +285,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void anotherUsersQuoteLooksMissing() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
 
         create(99, quote, "key-foreign")
                 .andExpect(status().isUnprocessableContent())
@@ -293,7 +294,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void createRejectsInvalidRecipientPhone() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
 
         mockMvc.perform(post("/shipments").header("X-User-Id", SENDER).header("Idempotency-Key", "k")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -304,7 +305,7 @@ class ShipmentApiIntegrationTest {
 
     @Test
     void failedOutboxWriteRollsBackShipment() throws Exception {
-        JsonNode quote = quote(SENDER, "1", "STANDARD");
+        JsonNode quote = quote(SENDER, "1");
         doThrow(new IllegalStateException("Outbox insert failed")).when(outbox).save(any(OutboxEvent.class));
 
         create(SENDER, quote, "key-rollback").andExpect(status().isInternalServerError());
@@ -317,7 +318,7 @@ class ShipmentApiIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     void outboxEventStaysPendingWhenKafkaFails() throws Exception {
-        long shipmentId = id(json(create(SENDER, quote(SENDER, "1", "STANDARD"), "key-kafka-down")));
+        long shipmentId = id(json(create(SENDER, quote(SENDER, "1"), "key-kafka-down")));
         KafkaTemplate<String, String> kafka = mock(KafkaTemplate.class);
         when(kafka.send(eq("shipment.events"), eq(String.valueOf(shipmentId)), anyString()))
                 .thenReturn(CompletableFuture.failedFuture(new KafkaException("Kafka unavailable")));
@@ -328,7 +329,6 @@ class ShipmentApiIntegrationTest {
         assertThat(event.isPublished()).isFalse();
         assertThat(event.getPublishedAt()).isNull();
     }
-
 
     @Test
     void courierAssignedEventAssignsCourierOnce() throws Exception {
@@ -423,7 +423,6 @@ class ShipmentApiIntegrationTest {
                 .isInstanceOf(InvalidDispatchEventException.class);
     }
 
-
     @Test
     void courierCompletesDeliveryAndTimelineIsRecorded() throws Exception {
         long shipmentId = assignedShipment();
@@ -467,7 +466,6 @@ class ShipmentApiIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-
     @Test
     void senderCancelsAssignedShipmentAndCourierIsNotified() throws Exception {
         long shipmentId = assignedShipment();
@@ -501,7 +499,6 @@ class ShipmentApiIntegrationTest {
 
         assertThat(events(ShipmentStatusChangedEvent.TYPE, ShipmentStatusChangedEvent.class)).hasSize(1);
     }
-
 
     @Test
     void contactChangeKeepsPrice() throws Exception {
@@ -552,7 +549,6 @@ class ShipmentApiIntegrationTest {
         edit(99, shipmentId, "{\"weight\": 3}").andExpect(status().isForbidden());
     }
 
-
     @Test
     void myShipmentsAreFilteredAndNewestFirst() throws Exception {
         long first = createShipment();
@@ -578,20 +574,19 @@ class ShipmentApiIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-
-    private JsonNode quote(long userId, String weight, String type) throws Exception {
+    private JsonNode quote(long userId, String weight) throws Exception {
         return json(mockMvc.perform(post("/shipments/quotes").header("X-User-Id", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(quoteJson(LVIV, weight, type)))
+                        .content(quoteJson(LVIV, weight)))
                 .andExpect(status().isCreated()));
     }
 
-    private static String quoteJson(String deliveryCode, String weight, String type) {
+    private static String quoteJson(String deliveryCode, String weight) {
         return """
                 {"pickupAddress": "Khreshchatyk 1", "pickupCityCode": "%s",
                  "deliveryAddress": "Svobody 10", "deliveryCityCode": "%s",
-                 "weight": %s, "deliveryType": "%s"}
-                """.formatted(KYIV, deliveryCode, weight, type);
+                 "weight": %s}
+                """.formatted(KYIV, deliveryCode, weight);
     }
 
     private ResultActions create(long userId, JsonNode quote, String key) throws Exception {
@@ -612,7 +607,7 @@ class ShipmentApiIntegrationTest {
     }
 
     private long createShipmentFor(long userId) throws Exception {
-        long id = id(json(create(userId, quote(userId, "2", "STANDARD"), UUID.randomUUID().toString())
+        long id = id(json(create(userId, quote(userId, "2"), UUID.randomUUID().toString())
                 .andExpect(status().isOk())));
         outbox.deleteAll();
         return id;

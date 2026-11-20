@@ -117,7 +117,7 @@ class DispatchFlowIntegrationTest {
         courier(5, KYIV, "20", true, 50.46, 30.53);
         offline(1);
 
-        long shipmentId = created(KYIV, "5", "STANDARD");
+        long shipmentId = created(KYIV, "5");
 
         DeliveryOffer offer = pendingOffer(shipmentId);
         assertThat(offer.getCourier().getUserId()).isEqualTo(5L);
@@ -129,7 +129,7 @@ class DispatchFlowIntegrationTest {
     void courierZoneCoversKyivCityAndOblast() {
         courier(1, KYIV_OBLAST, "20", true, null, null);
 
-        long shipmentId = created(KYIV, "5", "STANDARD");
+        long shipmentId = created(KYIV, "5");
 
         assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
     }
@@ -138,8 +138,8 @@ class DispatchFlowIntegrationTest {
     void courierHasAtMostOnePendingOffer() {
         courier(1, KYIV, "20", true, null, null);
 
-        long first = created(KYIV, "1", "STANDARD");
-        long second = created(KYIV, "1", "STANDARD");
+        long first = created(KYIV, "1");
+        long second = created(KYIV, "1");
 
         assertThat(pendingOffer(first).getCourier().getUserId()).isEqualTo(1L);
         assertThat(offers.findPendingByCourier(1L)).hasSize(1);
@@ -150,7 +150,7 @@ class DispatchFlowIntegrationTest {
     void shipmentWaitsWithoutCouriersAndIsOfferedWhenCourierGoesOnline() throws Exception {
         courier(1, KYIV, "20", false, null, null);
 
-        long shipmentId = created(KYIV, "2", "STANDARD");
+        long shipmentId = created(KYIV, "2");
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
 
         mockMvc.perform(put("/couriers/1/availability")
@@ -164,20 +164,31 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
-    void expressShipmentIsServedFirstFromWaitingQueue() {
-        long standard = created(KYIV, "1", "STANDARD");
-        long express = created(KYIV, "1", "EXPRESS");
+    void waitingQueueServesOldestShipmentFirst() {
+        long first = created(KYIV, "1");
+        long second = created(KYIV, "1");
         courier(1, KYIV, "20", true, null, null);
 
         queue.processQueue();
 
-        assertThat(pendingOffer(express).getCourier().getUserId()).isEqualTo(1L);
-        assertThat(request(standard)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+        assertThat(pendingOffer(first).getCourier().getUserId()).isEqualTo(1L);
+        assertThat(request(second)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
+    }
+
+    @Test
+    void acceptsPreviouslyPublishedSnapshotsWithRemovedFields() {
+        long shipmentId = nextShipmentId++;
+        var event = jsonMapper.valueToTree(createdEvent(shipmentId, KYIV, "1"));
+        ((tools.jackson.databind.node.ObjectNode) event.get("payload")).put("deliveryType", "EXPRESS");
+
+        events.process(jsonMapper.treeToValue(event, ShipmentEventMessage.class));
+
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
     }
 
     @Test
     void longSearchPublishesDelayOnce() {
-        long shipmentId = created(KYIV, "1", "STANDARD");
+        long shipmentId = created(KYIV, "1");
         assertThat(outbox.count()).as("no delay right after creation").isZero();
 
         var request = requests.findById(shipmentId).orElseThrow();
@@ -199,9 +210,9 @@ class DispatchFlowIntegrationTest {
     @Test
     void courierWithActiveDeliveryGetsNoNewOffers() {
         courier(1, KYIV, "20", true, null, null);
-        acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
+        acceptCurrent(created(KYIV, "1"), 1);
 
-        long second = created(KYIV, "1", "STANDARD");
+        long second = created(KYIV, "1");
 
         assertThat(request(second)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
         assertThat(offers.findPendingByCourier(1L)).isEmpty();
@@ -211,9 +222,9 @@ class DispatchFlowIntegrationTest {
     void busyCourierIsSkippedInFavourOfFartherFreeCourier() {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        acceptCurrent(created(KYIV, "1", "STANDARD"), 1);
+        acceptCurrent(created(KYIV, "1"), 1);
 
-        long next = created(KYIV, "1", "STANDARD");
+        long next = created(KYIV, "1");
 
         assertThat(pendingOffer(next).getCourier().getUserId()).isEqualTo(2L);
     }
@@ -222,7 +233,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void acceptingOfferAssignsCourierAndPublishesCourierAssigned() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long offerId = pendingOffer(shipmentId).getOfferId();
 
         mockMvc.perform(post("/couriers/1/offers/" + offerId + "/accept").header("X-User-Id", "1"))
@@ -243,7 +254,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void acceptIsIdempotentForSameCourier() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long offerId = pendingOffer(shipmentId).getOfferId();
 
         Assignment first = dispatchService.acceptOffer(1, offerId);
@@ -257,7 +268,7 @@ class DispatchFlowIntegrationTest {
     void decliningOfferProposesShipmentToNextCandidate() {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long firstOffer = pendingOffer(shipmentId).getOfferId();
 
         dispatchService.declineOffer(1, firstOffer);
@@ -269,7 +280,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void declinedCourierIsNotOfferedTheSameShipmentAgain() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
 
         dispatchService.declineOffer(1, pendingOffer(shipmentId).getOfferId());
         queue.processQueue();
@@ -282,7 +293,7 @@ class DispatchFlowIntegrationTest {
     void unansweredOfferExpiresAndGoesToNextCandidate() {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         DeliveryOffer offer = pendingOffer(shipmentId);
         expireNow(offer);
 
@@ -295,7 +306,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void expiredOfferCannotBeAccepted() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         DeliveryOffer offer = pendingOffer(shipmentId);
         expireNow(offer);
 
@@ -310,7 +321,7 @@ class DispatchFlowIntegrationTest {
     void goingOfflineReleasesPendingOfferToNextCandidate() throws Exception {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long firstOffer = pendingOffer(shipmentId).getOfferId();
 
         availability(1, false);
@@ -325,7 +336,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void offerReleasedByGoingOfflineCanReturnWhenCourierIsBackOnline() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
 
         availability(1, false);
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
@@ -337,7 +348,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void acceptIsRejectedWhenCourierWentOffline() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long offerId = pendingOffer(shipmentId).getOfferId();
         offline(1);
 
@@ -354,7 +365,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void acceptOfOfferForShipmentThatNoLongerWaitsCancelsTheOffer() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long offerId = pendingOffer(shipmentId).getOfferId();
         var request = requests.findById(shipmentId).orElseThrow();
         request.setStatus(DispatchRequestStatus.CANCELLED);
@@ -384,7 +395,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void concurrentAcceptsOfTheSameOfferCreateOneAssignment() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long offerId = pendingOffer(created(KYIV, "3", "STANDARD")).getOfferId();
+        long offerId = pendingOffer(created(KYIV, "3")).getOfferId();
 
         List<Object> results = concurrently(
                 () -> dispatchService.acceptOffer(1, offerId),
@@ -398,8 +409,8 @@ class DispatchFlowIntegrationTest {
     @Test
     void concurrentAcceptsOfDifferentOffersLeaveAtMostOneActiveAssignment() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long first = created(KYIV, "3", "STANDARD");
-        long second = created(KYIV, "3", "STANDARD");
+        long first = created(KYIV, "3");
+        long second = created(KYIV, "3");
         long firstOffer = pendingOffer(first).getOfferId();
         long secondOffer = forceOffer(second, 1);
 
@@ -419,7 +430,7 @@ class DispatchFlowIntegrationTest {
         courier(1, KYIV, "20", true, null, null);
         assertState(1, "AVAILABLE", true);
 
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         acceptCurrent(shipmentId, 1);
         assertState(1, "BUSY", true);
 
@@ -435,7 +446,7 @@ class DispatchFlowIntegrationTest {
     void courierCannotAnswerAnotherCouriersOffer() throws Exception {
         courier(1, KYIV, "20", true, null, null);
         courier(2, KYIV, "20", false, null, null);
-        long offerId = pendingOffer(created(KYIV, "3", "STANDARD")).getOfferId();
+        long offerId = pendingOffer(created(KYIV, "3")).getOfferId();
 
         mockMvc.perform(post("/couriers/2/offers/" + offerId + "/accept").header("X-User-Id", "2"))
                 .andExpect(status().isForbidden());
@@ -444,14 +455,14 @@ class DispatchFlowIntegrationTest {
     @Test
     void currentOfferEndpointShowsRouteAndReward() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "EXPRESS");
+        long shipmentId = created(KYIV, "3");
 
         mockMvc.perform(get("/couriers/1/offers/current").header("X-User-Id", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.shipmentId").value(shipmentId))
                 .andExpect(jsonPath("$.pickupAddress").value("Khreshchatyk 1"))
                 .andExpect(jsonPath("$.price").value(120.5))
-                .andExpect(jsonPath("$.deliveryType").value("EXPRESS"));
+                .andExpect(jsonPath("$.deliveryType").doesNotExist());
 
         mockMvc.perform(get("/couriers/2/offers/current").header("X-User-Id", "1"))
                 .andExpect(status().isForbidden());
@@ -462,7 +473,7 @@ class DispatchFlowIntegrationTest {
     void withdrawalBeforePickupUnassignsAndSearchesWithoutThatCourier() {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         Assignment assignment = acceptCurrent(shipmentId, 1);
         events.process(statusEvent(shipmentId, "ASSIGNED", 1L));
 
@@ -479,7 +490,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void withdrawalAfterPickupIsRejected() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         Assignment assignment = acceptCurrent(shipmentId, 1);
         events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
 
@@ -494,7 +505,7 @@ class DispatchFlowIntegrationTest {
     void pickupReportedAfterWithdrawalRevertsWithdrawal() {
         courier(1, KYIV, "20", true, 50.45, 30.52);
         courier(2, KYIV, "20", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         Assignment assignment = acceptCurrent(shipmentId, 1);
         dispatchService.withdrawAssignment(1, assignment.getAssignmentId(), "late withdrawal");
         DeliveryOffer replacement = pendingOffer(shipmentId);
@@ -512,7 +523,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void cancellationAbortsSearchAndCancelsPendingOffer() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long offerId = pendingOffer(shipmentId).getOfferId();
 
         events.process(statusEvent(shipmentId, "CANCELLED", null));
@@ -524,9 +535,9 @@ class DispatchFlowIntegrationTest {
     @Test
     void cancellationAfterAssignmentReleasesCourierForWaitingShipment() {
         courier(1, KYIV, "20", true, null, null);
-        long assigned = created(KYIV, "3", "STANDARD");
+        long assigned = created(KYIV, "3");
         Assignment assignment = acceptCurrent(assigned, 1);
-        long waiting = created(KYIV, "3", "STANDARD");
+        long waiting = created(KYIV, "3");
         assertThat(request(waiting)).isEqualTo(DispatchRequestStatus.WAITING_FOR_COURIERS);
 
         events.process(statusEvent(assigned, "CANCELLED", 1L));
@@ -539,7 +550,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void deliveryCompletesAssignment() {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         Assignment assignment = acceptCurrent(shipmentId, 1);
         events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
 
@@ -556,7 +567,7 @@ class DispatchFlowIntegrationTest {
         long shipmentId = nextShipmentId++;
 
         events.process(statusEvent(shipmentId, "CANCELLED", null));
-        events.process(createdEvent(shipmentId, KYIV, "1", "STANDARD"));
+        events.process(createdEvent(shipmentId, KYIV, "1"));
 
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.CANCELLED);
         assertThat(offers.count()).isZero();
@@ -566,11 +577,11 @@ class DispatchFlowIntegrationTest {
     void detailsUpdateRestartsSearchWithNewSnapshot() {
         courier(1, KYIV, "5", true, 50.45, 30.52);
         courier(2, KYIV, "50", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         long firstOffer = pendingOffer(shipmentId).getOfferId();
 
         events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
-                Instant.now(), snapshot(shipmentId, KYIV, "20", "STANDARD")));
+                Instant.now(), snapshot(shipmentId, KYIV, "20")));
 
         assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
@@ -580,7 +591,7 @@ class DispatchFlowIntegrationTest {
     void duplicateShipmentEventIsProcessedOnce() {
         courier(1, KYIV, "20", true, null, null);
         long shipmentId = nextShipmentId++;
-        ShipmentEventMessage event = createdEvent(shipmentId, KYIV, "1", "STANDARD");
+        ShipmentEventMessage event = createdEvent(shipmentId, KYIV, "1");
 
         events.process(event);
         events.process(event);
@@ -591,7 +602,7 @@ class DispatchFlowIntegrationTest {
     @Test
     void assignmentsEndpointListsActiveDeliveriesWithAddresses() throws Exception {
         courier(1, KYIV, "20", true, null, null);
-        long shipmentId = created(KYIV, "3", "STANDARD");
+        long shipmentId = created(KYIV, "3");
         acceptCurrent(shipmentId, 1);
 
         mockMvc.perform(get("/couriers/1/assignments").header("X-User-Id", "1"))
@@ -673,22 +684,22 @@ class DispatchFlowIntegrationTest {
         }
     }
 
-    private long created(String pickupCode, String weight, String type) {
+    private long created(String pickupCode, String weight) {
         long shipmentId = nextShipmentId++;
-        events.process(createdEvent(shipmentId, pickupCode, weight, type));
+        events.process(createdEvent(shipmentId, pickupCode, weight));
         return shipmentId;
     }
 
-    private ShipmentEventMessage createdEvent(long shipmentId, String pickupCode, String weight, String type) {
+    private ShipmentEventMessage createdEvent(long shipmentId, String pickupCode, String weight) {
         return new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_CREATED, Instant.now(),
-                snapshot(shipmentId, pickupCode, weight, type));
+                snapshot(shipmentId, pickupCode, weight));
     }
 
-    private static ShipmentSnapshot snapshot(long shipmentId, String pickupCode, String weight, String type) {
+    private static ShipmentSnapshot snapshot(long shipmentId, String pickupCode, String weight) {
         return new ShipmentSnapshot(shipmentId, 42L, "WAITING_FOR_COURIER",
                 "Khreshchatyk 1", pickupCode, 50.4501, 30.5234,
                 "Svobody 10", LVIV, 49.8397, 24.0297,
-                new BigDecimal(weight), new BigDecimal("612.4"), new BigDecimal("120.50"), type);
+                new BigDecimal(weight), new BigDecimal("612.4"), new BigDecimal("120.50"));
     }
 
     private ShipmentStatusChangedMessage statusEvent(long shipmentId, String status, Long courierId) {
