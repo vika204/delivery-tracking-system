@@ -23,6 +23,8 @@ import com.delivery.dispatch.scheduling.DispatchQueueProcessor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -561,6 +563,23 @@ class DispatchFlowIntegrationTest {
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.COMPLETED);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"CANCELLED", "DELIVERED"})
+    void repeatedCompletionDoesNotCloseAnotherDelivery(String status) {
+        courier(1, KYIV, "20", true, null, null);
+        long firstShipment = created(KYIV, "3");
+        acceptCurrent(firstShipment, 1);
+        long nextShipment = created(KYIV, "3");
+
+        events.process(statusEvent(firstShipment, status, 1L));
+        Assignment nextAssignment = acceptCurrent(nextShipment, 1);
+        events.process(statusEvent(firstShipment, status, 1L));
+
+        assertThat(assignments.findById(nextAssignment.getAssignmentId()).orElseThrow().getStatus())
+                .isEqualTo(AssignmentStatus.ACTIVE);
+        assertThat(request(nextShipment)).isEqualTo(DispatchRequestStatus.ASSIGNED);
+    }
+
     @Test
     void cancellationArrivingBeforeCreationLeavesTombstone() {
         courier(1, KYIV, "20", true, null, null);
@@ -585,6 +604,20 @@ class DispatchFlowIntegrationTest {
 
         assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
+    }
+
+    @Test
+    void detailsArrivingBeforeCreationStillStartOneCourierSearch() {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = nextShipmentId++;
+
+        events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
+                Instant.now(), snapshot(shipmentId, KYIV, "3")));
+        events.process(createdEvent(shipmentId, KYIV, "3"));
+
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.OFFERED);
+        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
+        assertThat(offers.count()).isEqualTo(1);
     }
 
     @Test
