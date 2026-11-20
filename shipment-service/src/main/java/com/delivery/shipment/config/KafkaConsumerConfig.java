@@ -1,6 +1,7 @@
 package com.delivery.shipment.config;
 
-import com.delivery.shipment.kafka.InvalidDispatchEventException;
+import com.delivery.shipment.exception.InvalidDispatchEventException;
+
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

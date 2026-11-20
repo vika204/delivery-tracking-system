@@ -1,6 +1,7 @@
 package com.delivery.shipment.service;
 
-import com.delivery.events.DispatchEvent;
+import com.delivery.shipment.dto.PriceBreakdown;
+import com.delivery.shipment.dto.RouteQuote;
 import com.delivery.shipment.dto.UpdateShipmentRequest;
 import com.delivery.shipment.entity.ActorType;
 import com.delivery.shipment.entity.DeliveryType;
@@ -8,14 +9,13 @@ import com.delivery.shipment.entity.ProcessedEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.entity.ShipmentStatusHistory;
+import com.delivery.shipment.event.DispatchEvent;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
 import com.delivery.shipment.outbox.ShipmentEventOutbox;
-import com.delivery.shipment.pricing.PriceBreakdown;
-import com.delivery.shipment.pricing.PricingService;
-import com.delivery.shipment.pricing.RouteQuote;
 import com.delivery.shipment.repository.ProcessedEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
 import com.delivery.shipment.repository.ShipmentStatusHistoryRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

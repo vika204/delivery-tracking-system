@@ -1,5 +1,7 @@
 package com.delivery.shipment.geo;
 
+import com.delivery.shipment.exception.AddressNotGeocodableException;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.regex.Pattern;

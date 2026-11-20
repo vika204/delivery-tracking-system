@@ -1,5 +1,8 @@
 package com.delivery.shipment.geo;
 
+import com.delivery.shipment.exception.AddressNotGeocodableException;
+import com.delivery.shipment.exception.GeoapifyUnavailableException;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

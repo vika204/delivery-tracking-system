@@ -1,9 +1,10 @@
 package com.delivery.notification.kafka;
 
-import com.delivery.events.ShipmentCreatedEvent;
 import com.delivery.notification.config.KafkaRetryConfig;
-import com.delivery.notification.handler.ShipmentEventHandler;
+import com.delivery.notification.event.ShipmentCreatedEvent;
+import com.delivery.notification.exception.InvalidShipmentEventException;
 import com.delivery.notification.metrics.NotificationMetrics;
+
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.annotation.Bean;

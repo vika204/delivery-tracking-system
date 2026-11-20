@@ -1,60 +1,25 @@
+import {normalizeTrackingLocation} from "./tracking-map-state.js";
+
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 const STABLE_CONNECTION_MS = 10000;
-const STATUS_REFRESH_MS = 5000;
 const JITTER_RATIO = 0.1;
 const BACKFILL_PAGE_SIZE = 100;
 const MAX_BACKFILL_LOCATIONS = 500;
-const MAX_BUFFERED_SSE_LOCATIONS = 500;
 
-const STATUS = Object.freeze({
-    CONNECTING: Object.freeze({state: "connecting", text: "CONNECTING"}),
-    LIVE: Object.freeze({state: "live", text: "LIVE"}),
-    RECONNECTING: Object.freeze({
-        state: "reconnecting",
-        text: "RECONNECTING"
-    }),
-    LOST: Object.freeze({state: "lost", text: "CONNECTION LOST"})
-});
-
-function positiveSafeInteger(value) {
-    const number = Number(value);
-
-    return Number.isSafeInteger(number) && number > 0 ? number : null;
-}
-
-function nonNegativeSafeInteger(value) {
-    const number = Number(value);
-
-    return Number.isSafeInteger(number) && number >= 0 ? number : null;
-}
+const STATUS = {
+    CONNECTING: {state: "connecting", text: "CONNECTING"},
+    LIVE: {state: "live", text: "LIVE"},
+    RECONNECTING: {state: "reconnecting", text: "RECONNECTING"},
+    LOST: {state: "lost", text: "CONNECTION LOST"}
+};
 
 function updateStatusElement(element, status) {
-    if (!element) {
-        return;
+    if (element) {
+        element.hidden = false;
+        element.dataset.state = status.state;
+        element.querySelector("[data-stream-status-text]").textContent = status.text;
     }
-
-    element.hidden = false;
-    element.dataset.state = status.state;
-    const textElement = element.querySelector("[data-stream-status-text]");
-
-    if (textElement) {
-        textElement.textContent = status.text;
-    }
-}
-
-function shipmentStatus(response, shipmentId) {
-    if (Number(response?.shipmentId) !== shipmentId ||
-        typeof response?.status !== "string") {
-        return null;
-    }
-
-    const status = response.status.trim().toUpperCase();
-    return status.length > 0 ? status : null;
-}
-
-function isTerminalStatus(status) {
-    return status === "DELIVERED" || status === "CANCELLED";
 }
 
 function statusLabel(status) {
@@ -64,11 +29,6 @@ function statusLabel(status) {
         TO_PICKUP: "COURIER GOING TO PICKUP",
         IN_TRANSIT: "YOUR COURIER IS ON THE WAY"
     })[status] ?? status.replaceAll("_", " ");
-}
-
-function isPermanentStatusError(error) {
-    const status = Number(error?.httpStatus);
-    return Number.isInteger(status) && status >= 400 && status < 500;
 }
 
 function retryDelay(attempt, random) {
@@ -86,33 +46,6 @@ function retryDelay(attempt, random) {
     );
 }
 
-function validateLocationPage(
-    page,
-    shipmentId,
-    afterLocationId,
-    requestedLimit
-) {
-    if (!Array.isArray(page) || page.length > requestedLimit) {
-        throw new Error("GPS backfill returned an invalid page");
-    }
-
-    let previousLocationId = afterLocationId;
-
-    for (const location of page) {
-        const locationId = positiveSafeInteger(location?.locationId);
-        const responseShipmentId = positiveSafeInteger(location?.shipmentId);
-
-        if (locationId === null || responseShipmentId !== shipmentId ||
-            locationId <= previousLocationId) {
-            throw new Error("GPS backfill returned an invalid location");
-        }
-
-        previousLocationId = locationId;
-    }
-
-    return previousLocationId;
-}
-
 export async function loadLocationBackfill({
     shipmentId,
     afterLocationId,
@@ -120,30 +53,24 @@ export async function loadLocationBackfill({
     pageSize = BACKFILL_PAGE_SIZE,
     maxLocations = MAX_BACKFILL_LOCATIONS
 }) {
-    const validShipment = positiveSafeInteger(shipmentId);
-    const validAfterLocationId = nonNegativeSafeInteger(afterLocationId);
-
-    if (validShipment === null || validAfterLocationId === null ||
-        typeof fetchPage !== "function" ||
-        !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100 ||
-        !Number.isInteger(maxLocations) || maxLocations < 1 ||
-        maxLocations > MAX_BACKFILL_LOCATIONS) {
-        throw new Error("Invalid GPS backfill configuration");
-    }
-
     const locations = [];
-    let cursor = validAfterLocationId;
+    let cursor = afterLocationId;
 
     while (locations.length < maxLocations) {
         const limit = Math.min(pageSize, maxLocations - locations.length);
-        const page = await fetchPage(validShipment, cursor, limit);
+        const page = await fetchPage(shipmentId, cursor, limit);
 
-        cursor = validateLocationPage(
-            page,
-            validShipment,
-            cursor,
-            limit
-        );
+        if (!Array.isArray(page) || page.length > limit) {
+            throw new Error("Invalid GPS history response");
+        }
+        for (const location of page) {
+            const locationId = Number(location?.locationId);
+            if (!Number.isSafeInteger(locationId) || locationId <= cursor ||
+                Number(location?.shipmentId) !== shipmentId) {
+                throw new Error("Invalid GPS history location");
+            }
+            cursor = locationId;
+        }
         locations.push(...page);
 
         if (page.length < limit) {
@@ -151,72 +78,33 @@ export async function loadLocationBackfill({
         }
     }
 
-    const probe = await fetchPage(validShipment, cursor, 1);
-    validateLocationPage(probe, validShipment, cursor, 1);
-
-    return {locations, complete: probe.length === 0};
-}
-
-function orderedUniqueLocations(locations, shipmentId) {
-    const byLocationId = new Map();
-
-    for (const location of locations) {
-        const locationId = positiveSafeInteger(location?.locationId);
-        const responseShipmentId = positiveSafeInteger(location?.shipmentId);
-
-        if (locationId !== null && responseShipmentId === shipmentId &&
-            !byLocationId.has(locationId)) {
-            byLocationId.set(locationId, location);
-        }
-    }
-
-    return [...byLocationId.values()].sort(
-        (left, right) => Number(left.locationId) - Number(right.locationId)
-    );
+    return {locations, complete: false};
 }
 
 async function requestShipmentStatus(shipmentId) {
-    const response = await fetch(
-        `/api/tracking/shipments/${encodeURIComponent(shipmentId)}/status`,
-        {
-            headers: {Accept: "application/json"},
-            cache: "no-store"
-        }
-    );
-
+    const response = await fetch(`/api/tracking/shipments/${shipmentId}/status`, {
+        headers: {Accept: "application/json"},
+        cache: "no-store"
+    });
     if (!response.ok) {
-        const error = new Error(
-            `Shipment status request failed: ${response.status}`
-        );
+        const error = new Error(`Shipment status request failed: ${response.status}`);
         error.httpStatus = response.status;
         throw error;
     }
-
     return response.json();
 }
 
 async function requestLocationPage(shipmentId, afterLocationId, limit) {
-    const query = new URLSearchParams({
-        afterLocationId: String(afterLocationId),
-        limit: String(limit)
+    const query = new URLSearchParams({afterLocationId, limit});
+    const response = await fetch(`/api/tracking/shipments/${shipmentId}/locations?${query}`, {
+        headers: {Accept: "application/json"},
+        cache: "no-store"
     });
-    const response = await fetch(
-        `/api/tracking/shipments/${encodeURIComponent(shipmentId)}` +
-        `/locations?${query}`,
-        {
-            headers: {Accept: "application/json"},
-            cache: "no-store"
-        }
-    );
-
     if (!response.ok) {
-        const error = new Error(
-            `GPS backfill request failed: ${response.status}`
-        );
+        const error = new Error(`GPS backfill request failed: ${response.status}`);
         error.httpStatus = response.status;
         throw error;
     }
-
     return response.json();
 }
 
@@ -232,356 +120,195 @@ export function startLiveTracking({
     setTimer = (callback, delay) => globalThis.setTimeout(callback, delay),
     clearTimer = timer => globalThis.clearTimeout(timer),
     random = Math.random,
-    stableConnectionMs = STABLE_CONNECTION_MS,
-    statusRefreshMs = STATUS_REFRESH_MS
+    stableConnectionMs = STABLE_CONNECTION_MS
 }) {
-    const shipmentId = positiveSafeInteger(config?.shipmentId);
-
-    if (config?.terminal === true || shipmentId === null ||
-        typeof fetchStatus !== "function") {
+    const shipmentId = Number(config?.shipmentId);
+    if (config?.streamEnabled !== true || config.terminal === true ||
+        !Number.isSafeInteger(shipmentId) || shipmentId <= 0) {
         return null;
     }
-
-    const streamUrl =
-        `/api/tracking/shipments/${encodeURIComponent(shipmentId)}/events`;
-    let activeSource = null;
-    let retryTimer = null;
-    let stabilityTimer = null;
-    let statusTimer = null;
-    let retryAttempt = 0;
-    let stopped = false;
-    let statusRequest = null;
-
-    const cancelRetryTimer = () => {
-        if (retryTimer !== null) {
-            clearTimer(retryTimer);
-            retryTimer = null;
-        }
-    };
-
-    const cancelStabilityTimer = () => {
-        if (stabilityTimer !== null) {
-            clearTimer(stabilityTimer);
-            stabilityTimer = null;
-        }
-    };
-
-    const closeActiveSource = () => {
-        const source = activeSource;
-        activeSource = null;
-        source?.close();
-    };
-
-    const isCurrent = source => !stopped && activeSource === source;
-
-    const markConnectionStable = source => {
-        if (!isCurrent(source)) {
-            return;
-        }
-
-        retryAttempt = 0;
-        cancelStabilityTimer();
-    };
-
-    const startStabilityTimer = source => {
-        cancelStabilityTimer();
-        stabilityTimer = setTimer(() => {
-            stabilityTimer = null;
-            markConnectionStable(source);
-        }, stableConnectionMs);
-    };
-
-    const stop = ({terminalStatus = null, showLost = false} = {}) => {
-        if (stopped) {
-            return;
-        }
-
-        stopped = true;
-        clearTimer(statusTimer);
-        statusTimer = null;
-        cancelRetryTimer();
-        cancelStabilityTimer();
-        closeActiveSource();
-
-        if (isTerminalStatus(terminalStatus)) {
-            if (deliveryStatusElement) {
-                deliveryStatusElement.textContent = terminalStatus;
-            }
-
-            if (statusElement) {
-                statusElement.hidden = true;
-            }
-        } else if (showLost) {
-            updateStatusElement(statusElement, STATUS.LOST);
-        }
-    };
-
-    const refreshStatus = () => {
-        if (statusRequest !== null) {
-            return statusRequest;
-        }
-
-        statusRequest = Promise.resolve()
-            .then(() => fetchStatus(shipmentId))
-            .then(response => {
-                if (stopped) {
-                    return null;
-                }
-
-                const status = shipmentStatus(response, shipmentId);
-                if (status && deliveryStatusElement) {
-                    deliveryStatusElement.textContent = statusLabel(status);
-                }
-                if (isTerminalStatus(status)) {
-                    stop({terminalStatus: status});
-                }
-                return status;
-            })
-            .finally(() => {
-                statusRequest = null;
-            });
-        return statusRequest;
-    };
-
-    const scheduleStatusRefresh = () => {
-        if (stopped || statusRefreshMs <= 0) {
-            return;
-        }
-        statusTimer = setTimer(async () => {
-            statusTimer = null;
-            try {
-                await refreshStatus();
-            } catch (error) {
-                if (!stopped && isPermanentStatusError(error)) {
-                    stop({showLost: true});
-                }
-            } finally {
-                scheduleStatusRefresh();
-            }
-        }, statusRefreshMs);
-    };
-
-    let connect;
-
-    const scheduleReconnect = () => {
-        if (stopped || retryTimer !== null || activeSource !== null) {
-            return;
-        }
-
-        updateStatusElement(statusElement, STATUS.RECONNECTING);
-        const delay = retryDelay(retryAttempt, random);
-        retryAttempt += 1;
-        retryTimer = setTimer(() => {
-            retryTimer = null;
-
-            if (!stopped) {
-                connect(true);
-            }
-        }, delay);
-    };
-
-    const recover = source => {
-        if (!isCurrent(source)) {
-            return Promise.resolve(null);
-        }
-
-        closeActiveSource();
-        cancelStabilityTimer();
-        updateStatusElement(statusElement, STATUS.RECONNECTING);
-
-        return refreshStatus()
-            .then(status => {
-                scheduleReconnect();
-                return status;
-            })
-            .catch(error => {
-                if (stopped) {
-                    return null;
-                }
-
-                if (isPermanentStatusError(error)) {
-                    stop({showLost: true});
-                } else {
-                    scheduleReconnect();
-                }
-
-                return null;
-            });
-    };
-
-    connect = reconnecting => {
-        if (stopped) {
-            return null;
-        }
-
-        cancelRetryTimer();
-        cancelStabilityTimer();
-        closeActiveSource();
-        updateStatusElement(
-            statusElement,
-            reconnecting ? STATUS.RECONNECTING : STATUS.CONNECTING
-        );
-
-        let source;
-
-        try {
-            source = createEventSource(streamUrl);
-        } catch (error) {
-            console.warn("Could not open live tracking stream", error);
-            scheduleReconnect();
-            return null;
-        }
-
-        activeSource = source;
-        const bufferedLocations = [];
-        const bufferedLocationIds = new Set();
-        let bufferOverflow = false;
-        let synchronizing = true;
-        let synchronizationRequest = null;
-
-        const synchronize = () => {
-            if (!isCurrent(source)) {
-                return Promise.resolve(null);
-            }
-
-            if (synchronizationRequest !== null) {
-                return synchronizationRequest;
-            }
-
-            const afterLocationId = nonNegativeSafeInteger(
-                mapApi.getLastLocationId()
-            );
-
-            if (afterLocationId === null) {
-                mapApi.setLocationHistoryComplete(false);
-                return recover(source);
-            }
-
-            synchronizationRequest = Promise.resolve()
-                .then(() => fetchBackfill(shipmentId, afterLocationId))
-                .then(result => {
-                    if (!isCurrent(source)) {
-                        return null;
-                    }
-
-                    if (!result || !Array.isArray(result.locations) ||
-                        typeof result.complete !== "boolean") {
-                        throw new Error("GPS backfill returned an invalid result");
-                    }
-
-                    const locations = result.complete
-                        ? orderedUniqueLocations([...result.locations, ...bufferedLocations], shipmentId)
-                        : result.locations;
-                    const historyComplete = result.complete && !bufferOverflow;
-                    const appendedCount = mapApi.appendLocations(locations, {
-                        updateCurrentPosition: false
-                    });
-                    mapApi.setLocationHistoryComplete(historyComplete);
-                    if (!historyComplete) {
-                        return recover(source);
-                    }
-
-                    synchronizing = false;
-                    updateStatusElement(statusElement, STATUS.LIVE);
-
-                    if (appendedCount > 0) {
-                        markConnectionStable(source);
-                    } else {
-                        startStabilityTimer(source);
-                    }
-
-                    return appendedCount;
-                })
-                .catch(error => {
-                    if (!isCurrent(source)) {
-                        return null;
-                    }
-
-                    console.warn("Could not restore GPS history", error);
-                    mapApi.setLocationHistoryComplete(false);
-                    return recover(source);
-                });
-
-            return synchronizationRequest;
-        };
-
-        source.addEventListener("open", synchronize);
-
-        source.addEventListener("location", event => {
-            if (!isCurrent(source)) {
-                return;
-            }
-
-            try {
-                const location = JSON.parse(event.data);
-
-                if (synchronizing) {
-                    const locationId = positiveSafeInteger(
-                        location?.locationId
-                    );
-                    const responseShipmentId = positiveSafeInteger(
-                        location?.shipmentId
-                    );
-
-                    if (locationId === null ||
-                        responseShipmentId !== shipmentId ||
-                        bufferedLocationIds.has(locationId)) {
-                        return;
-                    }
-
-                    if (bufferedLocations.length <
-                        MAX_BUFFERED_SSE_LOCATIONS) {
-                        bufferedLocations.push(location);
-                        bufferedLocationIds.add(locationId);
-                    } else {
-                        bufferOverflow = true;
-                    }
-
-                    return;
-                }
-
-                if (mapApi.appendLocation(location) === true) {
-                    markConnectionStable(source);
-                }
-            } catch (error) {
-                console.warn("Ignored invalid live tracking event", error);
-            }
-        });
-
-        source.addEventListener(
-            "complete",
-            () => recover(source)
-        );
-        source.addEventListener(
-            "stream-error",
-            () => recover(source)
-        );
-        source.addEventListener(
-            "error",
-            () => recover(source)
-        );
-
-        return source;
-    };
-
-    const leavePage = () => stop();
-    pageTarget?.addEventListener("pagehide", leavePage, {once: true});
-    pageTarget?.addEventListener("beforeunload", leavePage, {once: true});
-
-    scheduleStatusRefresh();
-    if (config.streamEnabled !== true) {
-        return null;
-    }
-    if (typeof mapApi?.appendLocation !== "function" ||
-        typeof mapApi?.appendLocations !== "function" ||
-        typeof mapApi?.getLastLocationId !== "function" ||
-        typeof mapApi?.setLocationHistoryComplete !== "function" ||
-        typeof createEventSource !== "function" ||
-        typeof fetchBackfill !== "function") {
+    if (!mapApi || !createEventSource || !fetchStatus || !fetchBackfill) {
         updateStatusElement(statusElement, STATUS.LOST);
         return null;
     }
-    return connect(false);
+
+    let source = null;
+    let retryTimer = null;
+    let stabilityTimer = null;
+    let retryAttempt = 0;
+    let stopped = false;
+    let terminalStatus = null;
+    let historyReady = false;
+    let lastReceivedLocationId = 0;
+    let historyRequest = null;
+    let statusRequest = null;
+
+    function closeSource() {
+        const previousSource = source;
+        source = null;
+        clearTimer(stabilityTimer);
+        stabilityTimer = null;
+        previousSource?.close();
+    }
+
+    function resetRetry() {
+        retryAttempt = 0;
+        clearTimer(stabilityTimer);
+        stabilityTimer = null;
+    }
+
+    function stop() {
+        stopped = true;
+        clearTimer(retryTimer);
+        retryTimer = null;
+        closeSource();
+    }
+
+    function scheduleRecovery() {
+        if (!stopped && retryTimer === null) {
+            if (!terminalStatus) updateStatusElement(statusElement, STATUS.RECONNECTING);
+            const delay = retryDelay(retryAttempt++, random);
+            retryTimer = setTimer(() => {
+                retryTimer = null;
+                if (stopped) return;
+                if (!terminalStatus && source === null) return connect();
+                return recover();
+            }, delay);
+        }
+    }
+
+    function handleFailure(error) {
+        if (stopped) return;
+        if (!terminalStatus) updateStatusElement(statusElement, STATUS.LOST);
+        if (error.httpStatus >= 400 && error.httpStatus < 500) {
+            stop();
+        } else {
+            scheduleRecovery();
+        }
+    }
+
+    function refreshStatus() {
+        if (statusRequest) return statusRequest;
+        statusRequest = Promise.resolve()
+            .then(() => fetchStatus(shipmentId))
+            .then(response => {
+                if (stopped) return;
+                if (Number(response?.shipmentId) !== shipmentId ||
+                    typeof response?.status !== "string" || !response.status.trim()) {
+                    throw new Error("Invalid shipment status response");
+                }
+                const status = response.status.trim().toUpperCase();
+                if (deliveryStatusElement) deliveryStatusElement.textContent = statusLabel(status);
+                if (status === "DELIVERED" || status === "CANCELLED") {
+                    terminalStatus = status;
+                    closeSource();
+                    if (statusElement) statusElement.hidden = true;
+                }
+            })
+            .finally(() => { statusRequest = null; });
+        return statusRequest;
+    }
+
+    function restoreHistory() {
+        if (historyRequest) return historyRequest;
+        const terminalAtStart = terminalStatus;
+        historyReady = false;
+        historyRequest = Promise.resolve()
+            .then(() => fetchBackfill(shipmentId, mapApi.getLastLocationId()))
+            .then(result => {
+                if (stopped) return;
+                const appended = mapApi.appendLocations(result.locations, {updateCurrentPosition: false});
+                const complete = result.complete &&
+                    mapApi.getLastLocationId() >= lastReceivedLocationId;
+                mapApi.setLocationHistoryComplete(complete);
+                if (!complete) {
+                    scheduleRecovery();
+                } else if (terminalStatus) {
+                    if (terminalAtStart) stop();
+                    else scheduleRecovery();
+                } else if (source?.readyState === 1) {
+                    historyReady = true;
+                    clearTimer(retryTimer);
+                    retryTimer = null;
+                    updateStatusElement(statusElement, STATUS.LIVE);
+                    if (appended > 0) {
+                        resetRetry();
+                    } else {
+                        clearTimer(stabilityTimer);
+                        stabilityTimer = setTimer(resetRetry, stableConnectionMs);
+                    }
+                }
+            })
+            .catch(error => {
+                if (!stopped) mapApi.setLocationHistoryComplete(false);
+                handleFailure(error);
+            })
+            .finally(() => { historyRequest = null; });
+        return historyRequest;
+    }
+
+    function recover() {
+        if (stopped) return Promise.resolve();
+        const statusCheck = terminalStatus ? Promise.resolve() : refreshStatus();
+        return statusCheck.then(() => {
+            if (stopped) return;
+            if (terminalStatus || source?.readyState === 1) return restoreHistory();
+            if (source === null) scheduleRecovery();
+        }).catch(handleFailure);
+    }
+
+    function connect() {
+        if (stopped || terminalStatus) return null;
+        let currentSource;
+        try {
+            currentSource = createEventSource(`/api/tracking/shipments/${shipmentId}/events`);
+        } catch (error) {
+            handleFailure(error);
+            return null;
+        }
+        source = currentSource;
+        const isCurrent = () => !stopped && source === currentSource;
+
+        currentSource.addEventListener("open", () => {
+            if (!isCurrent()) return;
+            historyReady = false;
+            return (historyRequest ?? Promise.resolve()).then(() => {
+                if (!isCurrent()) return;
+                historyReady = false;
+                return recover();
+            });
+        });
+
+        currentSource.addEventListener("location", event => {
+            if (!isCurrent()) return;
+            let location;
+            try {
+                location = normalizeTrackingLocation(JSON.parse(event.data), shipmentId);
+            } catch {
+                return;
+            }
+            if (!location) return;
+            lastReceivedLocationId = Math.max(lastReceivedLocationId, location.locationId);
+            if (historyReady && mapApi.appendLocation(location)) resetRetry();
+        });
+
+        const streamEnded = () => {
+            if (!isCurrent()) return;
+            historyReady = false;
+            closeSource();
+            updateStatusElement(statusElement, STATUS.RECONNECTING);
+            return recover();
+        };
+        currentSource.addEventListener("complete", streamEnded);
+        currentSource.addEventListener("stream-error", streamEnded);
+        currentSource.addEventListener("error", streamEnded);
+        return currentSource;
+    }
+
+    pageTarget?.addEventListener("pagehide", stop, {once: true});
+    pageTarget?.addEventListener("beforeunload", stop, {once: true});
+    updateStatusElement(statusElement, STATUS.CONNECTING);
+    return connect();
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
@@ -593,9 +320,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
         createEventSource: typeof window.EventSource === "function"
             ? url => new window.EventSource(url)
             : null,
-        fetchStatus: typeof window.fetch === "function"
-            ? requestShipmentStatus
-            : null,
+        fetchStatus: typeof window.fetch === "function" ? requestShipmentStatus : null,
         fetchBackfill: typeof window.fetch === "function"
             ? (shipmentId, afterLocationId) => loadLocationBackfill({
                 shipmentId,

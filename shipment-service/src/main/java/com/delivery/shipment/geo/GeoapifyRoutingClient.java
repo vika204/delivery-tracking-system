@@ -1,5 +1,8 @@
 package com.delivery.shipment.geo;
 
+import com.delivery.shipment.exception.AddressNotGeocodableException;
+import com.delivery.shipment.exception.GeoapifyUnavailableException;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;

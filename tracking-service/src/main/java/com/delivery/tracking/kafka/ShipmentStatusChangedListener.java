@@ -1,6 +1,8 @@
 package com.delivery.tracking.kafka;
 
+import com.delivery.tracking.event.ShipmentStatusChangedEvent;
 import com.delivery.tracking.grpc.LocationStreamPublisher;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;

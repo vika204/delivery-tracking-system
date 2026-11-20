@@ -3,10 +3,11 @@ package com.delivery.dispatch.scheduling;
 import com.delivery.dispatch.config.DispatchProperties;
 import com.delivery.dispatch.entity.DispatchRequestStatus;
 import com.delivery.dispatch.entity.OfferStatus;
+import com.delivery.dispatch.event.CourierCapacityFreedEvent;
 import com.delivery.dispatch.repository.DeliveryOfferRepository;
 import com.delivery.dispatch.repository.DispatchRequestRepository;
-import com.delivery.dispatch.service.CourierCapacityFreedEvent;
 import com.delivery.dispatch.service.DispatchService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;

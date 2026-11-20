@@ -11,6 +11,7 @@ import com.delivery.dispatch.entity.Courier;
 import com.delivery.dispatch.entity.CourierAvailability;
 import com.delivery.dispatch.entity.DeliveryOffer;
 import com.delivery.dispatch.entity.DispatchRequest;
+import com.delivery.dispatch.event.CourierCapacityFreedEvent;
 import com.delivery.dispatch.exception.DispatchConflictException;
 import com.delivery.dispatch.exception.DispatchNotFoundException;
 import com.delivery.dispatch.metrics.CourierMetrics;
@@ -18,6 +19,7 @@ import com.delivery.dispatch.repository.AssignmentRepository;
 import com.delivery.dispatch.repository.CourierRepository;
 import com.delivery.dispatch.repository.DeliveryOfferRepository;
 import com.delivery.dispatch.repository.DispatchRequestRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;

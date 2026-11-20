@@ -1,8 +1,10 @@
 package com.delivery.dispatch.kafka;
 
 import com.delivery.dispatch.config.KafkaTopicConfig;
-import com.delivery.dispatch.events.ShipmentEventMessage;
-import com.delivery.dispatch.events.ShipmentStatusChangedMessage;
+import com.delivery.dispatch.event.ShipmentEventMessage;
+import com.delivery.dispatch.event.ShipmentStatusChangedMessage;
+import com.delivery.dispatch.exception.InvalidShipmentEventException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;

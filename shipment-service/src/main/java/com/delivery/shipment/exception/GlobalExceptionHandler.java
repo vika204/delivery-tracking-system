@@ -1,8 +1,5 @@
 package com.delivery.shipment.exception;
 
-import com.delivery.shipment.geo.AddressNotGeocodableException;
-import com.delivery.shipment.geo.GeoapifyUnavailableException;
-import com.delivery.shipment.pricing.QuoteException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;

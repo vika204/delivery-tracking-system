@@ -1,14 +1,15 @@
 package com.delivery.shipment.outbox;
 
-import com.delivery.events.ShipmentCreatedEvent;
-import com.delivery.events.ShipmentDetailsUpdatedEvent;
-import com.delivery.events.ShipmentPayload;
-import com.delivery.events.ShipmentStatusChangedEvent;
 import com.delivery.shipment.entity.ActorType;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
+import com.delivery.shipment.event.ShipmentCreatedEvent;
+import com.delivery.shipment.event.ShipmentDetailsUpdatedEvent;
+import com.delivery.shipment.event.ShipmentPayload;
+import com.delivery.shipment.event.ShipmentStatusChangedEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
+
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 

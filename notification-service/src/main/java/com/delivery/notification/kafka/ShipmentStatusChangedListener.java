@@ -1,8 +1,9 @@
 package com.delivery.notification.kafka;
 
-import com.delivery.events.ShipmentStatusChangedEvent;
-import com.delivery.notification.handler.IdempotentShipmentEventHandler;
+import com.delivery.notification.event.ShipmentStatusChangedEvent;
+import com.delivery.notification.exception.InvalidShipmentEventException;
 import com.delivery.notification.metrics.NotificationMetrics;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

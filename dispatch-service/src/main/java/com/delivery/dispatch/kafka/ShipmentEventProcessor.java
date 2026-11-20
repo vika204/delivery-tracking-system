@@ -1,10 +1,11 @@
 package com.delivery.dispatch.kafka;
 
 import com.delivery.dispatch.entity.ProcessedEvent;
-import com.delivery.dispatch.events.ShipmentEventMessage;
-import com.delivery.dispatch.events.ShipmentStatusChangedMessage;
+import com.delivery.dispatch.event.ShipmentEventMessage;
+import com.delivery.dispatch.event.ShipmentStatusChangedMessage;
 import com.delivery.dispatch.repository.ProcessedEventRepository;
 import com.delivery.dispatch.service.DispatchService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

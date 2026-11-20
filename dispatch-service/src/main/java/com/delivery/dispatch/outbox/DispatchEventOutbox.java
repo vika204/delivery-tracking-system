@@ -3,8 +3,9 @@ package com.delivery.dispatch.outbox;
 import com.delivery.dispatch.entity.Assignment;
 import com.delivery.dispatch.entity.DispatchRequest;
 import com.delivery.dispatch.entity.OutboxEvent;
-import com.delivery.dispatch.events.DispatchEvent;
+import com.delivery.dispatch.event.DispatchEvent;
 import com.delivery.dispatch.repository.OutboxEventRepository;
+
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
