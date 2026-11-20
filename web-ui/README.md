@@ -32,6 +32,7 @@ com.delivery.webui
 │   └── support     — спільна обробка помилок і перевірки доступу
 ├── grpc
 │   └── dto         — дані потокових оновлень
+├── ratelimit       — Rate Limiter для /api/** (token bucket на адресу клієнта) і помилка 429
 ├── service         — логіка підготовки даних і роботи з потоками
 ├── viewmodel       — дані для Thymeleaf-шаблонів
 └── config          — конфігурація Spring
@@ -183,3 +184,21 @@ mvn -f web-ui/pom.xml spring-boot:run
 
 Ручна перевірка: відкрити обидва профілі, натиснути Edit, змінити поля, зберегти й перезавантажити сторінку.
 Перевірити, що зміни залишились, Cancel не зберігає чернетку, КАТОТТГ обирає справжній населений пункт, а фото незмінні.
+
+## Rate Limiter
+
+Усі `/api/**` запити рахуються по адресі клієнта (`request.getRemoteAddr()`) алгоритмом token bucket:
+дозволено сплеск до `rate-limit.capacity` запитів, далі токени повертаються рівномірно за `rate-limit.window`.
+Сторінки (HTML) і статика не обмежуються.
+
+| Властивість | Змінна середовища | За замовчуванням |
+|---|---|---|
+| `rate-limit.enabled` | `RATE_LIMIT_ENABLED` | `true` |
+| `rate-limit.capacity` | `RATE_LIMIT_CAPACITY` | `60` |
+| `rate-limit.window` | `RATE_LIMIT_WINDOW` | `1m` |
+
+Кожна відповідь має `X-RateLimit-Limit` і `X-RateLimit-Remaining`. Після перевищення ліміту клієнт отримує
+`429 Too Many Requests` з заголовком `Retry-After` (секунди) і ProblemDetail
+`type=urn:delivery:problem:rate-limit-exceeded`. Стан зберігається в пам'яті екземпляра, тож за кількох реплік
+ліміт діє окремо на кожну. За reverse proxy адреса клієнта буде адресою проксі, доки не налаштовано
+`server.forward-headers-strategy` (це свідоме рішення безпеки, бо заголовок `X-Forwarded-For` можна підробити).

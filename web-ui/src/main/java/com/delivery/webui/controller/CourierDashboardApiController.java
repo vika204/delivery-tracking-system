@@ -1,14 +1,12 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.CourierDashboardProperties;
 import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.controller.dto.CourierDashboardView;
-import com.delivery.webui.controller.support.LoopbackOnly;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import com.delivery.webui.service.CourierDashboardService;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,20 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/courier/dashboard")
 @ConditionalOnProperty(prefix = "dispatch.courier-dashboard", name = "enabled", havingValue = "true")
+@LocalDevOnly("Courier dashboard API")
 public class CourierDashboardApiController {
 
     private final CourierDashboardService dashboardService;
     private final long courierId;
 
     public CourierDashboardApiController(CourierDashboardService dashboardService,
-                                         @Value("${dispatch.courier-dashboard.courier-id}") long courierId) {
+                                         CourierDashboardProperties properties) {
         this.dashboardService = dashboardService;
-        this.courierId = courierId;
-    }
-
-    @ModelAttribute
-    void requireLoopback(HttpServletRequest request) {
-        LoopbackOnly.require(request, "Courier dashboard API");
+        this.courierId = properties.courierId();
     }
 
     @GetMapping

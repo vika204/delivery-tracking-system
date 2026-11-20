@@ -1,14 +1,14 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.CourierDashboardProperties;
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.UserProfileClient;
 import com.delivery.webui.client.dto.UpdateCourierProfileRequest;
 import com.delivery.webui.client.dto.UserProfile;
 import com.delivery.webui.controller.dto.CourierProfile;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api")
+@LocalDevOnly("Profile API")
 public class ProfileApiController {
 
     private final UserProfileClient userClient;
@@ -27,17 +28,16 @@ public class ProfileApiController {
     private final long courierId;
 
     public ProfileApiController(UserProfileClient userClient, DispatchCourierDashboardClient courierClient,
-                                @Value("${shipment.creation.sender-id}") long clientId,
-                                @Value("${dispatch.courier-dashboard.courier-id}") long courierId) {
+                                ShipmentCreationProperties creation,
+                                CourierDashboardProperties dashboard) {
         this.userClient = userClient;
         this.courierClient = courierClient;
-        this.clientId = clientId;
-        this.courierId = courierId;
+        this.clientId = creation.senderId();
+        this.courierId = dashboard.courierId();
     }
 
     @ModelAttribute
-    void requireLocalAccess(HttpServletRequest request, HttpServletResponse response) {
-        LoopbackOnly.require(request, "Profile API");
+    void noStore(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
     }
 

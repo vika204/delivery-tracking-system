@@ -1,16 +1,14 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ShipmentCreationClient;
 import com.delivery.webui.client.dto.CreateShipmentRequest;
 import com.delivery.webui.client.dto.CreatedShipmentResponse;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import com.delivery.webui.client.dto.ShipmentQuoteResponse;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Value;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -25,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/shipments")
 @ConditionalOnProperty(prefix = "shipment.creation", name = "enabled", havingValue = "true")
+@LocalDevOnly("Shipment creation API")
 public class ShipmentCreationApiController {
 
     private static final String IDEMPOTENCY_KEY = "Idempotency-Key";
@@ -34,14 +33,9 @@ public class ShipmentCreationApiController {
     private final long senderId;
 
     public ShipmentCreationApiController(ShipmentCreationClient client,
-                                         @Value("${shipment.creation.sender-id}") long senderId) {
+                                         ShipmentCreationProperties properties) {
         this.client = client;
-        this.senderId = senderId;
-    }
-
-    @ModelAttribute
-    void requireLoopback(HttpServletRequest request) {
-        LoopbackOnly.require(request, "Shipment creation API");
+        this.senderId = properties.senderId();
     }
 
     @PostMapping("/quotes")

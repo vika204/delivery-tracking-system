@@ -1,5 +1,8 @@
 package com.delivery.webui.exception;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.CourierDashboardProperties;
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ShipmentCreationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.controller.CourierDashboardApiController;
@@ -48,10 +51,10 @@ class ApiExceptionHandlerTest {
     private final ShipmentCreationClient creation = mock(ShipmentCreationClient.class);
     private final TrackingShipmentClient tracking = mock(TrackingShipmentClient.class);
     private final MockMvc mvc = standaloneSetup(
-            new CourierDashboardApiController(dashboard, 7),
-            new ShipmentCreationApiController(creation, 42),
+            new CourierDashboardApiController(dashboard, new CourierDashboardProperties(7)),
+            new ShipmentCreationApiController(creation, new ShipmentCreationProperties(42)),
             new TrackingStatusController(tracking)
-    ).setControllerAdvice(new ApiExceptionHandler()).build();
+    ).setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor()).build();
 
     @Test
     void malformedJsonReturnsProblemDetailWithoutCallingBackend() throws Exception {

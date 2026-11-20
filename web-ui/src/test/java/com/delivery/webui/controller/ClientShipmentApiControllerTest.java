@@ -1,5 +1,7 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.exception.ApiExceptionHandler;
 import org.junit.jupiter.api.Test;
@@ -28,8 +30,8 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 class ClientShipmentApiControllerTest {
 
     private final ClientShipmentClient client = mock(ClientShipmentClient.class);
-    private final MockMvc mvc = standaloneSetup(new ClientShipmentApiController(client, 42))
-            .setControllerAdvice(new ApiExceptionHandler()).build();
+    private final MockMvc mvc = standaloneSetup(new ClientShipmentApiController(client, new ShipmentCreationProperties(42)))
+            .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor()).build();
 
     @Test
     void cancelsAsConfiguredSenderWithOneBackendRequest() throws Exception {

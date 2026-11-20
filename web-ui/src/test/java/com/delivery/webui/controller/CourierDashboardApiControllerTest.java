@@ -1,5 +1,7 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.controller.support.LoopbackInterceptor;
+import com.delivery.webui.config.CourierDashboardProperties;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.controller.dto.CourierDashboardView;
 import com.delivery.webui.exception.ApiExceptionHandler;
@@ -34,8 +36,8 @@ class CourierDashboardApiControllerTest {
     private static final long COURIER = 7;
 
     private final CourierDashboardService service = mock(CourierDashboardService.class);
-    private final MockMvc mockMvc = standaloneSetup(new CourierDashboardApiController(service, COURIER))
-            .setControllerAdvice(new ApiExceptionHandler()).build();
+    private final MockMvc mockMvc = standaloneSetup(new CourierDashboardApiController(service, new CourierDashboardProperties(COURIER)))
+            .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor()).build();
 
     @Test
     void returnsDashboardOfConfiguredCourier() throws Exception {
@@ -81,8 +83,8 @@ class CourierDashboardApiControllerTest {
         CourierDashboardService realService = new CourierDashboardService(
                 HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.baseUrl("http://dispatch.test").build()))
                 .build().createClient(DispatchCourierDashboardClient.class));
-        MockMvc wired = standaloneSetup(new CourierDashboardApiController(realService, COURIER))
-                .setControllerAdvice(new ApiExceptionHandler()).build();
+        MockMvc wired = standaloneSetup(new CourierDashboardApiController(realService, new CourierDashboardProperties(COURIER)))
+                .setControllerAdvice(new ApiExceptionHandler()).addInterceptors(new LoopbackInterceptor()).build();
 
         wired.perform(post("/api/courier/dashboard/offers/55/accept").with(loopback()))
                 .andExpect(status().isConflict())

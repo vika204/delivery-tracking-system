@@ -1,8 +1,7 @@
 package com.delivery.webui.controller;
 
 import com.delivery.webui.service.TrackingStreamService;
-import com.delivery.webui.controller.support.LoopbackOnly;
-import jakarta.servlet.http.HttpServletRequest;
+import com.delivery.webui.controller.support.LocalDevOnly;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +20,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
         name = "enabled",
         havingValue = "true"
 )
+@LocalDevOnly("GPS streaming")
 public class TrackingSseController {
 
     private final TrackingStreamService streamService;
@@ -34,8 +34,7 @@ public class TrackingSseController {
             produces = MediaType.TEXT_EVENT_STREAM_VALUE
     )
     public SseEmitter stream(
-            @PathVariable long shipmentId,
-            HttpServletRequest request
+            @PathVariable long shipmentId
     ) {
         if (shipmentId <= 0) {
             throw new ResponseStatusException(
@@ -43,8 +42,6 @@ public class TrackingSseController {
                     "shipmentId must be positive"
             );
         }
-
-        LoopbackOnly.require(request, "GPS streaming");
 
         return streamService.subscribe(shipmentId);
     }
