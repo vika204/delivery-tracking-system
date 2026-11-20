@@ -107,16 +107,6 @@ public class ShipmentLifecycleService {
     }
 
     @Transactional
-    public Shipment startTripToPickup(long shipmentId, long courierId) {
-        Shipment shipment = load(shipmentId);
-        ShipmentStatus previous = shipment.getStatus();
-        if (shipment.startTripToPickup(courierId, Instant.now(clock))) {
-            recordTransition(shipment, previous, courierId, shipment.getAssignedCourierName(), ActorType.COURIER, courierId, null);
-        }
-        return shipment;
-    }
-
-    @Transactional
     public Shipment confirmPickup(long shipmentId, long courierId) {
         Shipment shipment = load(shipmentId);
         ShipmentStatus previous = shipment.getStatus();

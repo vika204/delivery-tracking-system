@@ -100,8 +100,6 @@ public class Shipment {
     @Column(name = "assigned_at")
     private Instant assignedAt;
 
-    @Column(name = "trip_started_at")
-    private Instant tripStartedAt;
 
     @Column(name = "picked_up_at")
     private Instant pickedUpAt;
@@ -189,31 +187,18 @@ public class Shipment {
         assignedCourierId = courierId;
         assignedCourierName = courierName;
         assignedAt = at;
-        tripStartedAt = null;
         return true;
     }
 
     public boolean unassignCourier(long courierId) {
         if (!Objects.equals(assignedCourierId, courierId)
-                || (status != ShipmentStatus.ASSIGNED && status != ShipmentStatus.TO_PICKUP)) {
+                || status != ShipmentStatus.ASSIGNED) {
             return false;
         }
         status = ShipmentStatus.WAITING_FOR_COURIER;
         assignedCourierId = null;
         assignedCourierName = null;
         assignedAt = null;
-        tripStartedAt = null;
-        return true;
-    }
-
-    public boolean startTripToPickup(long courierId, Instant at) {
-        requireAssignedCourier(courierId);
-        if (status == ShipmentStatus.TO_PICKUP) {
-            return false;
-        }
-        requireStatus(ShipmentStatus.ASSIGNED, "start the trip to pickup");
-        status = ShipmentStatus.TO_PICKUP;
-        tripStartedAt = at;
         return true;
     }
 
@@ -222,12 +207,7 @@ public class Shipment {
         if (status == ShipmentStatus.IN_TRANSIT) {
             return false;
         }
-        if (status != ShipmentStatus.ASSIGNED && status != ShipmentStatus.TO_PICKUP) {
-            throw conflict("confirm pickup");
-        }
-        if (tripStartedAt == null) {
-            tripStartedAt = at;
-        }
+        requireStatus(ShipmentStatus.ASSIGNED, "confirm pickup");
         status = ShipmentStatus.IN_TRANSIT;
         pickedUpAt = at;
         return true;
