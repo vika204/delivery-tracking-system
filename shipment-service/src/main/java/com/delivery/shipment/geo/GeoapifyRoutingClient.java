@@ -1,15 +1,10 @@
 package com.delivery.shipment.geo;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.JsonNode;
 
-import java.net.http.HttpClient;
-import java.time.Duration;
 import java.util.Set;
 
 @Component
@@ -17,21 +12,11 @@ public class GeoapifyRoutingClient implements RoutingClient {
 
     private static final Set<String> ADDRESS_TYPES = Set.of("building", "street", "amenity");
 
-    private final RestClient restClient;
+    private final GeoapifyApi geoapifyApi;
     private final String apiKey;
 
-    @Autowired
-    public GeoapifyRoutingClient(RestClient.Builder builder, @Value("${geoapify.api-key}") String apiKey) {
-        HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofSeconds(3));
-        this.restClient = builder.baseUrl("https://api.geoapify.com")
-                .requestFactory(requestFactory).build();
-        this.apiKey = apiKey.trim();
-    }
-
-    GeoapifyRoutingClient(RestClient restClient, String apiKey) {
-        this.restClient = restClient;
+    public GeoapifyRoutingClient(GeoapifyApi geoapifyApi, @Value("${geoapify.api-key}") String apiKey) {
+        this.geoapifyApi = geoapifyApi;
         this.apiKey = apiKey.trim();
     }
 
@@ -47,16 +32,8 @@ public class GeoapifyRoutingClient implements RoutingClient {
 
         JsonNode response;
         try {
-            response = restClient.get().uri(builder -> builder.path("/v1/geocode/search")
-                            .queryParam("text", "{address}")
-                            .queryParam("filter", "countrycode:ua")
-                            .queryParam("format", "json")
-                            .queryParam("limit", 1)
-                            .build(addressLine.trim()))
-                    .header("x-api-key", apiKey)
-                    .retrieve().body(JsonNode.class);
+            response = geoapifyApi.geocode(addressLine.trim(), apiKey);
         } catch (RestClientException ex) {
-            // Provider responses and request exceptions may contain credentials.
             throw new GeoapifyUnavailableException();
         }
 
@@ -89,14 +66,7 @@ public class GeoapifyRoutingClient implements RoutingClient {
 
         JsonNode response;
         try {
-            response = restClient.get().uri(builder -> builder.path("/v1/routing")
-                            .queryParam("waypoints", "{waypoints}")
-                            .queryParam("mode", "drive")
-                            .queryParam("units", "metric")
-                            .queryParam("format", "geojson")
-                            .build(waypoints))
-                    .header("x-api-key", apiKey)
-                    .retrieve().body(JsonNode.class);
+            response = geoapifyApi.route(waypoints, apiKey);
         } catch (RestClientException ex) {
             throw new GeoapifyUnavailableException();
         }

@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.support.RestClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
 import java.net.SocketTimeoutException;
 
@@ -29,15 +31,16 @@ class GeoapifyRoutingClientTest {
     private static final Coordinates DELIVERY = new Coordinates(50.451, 30.524);
 
     private MockRestServiceServer server;
-    private RestClient restClient;
+    private GeoapifyApi api;
     private GeoapifyRoutingClient client;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder().baseUrl("https://api.geoapify.com");
         server = MockRestServiceServer.bindTo(builder).build();
-        restClient = builder.build();
-        client = new GeoapifyRoutingClient(restClient, TEST_KEY);
+        api = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.build()))
+                .build().createClient(GeoapifyApi.class);
+        client = new GeoapifyRoutingClient(api, TEST_KEY);
     }
 
     @AfterEach
@@ -145,7 +148,7 @@ class GeoapifyRoutingClientTest {
 
     @Test
     void reportsMissingKeyBeforeMakingARequest() {
-        GeoapifyRoutingClient unconfigured = new GeoapifyRoutingClient(restClient, "");
+        GeoapifyRoutingClient unconfigured = new GeoapifyRoutingClient(api, "");
 
         assertThatThrownBy(() -> unconfigured.geocode(KYIV, "Київ, Хрещатик, 1"))
                 .isInstanceOf(GeoapifyUnavailableException.class);
