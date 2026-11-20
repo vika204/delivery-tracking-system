@@ -264,7 +264,7 @@ class MyParcelsPageControllerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"WAITING_FOR_COURIER", "ASSIGNED", "TO_PICKUP"})
+    @ValueSource(strings = {"WAITING_FOR_COURIER", "ASSIGNED"})
     void detailsAllowCancellationBeforePickupAndKeepNotificationNavigation(String shipmentStatus) throws Exception {
         when(shipmentClient.getShipment(515)).thenReturn(shipment(515, 42, shipmentStatus));
 

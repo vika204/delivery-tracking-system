@@ -214,7 +214,6 @@ public class TrackingViewService {
         return switch (status.toUpperCase(Locale.ROOT)) {
             case "WAITING_FOR_COURIER" -> "WAITING FOR COURIER";
             case "ASSIGNED" -> "COURIER ASSIGNED";
-            case "TO_PICKUP" -> "COURIER GOING TO PICKUP";
             case "IN_TRANSIT" -> "YOUR COURIER IS ON THE WAY";
             case DELIVERED -> DELIVERED;
             case CANCELLED -> CANCELLED;

@@ -26,7 +26,6 @@ function statusLabel(status) {
     return ({
         WAITING_FOR_COURIER: "WAITING FOR COURIER",
         ASSIGNED: "COURIER ASSIGNED",
-        TO_PICKUP: "COURIER GOING TO PICKUP",
         IN_TRANSIT: "YOUR COURIER IS ON THE WAY"
     })[status] ?? status.replaceAll("_", " ");
 }

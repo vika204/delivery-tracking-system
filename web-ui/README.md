@@ -97,7 +97,7 @@ $env:SHIPMENT_CREATION_SENDER_ID = "42"
 `GET /my-parcels` читає `GET /shipments/mine` через `ClientShipmentClient`.
 Бекенд повертає найновіші посилки першими. На сторінці до 20 посилок; PREVIOUS/NEXT відкривають інші сторінки.
 `GET /my-parcels/{id}` завантажує реальні деталі цієї посилки.
-У My Parcels та деталях кнопка CANCEL SHIPMENT доступна для WAITING_FOR_COURIER, ASSIGNED і TO_PICKUP.
+У My Parcels та деталях кнопка CANCEL SHIPMENT доступна для WAITING_FOR_COURIER і ASSIGNED.
 Вона відкриває наявний WebExpressModal, після підтвердження викликає `POST /api/shipments/{id}/cancel`.
 `ClientShipmentApiController` передає один запит через `ClientShipmentClient` у наявний `POST /shipments/{id}/cancel`.
 Власника та допустимий статус перевіряє shipment-service. Після успіху спільний `js/components/shipment-cancel.js` оновлює поточну картку до CANCELLED без перезавантаження.

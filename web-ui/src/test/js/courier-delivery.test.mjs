@@ -15,7 +15,6 @@ import {
 
 test('labels ASSIGNED shipment as TO PICK UP', () => {
     assert.equal(statusLabel('ASSIGNED'), 'TO PICK UP');
-    assert.equal(statusLabel('TO_PICKUP'), 'TO PICK UP');
     assert.equal(statusLabel('IN_TRANSIT'), 'IN TRANSIT');
     assert.equal(statusLabel('UNKNOWN'), '—');
     assert.equal(statusClass('IN_TRANSIT'), 'in-transit');
@@ -24,7 +23,6 @@ test('labels ASSIGNED shipment as TO PICK UP', () => {
 
 test('offers Confirm pickup before pickup and delivery afterwards', () => {
     assert.deepEqual(nextAction('ASSIGNED'), {action: 'pickup', label: 'CONFIRM PICKUP'});
-    assert.deepEqual(nextAction('TO_PICKUP'), {action: 'pickup', label: 'CONFIRM PICKUP'});
     assert.deepEqual(nextAction('IN_TRANSIT'), {action: 'deliver', label: 'MARK AS DELIVERED'});
     assert.equal(nextAction('DELIVERED'), null);
     assert.equal(nextAction('CANCELLED'), null);
@@ -32,7 +30,6 @@ test('offers Confirm pickup before pickup and delivery afterwards', () => {
 
 test('allows withdrawal only before pickup', () => {
     assert.equal(canWithdraw('ASSIGNED'), true);
-    assert.equal(canWithdraw('TO_PICKUP'), true);
     assert.equal(canWithdraw('IN_TRANSIT'), false);
     assert.equal(canWithdraw('DELIVERED'), false);
 });

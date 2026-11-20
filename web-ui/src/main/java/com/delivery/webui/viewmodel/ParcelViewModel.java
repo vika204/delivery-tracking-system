@@ -59,7 +59,7 @@ public record ParcelViewModel(
 
     public String statusClass() {
         return switch (status) {
-            case "IN_TRANSIT", "ASSIGNED", "TO_PICKUP" -> "transit";
+            case "IN_TRANSIT", "ASSIGNED" -> "transit";
             case "DELIVERED" -> "delivered";
             case "WAITING_FOR_COURIER" -> "waiting";
             case "CANCELLED" -> "cancelled";
@@ -72,7 +72,7 @@ public record ParcelViewModel(
     }
 
     public boolean cancellable() {
-        return "WAITING_FOR_COURIER".equals(status) || "ASSIGNED".equals(status) || "TO_PICKUP".equals(status);
+        return "WAITING_FOR_COURIER".equals(status) || "ASSIGNED".equals(status);
     }
 
     public boolean trackable() {

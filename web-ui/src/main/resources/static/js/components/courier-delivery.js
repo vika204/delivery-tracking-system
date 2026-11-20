@@ -2,7 +2,6 @@ import {formatDistance} from './format-distance.js';
 
 const LABELS = Object.freeze({
     ASSIGNED: 'TO PICK UP',
-    TO_PICKUP: 'TO PICK UP',
     IN_TRANSIT: 'IN TRANSIT',
     DELIVERED: 'DELIVERED',
     CANCELLED: 'CANCELLED',
@@ -23,7 +22,7 @@ export function statusClass(status) {
 }
 
 export function nextAction(status) {
-    if (status === 'ASSIGNED' || status === 'TO_PICKUP') {
+    if (status === 'ASSIGNED') {
         return {action: 'pickup', label: 'CONFIRM PICKUP'};
     }
     if (status === 'IN_TRANSIT') {
@@ -33,7 +32,7 @@ export function nextAction(status) {
 }
 
 export function canWithdraw(status) {
-    return status === 'ASSIGNED' || status === 'TO_PICKUP';
+    return status === 'ASSIGNED';
 }
 
 export function sharesGps(status) {
