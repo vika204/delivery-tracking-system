@@ -69,4 +69,11 @@ public interface DispatchCourierDashboardClient {
             @PathVariable("id") long courierId,
             @PathVariable("offerId") long offerId
     );
+
+    @PostExchange("/{id}/assignments/{assignmentId}/withdraw")
+    void withdrawAssignment(
+            @RequestHeader("X-User-Id") long userId,
+            @PathVariable("id") long courierId,
+            @PathVariable("assignmentId") long assignmentId
+    );
 }

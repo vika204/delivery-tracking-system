@@ -42,6 +42,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(NoActiveAssignmentException.class)
+    ProblemDetail noActiveAssignment(NoActiveAssignmentException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setType(URI.create("urn:delivery:problem:no-active-assignment"));
+        return problem;
+    }
+
     @ExceptionHandler(RestClientResponseException.class)
     ProblemDetail rejected(RestClientResponseException ex) {
         HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());

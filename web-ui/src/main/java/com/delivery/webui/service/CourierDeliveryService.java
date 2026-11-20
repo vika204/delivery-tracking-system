@@ -1,10 +1,13 @@
 package com.delivery.webui.service;
 
 import com.delivery.webui.client.CourierShipmentClient;
+import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
+import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
+import com.delivery.webui.exception.NoActiveAssignmentException;
 import com.delivery.webui.exception.ShipmentNotInTransitException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -14,10 +17,13 @@ public class CourierDeliveryService {
 
     private final CourierShipmentClient shipmentClient;
     private final TrackingLocationClient trackingClient;
+    private final DispatchCourierDashboardClient dispatchClient;
 
-    public CourierDeliveryService(CourierShipmentClient shipmentClient, TrackingLocationClient trackingClient) {
+    public CourierDeliveryService(CourierShipmentClient shipmentClient, TrackingLocationClient trackingClient,
+                                  DispatchCourierDashboardClient dispatchClient) {
         this.shipmentClient = shipmentClient;
         this.trackingClient = trackingClient;
+        this.dispatchClient = dispatchClient;
     }
 
     public CourierShipmentResponse view(long courierId, long shipmentId) {
@@ -32,6 +38,15 @@ public class CourierDeliveryService {
     public CourierShipmentResponse completeDelivery(long courierId, long shipmentId) {
         shipmentClient.completeDelivery(courierId, shipmentId);
         return view(courierId, shipmentId);
+    }
+
+    public void withdraw(long courierId, long shipmentId) {
+        long assignmentId = dispatchClient.activeAssignments(courierId, courierId).stream()
+                .filter(assignment -> assignment.shipmentId() == shipmentId)
+                .map(DispatchCourierAssignment::assignmentId)
+                .findFirst()
+                .orElseThrow(() -> new NoActiveAssignmentException(courierId, shipmentId));
+        dispatchClient.withdrawAssignment(courierId, courierId, assignmentId);
     }
 
     public ResponseEntity<TrackingLocationResponse> recordLocation(long courierId, long shipmentId, RecordLocationRequest point) {
