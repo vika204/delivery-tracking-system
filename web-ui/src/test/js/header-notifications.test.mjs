@@ -63,21 +63,107 @@ test('large notification IDs are sent without JavaScript numeric rounding', asyn
     assert.equal(result.requests[0].url, '/api/notifications/read?throughId=9007199254740993');
 });
 
-async function openHeader({client = true, throughId, unread = false, markFails = false, statusFails = false} = {}) {
+test('client header discovers new unread notifications on the next five-second check', async () => {
+    const result = await openHeader();
+    assert.equal(result.timers[0].delay, 5000);
+    result.state.unread = true;
+    await result.tick();
+    assert.equal(result.requests.length, 2);
+    assert.ok(result.indicators.every(indicator => !indicator.hidden));
+});
+
+test('notification polling adds new cards once and preserves existing highlights', async () => {
+    const result = await openHeader({throughId: '103'});
+    const original = result.page.list.cards[0];
+    original.highlighted = true;
+    result.state.nextIds = ['104', '103'];
+    result.state.nextThrough = '104';
+    await result.tick();
+    assert.deepEqual(result.page.list.cards.map(card => card.dataset.notificationId), ['104', '103']);
+    assert.equal(result.page.list.cards[1], original);
+    assert.equal(result.page.list.cards[1].highlighted, true);
+    assert.ok(result.requests.some(request => request.url === '/api/notifications/read?throughId=104'));
+
+    await result.tick();
+    assert.equal(result.page.list.cards.length, 2);
+    assert.equal(result.requests.filter(request => request.options.method === 'POST').length, 2);
+});
+
+test('notification refresh failure keeps the current list and recovers on the next check', async () => {
+    const result = await openHeader({throughId: '103'});
+    const original = result.page.list.cards[0];
+    result.state.refreshFails = true;
+    await result.tick();
+    assert.equal(result.page.list.cards[0], original);
+    assert.equal(result.page.error.hidden, false);
+    result.state.refreshFails = false;
+    await result.tick();
+    assert.equal(result.page.error.hidden, true);
+});
+
+test('hidden pages do not fetch or mark notifications until they are visible', async () => {
+    const result = await openHeader({throughId: '103', hidden: true});
+    assert.equal(result.requests.length, 0);
+    await result.tick();
+    assert.equal(result.requests.length, 0);
+    result.document.hidden = false;
+    await result.tick();
+    assert.ok(result.requests.some(request => request.url === '/api/notifications/read?throughId=103'));
+});
+
+test('polling uses only the bounded latest list returned by the server', async () => {
+    const result = await openHeader({throughId: '1'});
+    result.state.nextIds = Array.from({length: 50}, (_, index) => String(51 - index));
+    result.state.nextThrough = '51';
+    await result.tick();
+    assert.equal(result.page.list.cards.length, 50);
+    assert.equal(result.page.list.cards.some(card => card.dataset.notificationId === '1'), false);
+    assert.equal(result.page.limit.hidden, false);
+});
+
+async function openHeader({client = true, throughId, unread = false, markFails = false, statusFails = false, hidden = false} = {}) {
     const requests = [];
     const warnings = [];
+    const timers = [];
     const indicators = [{hidden: true}, {hidden: true}];
     const link = {dataset: {notificationStatusUrl: '/api/notifications/unread', notificationReadUrl: '/api/notifications/read'}};
-    const page = throughId === undefined ? null : {dataset: {notificationReadThrough: throughId}};
+    const ids = throughId && throughId !== '0' ? [throughId] : [];
+    const state = {unread, markFails, statusFails, refreshFails: false, nextIds: ids, nextThrough: throughId ?? '0'};
+    function makePage(cardIds, boundary) {
+        const list = {
+            cards: cardIds.map(id => ({dataset: {notificationId: id}})),
+            get children() { return this.cards; },
+            querySelectorAll() { return this.cards; },
+            replaceChildren(...cards) { this.cards = cards; }
+        };
+        const error = {hidden: true};
+        const limit = {hidden: true};
+        return {
+            dataset: {notificationReadThrough: boundary, notificationRefreshUrl: '/notifications?fragment=true'},
+            list, error, limit,
+            querySelector: selector => selector === '.parcel-list' ? list : selector === '.notifications-limit' ? limit : error
+        };
+    }
+    const page = throughId === undefined ? null : makePage(ids, throughId);
     const document = {
+        hidden,
         querySelector: selector => selector === '[data-notification-status-url]' ? (client ? link : null) : page,
         querySelectorAll: selector => selector === '[data-notification-indicator]' ? indicators : []
     };
-    const fetch = async (url, options) => {
+    const fetch = async (url, options = {}) => {
         requests.push({url, options});
-        return {ok: options.method === 'POST' ? !markFails : !statusFails, json: async () => unread};
+        if (url === '/notifications?fragment=true') {
+            return {ok: !state.refreshFails, text: async () => ''};
+        }
+        return {ok: options.method === 'POST' ? !state.markFails : !state.statusFails, json: async () => state.unread};
     };
 
-    await vm.runInNewContext(source, {document, fetch, URLSearchParams, console: {warn: message => warnings.push(message)}});
-    return {requests, warnings, indicators};
+    await vm.runInNewContext(source, {
+        document, fetch, URLSearchParams,
+        DOMParser: class { parseFromString() { return {querySelector: () => makePage(state.nextIds, state.nextThrough)}; } },
+        setTimeout: (callback, delay) => { timers.push({callback, delay}); },
+        console: {warn: message => warnings.push(message)}
+    });
+    return {requests, warnings, indicators, timers, page, state, document,
+        tick: async () => timers.shift().callback()};
 }

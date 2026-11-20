@@ -12,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestClientException;
 
 import java.util.List;
@@ -35,7 +36,7 @@ public class NotificationsPageController {
     }
 
     @GetMapping("/notifications")
-    public String notifications(Model model) {
+    public String notifications(@RequestParam(defaultValue = "false") boolean fragment, Model model) {
         List<NotificationResponse> notifications = client.getMyNotifications(userId, LIMIT);
         if (notifications == null || notifications.size() > LIMIT || notifications.stream().anyMatch(item ->
                 item == null || item.notificationId() <= 0 || item.shipmentId() <= 0 || item.type() == null || item.type().isBlank()
@@ -45,6 +46,6 @@ public class NotificationsPageController {
         model.addAttribute("notifications", notifications.stream().map(NotificationViewModel::from).toList());
         model.addAttribute("notificationReadThrough", notifications.stream()
                 .mapToLong(NotificationResponse::notificationId).max().orElse(0));
-        return "pages/notifications";
+        return fragment ? "pages/notifications :: notificationContent" : "pages/notifications";
     }
 }

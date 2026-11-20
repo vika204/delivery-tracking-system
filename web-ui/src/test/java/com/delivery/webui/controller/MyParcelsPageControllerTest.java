@@ -1,6 +1,6 @@
 package com.delivery.webui.controller;
 
-import com.delivery.webui.client.ShipmentReadClient;
+import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.client.dto.ClientShipmentResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,7 +42,7 @@ class MyParcelsPageControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ShipmentReadClient shipmentClient;
+    private ClientShipmentClient shipmentClient;
 
     @Test
     void showsRealParcelsWithExistingDesignAndLinks() throws Exception {
@@ -228,6 +228,65 @@ class MyParcelsPageControllerTest {
         mockMvc.perform(get("/my-parcels/99999")).andExpect(status().isNotFound());
         mockMvc.perform(get("/my-parcels/999")).andExpect(status().isNotFound())
                 .andExpect(content().string(not(containsString("Test Courier Kyiv"))));
+    }
+
+    @Test
+    void listAllowsCancellationBeforePickupAndDisablesTrackingOnlyForCancelledShipments() throws Exception {
+        when(shipmentClient.getMyShipments(42, 0, 20)).thenReturn(List.of(
+                shipment(515, 42, "WAITING_FOR_COURIER"), shipment(516, 42, "IN_TRANSIT"),
+                shipment(517, 42, "DELIVERED"), shipment(518, 42, "CANCELLED")));
+
+        mockMvc.perform(get("/my-parcels"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-cancel-url=\"/api/shipments/515/cancel\"")))
+                .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/516/cancel\""))))
+                .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/517/cancel\""))))
+                .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/518/cancel\""))))
+                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=517&amp;previewRole=CLIENT\"")))
+                .andExpect(content().string(not(containsString("href=\"/tracking?shipmentId=518"))))
+                .andExpect(content().string(containsString("aria-disabled=\"true\"")))
+                .andExpect(content().string(containsString("id=\"we-modal\"")));
+    }
+
+    @Test
+    void cancelledDetailsDisableTrackingAndDeliveredDetailsKeepHistoryAccessible() throws Exception {
+        when(shipmentClient.getShipment(515)).thenReturn(shipment(515, 42, "CANCELLED"));
+        when(shipmentClient.getShipment(516)).thenReturn(shipment(516, 42, "DELIVERED"));
+
+        mockMvc.perform(get("/my-parcels/515"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("aria-disabled=\"true\"")))
+                .andExpect(content().string(not(containsString("href=\"/tracking?shipmentId=515"))));
+        mockMvc.perform(get("/my-parcels/516"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=516&amp;previewRole=CLIENT\"")))
+                .andExpect(content().string(not(containsString("aria-disabled=\"true\""))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"WAITING_FOR_COURIER", "ASSIGNED", "TO_PICKUP"})
+    void detailsAllowCancellationBeforePickupAndKeepNotificationNavigation(String shipmentStatus) throws Exception {
+        when(shipmentClient.getShipment(515)).thenReturn(shipment(515, 42, shipmentStatus));
+
+        mockMvc.perform(get("/my-parcels/515").param("from", "notifications"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("CANCEL SHIPMENT")))
+                .andExpect(content().string(containsString("data-cancel-url=\"/api/shipments/515/cancel\"")))
+                .andExpect(content().string(containsString("id=\"we-modal\"")))
+                .andExpect(content().string(containsString("BACK TO NOTIFICATIONS")))
+                .andExpect(content().string(containsString("TRACK PACKAGE")));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"IN_TRANSIT", "DELIVERED", "CANCELLED"})
+    void detailsHideCancellationAfterPickupOrCompletion(String shipmentStatus) throws Exception {
+        when(shipmentClient.getShipment(515)).thenReturn(shipment(515, 42, shipmentStatus));
+
+        mockMvc.perform(get("/my-parcels/515"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(not(containsString("id=\"cancel-shipment\""))))
+                .andExpect(content().string(containsString(shipmentStatus.replace('_', ' '))))
+                .andExpect(content().string(containsString("TRACK PACKAGE")));
     }
 
     @Test

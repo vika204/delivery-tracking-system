@@ -6,11 +6,12 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
 
 import java.util.List;
 
 @HttpExchange("/shipments")
-public interface ShipmentReadClient {
+public interface ClientShipmentClient {
 
     @GetExchange("/mine")
     List<ClientShipmentResponse> getMyShipments(
@@ -21,4 +22,7 @@ public interface ShipmentReadClient {
 
     @GetExchange("/{id}")
     ClientShipmentResponse getShipment(@PathVariable("id") long shipmentId);
+
+    @PostExchange("/{id}/cancel")
+    void cancelShipment(@RequestHeader("X-User-Id") long senderId, @PathVariable("id") long shipmentId);
 }

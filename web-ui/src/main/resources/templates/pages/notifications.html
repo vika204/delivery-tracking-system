@@ -20,7 +20,8 @@
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
 <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
 
-<main class="parcels-page notifications-page" th:attr="data-notification-read-through=${notificationReadThrough}">
+<main class="parcels-page notifications-page" th:fragment="notificationContent"
+      th:attr="data-notification-read-through=${notificationReadThrough},data-notification-refresh-url=@{/notifications(fragment=true)}">
     <section class="parcel-list" aria-label="Shipment notifications" aria-live="polite">
         <article class="parcel-card parcel-state" th:if="${notificationsError}" role="alert">
             <div class="parcel-inner">
@@ -31,7 +32,8 @@
 
         <th:block th:if="${!notificationsError}">
             <article class="parcel-card notification-card parcel-card--subtle" th:each="notification : ${notifications}"
-                     th:classappend="${!notification.read()} ? 'notification-card--unread' : ''">
+                     th:classappend="${!notification.read()} ? 'notification-card--unread' : ''"
+                     th:attr="data-notification-id=${notification.notificationId()}">
                 <img class="notification-new-icon" th:if="${!notification.read()}"
                      th:src="@{/images/notification-icon.svg}" width="52" height="52" alt="New notification">
                 <div class="parcel-inner">
@@ -62,9 +64,10 @@
             </article>
         </th:block>
     </section>
-    <p class="notifications-limit" th:if="${!notificationsError and #lists.size(notifications) == 50}">
+    <p class="notifications-limit" th:hidden="${notificationsError or #lists.size(notifications) < 50}">
         Showing the 50 latest notifications.
     </p>
+    <p class="notifications-refresh-error" role="status" hidden>Updates are temporarily unavailable. Your current list is still here.</p>
 </main>
 </body>
 </html>

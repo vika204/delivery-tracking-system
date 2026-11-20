@@ -19,12 +19,13 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-class ShipmentReadClientTest {
+class ClientShipmentClientTest {
 
     private static final String SHIPMENT = """
             {"shipmentId":515,"userId":42,"status":"WAITING_FOR_COURIER",
@@ -37,14 +38,14 @@ class ShipmentReadClientTest {
             """;
 
     private MockRestServiceServer server;
-    private ShipmentReadClient client;
+    private ClientShipmentClient client;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://shipment.test");
         server = MockRestServiceServer.bindTo(builder).build();
         client = HttpServiceProxyFactory.builderFor(RestClientAdapter.create(builder.build()))
-                .build().createClient(ShipmentReadClient.class);
+                .build().createClient(ClientShipmentClient.class);
     }
 
     @AfterEach
@@ -82,6 +83,16 @@ class ShipmentReadClientTest {
                 .andRespond(withSuccess(SHIPMENT, MediaType.APPLICATION_JSON));
 
         assertThat(client.getShipment(515).shipmentId()).isEqualTo(515);
+    }
+
+    @Test
+    void cancelsShipmentAsSenderUsingExistingEndpointWithoutRequestBody() {
+        server.expect(requestTo("http://shipment.test/shipments/515/cancel"))
+                .andExpect(method(HttpMethod.POST)).andExpect(header("X-User-Id", "42"))
+                .andExpect(content().string(""))
+                .andRespond(withSuccess(SHIPMENT.replace("WAITING_FOR_COURIER", "CANCELLED"), MediaType.APPLICATION_JSON));
+
+        client.cancelShipment(42, 515);
     }
 
     @Test

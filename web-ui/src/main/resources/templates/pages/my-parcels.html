@@ -12,9 +12,12 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
     <script th:src="@{/js/components/header.js}" defer></script>
     <script th:src="@{/js/components/cursor-webs.js}" defer></script>
+    <script th:src="@{/js/components/modal.js}" defer></script>
+    <script th:src="@{/js/components/shipment-cancel.js}" defer></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
@@ -45,7 +48,7 @@
                                 th:text="|SHIPMENT #${parcel.shipmentId()}|">
                                 SHIPMENT
                             </h2>
-                            <span class="status"
+                            <span class="status" data-shipment-status
                                   th:classappend="${parcel.statusClass()}"
                                   th:text="${parcel.statusLabel()}">
                                 STATUS
@@ -72,12 +75,18 @@
                         </div>
 
                         <div class="parcel-actions">
+                            <button class="btn btn-outline" type="button"
+                                    th:if="${parcel.cancellable()}"
+                                    th:attr="data-cancel-url=@{/api/shipments/{id}/cancel(id=${parcel.shipmentId()})}">
+                                <span class="btn-label">CANCEL SHIPMENT</span>
+                            </button>
                             <a class="btn btn-outline"
                                th:href="@{/my-parcels/{id}(id=${parcel.shipmentId()})}">
                                 <span class="btn-label">DETAILS</span>
                             </a>
-                            <a class="btn btn-red web-button"
-                               th:href="@{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')}">
+                            <a class="btn btn-red web-button" data-track-shipment
+                               th:href="${parcel.trackable()} ? @{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')} : null"
+                               th:attr="aria-disabled=${!parcel.trackable()} ? 'true' : null,tabindex=${!parcel.trackable()} ? '-1' : null">
                                 <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                                 <span class="btn-label web-button__label">TRACK PACKAGE</span>
                             </a>
@@ -108,5 +117,6 @@
         </nav>
     </section>
 </main>
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

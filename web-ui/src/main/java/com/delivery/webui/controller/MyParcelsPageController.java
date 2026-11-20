@@ -1,6 +1,6 @@
 package com.delivery.webui.controller;
 
-import com.delivery.webui.client.ShipmentReadClient;
+import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.client.dto.ClientShipmentResponse;
 import com.delivery.webui.controller.support.LoopbackOnly;
 import com.delivery.webui.viewmodel.ParcelViewModel;
@@ -25,10 +25,10 @@ public class MyParcelsPageController {
 
     static final int PAGE_SIZE = 20;
 
-    private final ShipmentReadClient shipmentClient;
+    private final ClientShipmentClient shipmentClient;
     private final long senderId;
 
-    public MyParcelsPageController(ShipmentReadClient shipmentClient,
+    public MyParcelsPageController(ClientShipmentClient shipmentClient,
                                   @Value("${shipment.creation.sender-id}") long senderId) {
         this.shipmentClient = shipmentClient;
         this.senderId = senderId;

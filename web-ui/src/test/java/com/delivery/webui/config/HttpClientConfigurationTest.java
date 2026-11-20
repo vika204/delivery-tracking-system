@@ -4,7 +4,7 @@ import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.ShipmentCreationClient;
-import com.delivery.webui.client.ShipmentReadClient;
+import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.TrackingShipmentClient;
 import com.delivery.webui.client.NotificationClient;
@@ -41,7 +41,7 @@ class HttpClientConfigurationTest {
 
     @Test
     void registersAllClientsAsInjectableHttpServiceProxies() {
-        for (Class<?> type : List.of(ShipmentReadClient.class, ShipmentCreationClient.class,
+        for (Class<?> type : List.of(ClientShipmentClient.class, ShipmentCreationClient.class,
                 CourierShipmentClient.class, DispatchCourierClient.class, DispatchCourierDashboardClient.class,
                 TrackingShipmentClient.class, TrackingLocationClient.class, NotificationClient.class, UserProfileClient.class)) {
             assertThat(context.getBean(type)).isSameAs(registry.getClient(type));

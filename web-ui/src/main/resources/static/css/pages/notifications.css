@@ -45,6 +45,12 @@
     font: 500 13px/1.5 var(--font-body);
 }
 
+.notifications-refresh-error {
+    margin-top: 23px;
+    color: var(--red);
+    font: 500 13px/1.5 var(--font-body);
+}
+
 @media (max-width: 650px) {
     .notification-new-icon {
         top: -24px;

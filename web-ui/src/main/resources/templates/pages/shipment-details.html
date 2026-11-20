@@ -12,9 +12,12 @@
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="stylesheet" th:href="@{/css/components/header.css}">
     <link rel="stylesheet" th:href="@{/css/components/cursor-webs.css}">
+    <link rel="stylesheet" th:href="@{/css/components/modal.css}">
     <link rel="stylesheet" th:href="@{/css/pages/my-parcels.css}">
     <script th:src="@{/js/components/header.js}" defer></script>
     <script th:src="@{/js/components/cursor-webs.js}" defer></script>
+    <script th:src="@{/js/components/modal.js}" defer></script>
+    <script th:src="@{/js/components/shipment-cancel.js}" defer></script>
 </head>
 <body>
 <canvas id="cursor-webs" aria-hidden="true"></canvas>
@@ -38,7 +41,7 @@
                     th:text="|SHIPMENT #${parcel.shipmentId()}|">
                     SHIPMENT
                 </h1>
-                <span class="status"
+                <span class="status" data-shipment-status
                       th:classappend="${parcel.statusClass()}"
                       th:text="${parcel.statusLabel()}">
                     STATUS
@@ -124,8 +127,15 @@
             <hr class="dashed-rule">
 
             <div class="detail-actions">
-                <a class="btn btn-red web-button"
-                   th:href="@{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')}">
+                <button class="btn btn-outline web-button" type="button" id="cancel-shipment"
+                        th:if="${parcel.cancellable()}"
+                        th:attr="data-cancel-url=@{/api/shipments/{id}/cancel(id=${parcel.shipmentId()})}">
+                    <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
+                    <span class="btn-label web-button__label">CANCEL SHIPMENT</span>
+                </button>
+                <a class="btn btn-red web-button" data-track-shipment
+                   th:href="${parcel.trackable()} ? @{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')} : null"
+                   th:attr="aria-disabled=${!parcel.trackable()} ? 'true' : null,tabindex=${!parcel.trackable()} ? '-1' : null">
                     <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                     <span class="btn-label web-button__label">TRACK PACKAGE</span>
                 </a>
@@ -133,5 +143,6 @@
         </div>
     </article>
 </main>
+<div th:replace="~{fragments/ui/modal :: modal}"></div>
 </body>
 </html>

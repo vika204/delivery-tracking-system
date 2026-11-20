@@ -71,6 +71,14 @@ public record ParcelViewModel(
         return "DELIVERED".equals(status);
     }
 
+    public boolean cancellable() {
+        return "WAITING_FOR_COURIER".equals(status) || "ASSIGNED".equals(status) || "TO_PICKUP".equals(status);
+    }
+
+    public boolean trackable() {
+        return !"CANCELLED".equals(status);
+    }
+
     private static String quantity(BigDecimal value, String unit) {
         return value == null ? NOT_AVAILABLE : value.stripTrailingZeros().toPlainString() + " " + unit;
     }

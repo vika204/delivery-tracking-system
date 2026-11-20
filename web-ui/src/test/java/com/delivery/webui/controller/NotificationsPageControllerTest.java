@@ -153,6 +153,23 @@ class NotificationsPageControllerTest {
     }
 
     @Test
+    void pollingReturnsOnlyTheExistingNotificationFragmentWithStableIds() throws Exception {
+        when(client.getMyNotifications(42, 50)).thenReturn(List.of(
+                notification(3, "DELIVERED", "<script>unsafe</script>")));
+
+        mvc.perform(get("/notifications").param("fragment", "true"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("pages/notifications :: notificationContent"))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().string(containsString("data-notification-id=\"3\"")))
+                .andExpect(content().string(containsString("data-notification-read-through=\"3\"")))
+                .andExpect(content().string(containsString("&lt;script&gt;unsafe&lt;/script&gt;")))
+                .andExpect(content().string(not(containsString("<html"))))
+                .andExpect(content().string(not(containsString("site-header"))));
+        verify(client, never()).markNotificationsRead(anyLong(), anyLong());
+    }
+
+    @Test
     void usesHighestLoadedIdRatherThanFirstTimestampSortedItemForReadBoundary() throws Exception {
         when(client.getMyNotifications(42, 50)).thenReturn(List.of(
                 notification(1, "DELIVERED", "Newest timestamp."),

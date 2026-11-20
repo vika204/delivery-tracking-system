@@ -4,7 +4,7 @@
     background: #f3e2ca;
     color: #211610;
     box-shadow: 7px 8px 0 #1f130e;
-    width: min(380px, calc(100% - 42px));
+    width: min(520px, calc(100% - 42px));
     padding: 28px;
     text-align: center;
 }
