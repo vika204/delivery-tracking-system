@@ -23,7 +23,7 @@
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
-<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+<header th:replace="~{fragments/header :: siteHeader}"></header>
 
 <main class="shipment-created-page">
     <article class="shipment-envelope" aria-labelledby="created-title">
@@ -60,7 +60,7 @@
                     </a>
 
                     <a class="shipment-created-button shipment-created-button--red web-button"
-                       th:href="@{/tracking(shipmentId=${shipmentId},previewRole='CLIENT')}">
+                       th:href="@{/tracking(shipmentId=${shipmentId})}">
                         <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                         <span class="shipment-created-button__label web-button__label">TRACK PACKAGE</span>
                     </a>

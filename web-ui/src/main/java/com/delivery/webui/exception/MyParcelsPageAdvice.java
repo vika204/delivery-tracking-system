@@ -19,7 +19,6 @@ public class MyParcelsPageAdvice {
     void pageAttributes(Model model) {
         model.addAttribute("pageTitle", "My parcels — WEB EXPRESS");
         model.addAttribute("activePage", "my-parcels");
-        model.addAttribute("headerState", "CLIENT");
         model.addAttribute("parcelsError", false);
     }
 

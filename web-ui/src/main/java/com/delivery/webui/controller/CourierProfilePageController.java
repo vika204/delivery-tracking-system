@@ -11,7 +11,6 @@ public class CourierProfilePageController {
     public String courierProfilePage(Model model) {
         model.addAttribute("pageTitle", "Courier Profile — WEB EXPRESS");
         model.addAttribute("activePage", "courier-profile");
-        model.addAttribute("headerState", "COURIER");
         return "pages/courier-profile";
     }
 }

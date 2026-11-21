@@ -21,7 +21,7 @@
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
-<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+<header th:replace="~{fragments/header :: siteHeader}"></header>
 
 <main class="parcels-page">
     <a class="back" th:href="${activePage == 'notifications'} ? @{/notifications} : @{/my-parcels}">
@@ -134,7 +134,7 @@
                     <span class="btn-label web-button__label">CANCEL SHIPMENT</span>
                 </button>
                 <a class="btn btn-red web-button" data-track-shipment
-                   th:href="${parcel.trackable()} ? @{/tracking(shipmentId=${parcel.shipmentId()},previewRole='CLIENT')} : null"
+                   th:href="${parcel.trackable()} ? @{/tracking(shipmentId=${parcel.shipmentId()})} : null"
                    th:attr="aria-disabled=${!parcel.trackable()} ? 'true' : null,tabindex=${!parcel.trackable()} ? '-1' : null">
                     <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
                     <span class="btn-label web-button__label">TRACK PACKAGE</span>

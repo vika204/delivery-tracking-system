@@ -24,7 +24,7 @@
 </head>
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
-<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+<header th:replace="~{fragments/header :: siteHeader}"></header>
 <main class="delivery-details-page" th:attr="data-shipment-id=${shipmentId}">
     <a th:href="@{/courier/dashboard}" href="/courier/dashboard" class="back-link">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none"

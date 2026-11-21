@@ -54,7 +54,7 @@ class NotificationsPageControllerTest {
                 .andExpect(view().name("pages/notifications"))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(model().attribute("activePage", "notifications"))
-                .andExpect(model().attribute("headerState", "CLIENT"))
+                .andExpect(content().string(containsString("data-profile-menu")))
                 .andExpect(content().string(containsString("SHIPMENT #15")))
                 .andExpect(content().string(containsString("19 Nov 2026, 12:30")))
                 .andExpect(content().string(containsString("href=\"/my-parcels/15?from=notifications\"")))

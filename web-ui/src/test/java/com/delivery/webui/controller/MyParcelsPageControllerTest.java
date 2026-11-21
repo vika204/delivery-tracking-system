@@ -67,7 +67,7 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(containsString("Test Courier Kyiv")))
                 .andExpect(content().string(containsString("Kyiv, Kontraktova Square 2")))
                 .andExpect(content().string(containsString("href=\"/my-parcels/515\"")))
-                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=515&amp;previewRole=CLIENT\"")))
+                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=515\"")))
                 .andExpect(content().string(containsString("web-button__web--left")))
                 .andExpect(content().string(containsString("web-button__web--right")))
                 .andExpect(content().string(containsString("data-profile-menu")))
@@ -244,7 +244,7 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/516/cancel\""))))
                 .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/517/cancel\""))))
                 .andExpect(content().string(not(containsString("data-cancel-url=\"/api/shipments/518/cancel\""))))
-                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=517&amp;previewRole=CLIENT\"")))
+                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=517\"")))
                 .andExpect(content().string(not(containsString("href=\"/tracking?shipmentId=518"))))
                 .andExpect(content().string(containsString("aria-disabled=\"true\"")))
                 .andExpect(content().string(containsString("id=\"we-modal\"")));
@@ -261,7 +261,7 @@ class MyParcelsPageControllerTest {
                 .andExpect(content().string(not(containsString("href=\"/tracking?shipmentId=515"))));
         mockMvc.perform(get("/my-parcels/516"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=516&amp;previewRole=CLIENT\"")))
+                .andExpect(content().string(containsString("href=\"/tracking?shipmentId=516\"")))
                 .andExpect(content().string(not(containsString("aria-disabled=\"true\""))));
     }
 

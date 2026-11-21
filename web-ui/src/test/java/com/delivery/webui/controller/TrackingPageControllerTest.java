@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.HttpClientErrorException;
@@ -70,8 +71,9 @@ class TrackingPageControllerTest {
     }
 
     @Test
-    void showsClientHeaderPreview() throws Exception {
-        mockMvc.perform(get("/tracking").param("previewRole", "CLIENT"))
+    @WithMockUser(roles = "CLIENT")
+    void showsHeaderForTheAuthenticatedClient() throws Exception {
+        mockMvc.perform(get("/tracking"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("SHIP")))
                 .andExpect(content().string(containsString("MY PARCELS")))
@@ -359,8 +361,9 @@ class TrackingPageControllerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "9999999999999999999999999999"})
+    @WithMockUser(roles = "CLIENT")
     void invalidIdKeepsSearchAndModalWithoutLoadingShipment(String id) throws Exception {
-        mockMvc.perform(get("/tracking").param("shipmentId", id).param("previewRole", "CLIENT"))
+        mockMvc.perform(get("/tracking").param("shipmentId", id))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString("data-we-modal-alert")))
                 .andExpect(content().string(containsString("data-profile-menu")))

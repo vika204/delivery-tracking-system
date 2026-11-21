@@ -1,7 +1,6 @@
 package com.delivery.webui.exception;
 
 import com.delivery.webui.controller.TrackingPageController;
-import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,9 +28,6 @@ public class TrackingPageAdvice {
         String shipmentId = request.getParameter("shipmentId");
         model.addAttribute("pageTitle", "Track your delivery — WEB EXPRESS");
         model.addAttribute("activePage", "tracking");
-        model.addAttribute("headerState", "CLIENT".equalsIgnoreCase(request.getParameter("previewRole"))
-                ? "CLIENT"
-                : AuthenticatedUser.currentHeaderState());
         model.addAttribute("trackingStreamEnabled", trackingStreamEnabled);
         model.addAttribute("trackingInput", shipmentId == null ? "" : shipmentId.trim());
     }

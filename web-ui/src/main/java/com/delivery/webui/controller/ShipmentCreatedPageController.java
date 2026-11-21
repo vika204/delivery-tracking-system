@@ -18,7 +18,6 @@ public class ShipmentCreatedPageController {
 
         model.addAttribute("pageTitle", "Shipment Created — WEB EXPRESS");
         model.addAttribute("activePage", "ship");
-        model.addAttribute("headerState", "CLIENT");
         model.addAttribute("shipmentId", shipmentId);
         return "pages/shipment-created";
     }
