@@ -19,6 +19,8 @@ public class SecurityConfig {
                                 "/",
                                 "/login",
                                 "/register",
+                                "/offline.html",
+                                "/service-worker.js",
                                 "/tracking",
                                 "/tracking/**",
                                 "/api/auth/**",
