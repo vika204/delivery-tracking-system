@@ -747,7 +747,9 @@ class DispatchFlowIntegrationTest {
     }
 
     private DeliveryOffer pendingOffer(long shipmentId) {
-        List<DeliveryOffer> pending = offers.findWithCourierByShipmentIdAndStatus(shipmentId, OfferStatus.PENDING);
+        List<DeliveryOffer> pending = offers.findAll().stream()
+                .filter(offer -> offer.getShipmentId() == shipmentId && offer.getStatus() == OfferStatus.PENDING)
+                .toList();
         assertThat(pending).as("pending offers for shipment %d", shipmentId).hasSize(1);
         return pending.getFirst();
     }

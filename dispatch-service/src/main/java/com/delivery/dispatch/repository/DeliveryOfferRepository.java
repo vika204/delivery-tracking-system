@@ -42,8 +42,5 @@ public interface DeliveryOfferRepository extends JpaRepository<DeliveryOffer, Lo
             """)
     List<DeliveryOffer> findPendingByCourierForUpdate(Long courierId);
 
-    @Query("select o from DeliveryOffer o join fetch o.courier where o.shipmentId = :shipmentId and o.status = :status")
-    List<DeliveryOffer> findWithCourierByShipmentIdAndStatus(Long shipmentId, OfferStatus status);
-
     long countByStatus(OfferStatus status);
 }

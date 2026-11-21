@@ -16,8 +16,4 @@ public enum ShipmentStatus {
 
     public static final Set<ShipmentStatus> BEFORE_PICKUP =
             Collections.unmodifiableSet(EnumSet.of(WAITING_FOR_COURIER, ASSIGNED));
-
-    public boolean isTerminal() {
-        return this == DELIVERED || this == CANCELLED;
-    }
 }

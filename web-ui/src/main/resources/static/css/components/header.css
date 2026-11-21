@@ -23,7 +23,6 @@
 }
 
 .site-header__nav a,
-.site-header__placeholder,
 .site-header__profile-button {
     padding: 9px 11px;
     color: inherit;
@@ -64,10 +63,6 @@
 .site-header__nav .site-header__signup:hover,
 .site-header__nav .site-header__signup:focus-visible {
     background: #d13a29;
-}
-
-.site-header__placeholder {
-    cursor: default;
 }
 
 .site-header__profile {
@@ -173,7 +168,6 @@
     }
 
     .site-header__nav a,
-    .site-header__placeholder,
     .site-header__profile-button {
         padding: 7px;
         font-size: 12px;
