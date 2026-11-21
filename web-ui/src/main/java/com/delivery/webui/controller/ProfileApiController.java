@@ -10,6 +10,7 @@ import com.delivery.webui.controller.dto.CourierProfile;
 import com.delivery.webui.controller.support.LocalDevOnly;
 import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -48,7 +49,7 @@ public class ProfileApiController {
     }
 
     @PutMapping("/profile")
-    public UserProfile updateClientProfile(@RequestBody UserProfile profile) {
+    public UserProfile updateClientProfile(@Valid @RequestBody UserProfile profile) {
         return userClient.updateProfile(AuthenticatedUser.currentUserId(clientId), profile);
     }
 
@@ -59,7 +60,7 @@ public class ProfileApiController {
     }
 
     @PutMapping("/courier/profile")
-    public CourierProfile updateCourierProfile(@RequestBody CourierProfile profile) {
+    public CourierProfile updateCourierProfile(@Valid @RequestBody CourierProfile profile) {
         long currentCourierId = AuthenticatedUser.currentUserId(courierId);
         UserProfile user = userClient.updateProfile(currentCourierId,
                 new UserProfile(profile.firstName(), profile.lastName(), profile.email(), profile.phone()));

@@ -6,6 +6,7 @@ import com.delivery.webui.controller.dto.CourierDashboardView;
 import com.delivery.webui.controller.support.LocalDevOnly;
 import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.service.CourierDashboardService;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +37,7 @@ public class CourierDashboardApiController {
     }
 
     @PutMapping("/availability")
-    public CourierDashboardView setAvailability(@RequestBody AvailabilityRequest request) {
+    public CourierDashboardView setAvailability(@Valid @RequestBody AvailabilityRequest request) {
         return dashboardService.setAvailability(AuthenticatedUser.currentUserId(courierId), request.online());
     }
 

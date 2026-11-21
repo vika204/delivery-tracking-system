@@ -1,19 +1,26 @@
 package com.delivery.tracking.exception;
 
+import com.delivery.tracking.dto.RecordLocationRequest;
 import io.github.resilience4j.bulkhead.BulkheadFullException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.net.URI;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler
@@ -21,6 +28,22 @@ public class GlobalExceptionHandler
 
     private static final Logger log =
             LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        boolean locationRequest = ex.getBindingResult().getTarget() instanceof RecordLocationRequest;
+        String detail = locationRequest
+                ? String.valueOf(ex.getBindingResult().getAllErrors().getFirst().getDefaultMessage())
+                : "Request validation failed";
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setType(URI.create(locationRequest
+                ? "urn:delivery:problem:location-invalid" : "urn:delivery:problem:validation-failed"));
+        problem.setProperty("errors", ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> Map.of("field", error.getField(), "message", String.valueOf(error.getDefaultMessage())))
+                .toList());
+        return handleExceptionInternal(ex, problem, headers, status, request);
+    }
 
     @ExceptionHandler(LocationRejectedException.class)
     public ProblemDetail handleLocationRejected(LocationRejectedException ex) {

@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -41,6 +42,16 @@ class UserProfileTest {
     private final UserRepository repository = mock(UserRepository.class);
     private final MockMvc mvc = standaloneSetup(new UserController(new UserService(repository)))
             .setControllerAdvice(new UserExceptionHandler()).build();
+
+    @Test
+    void rejectsOversizedPasswordBeforeAuthentication() throws Exception {
+        mvc.perform(post("/users/login").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"email":"olena@example.com","password":"%s"}
+                        """.formatted("x".repeat(73))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("password")));
+        verifyNoInteractions(repository);
+    }
 
     @ParameterizedTest
     @EnumSource(UserRole.class)
@@ -166,6 +177,16 @@ class UserProfileTest {
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void profileValidationIncludesInvalidFieldEvenWithValidatedUserHeader() throws Exception {
+        mvc.perform(put("/users/profile").header("X-User-Id", "42")
+                        .contentType(MediaType.APPLICATION_JSON).content(UPDATE.replace("vika@example.com", "bad")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:validation-failed"))
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("email")));
         verifyNoInteractions(repository);
     }
 

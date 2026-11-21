@@ -178,20 +178,15 @@ class RouteUploadClientStreamingIntegrationTest {
     }
 
     @Test
-    void invalidCoordinatesAreSentToServerAndCountedAsRejected() throws Exception {
-        mockMvc.perform(post("/dispatch/shipments/15/route")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"points":[
-                                  {"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
-                                  {"latitude":95,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
-                                  {"latitude":50.4520,"longitude":30.5250}
-                                ]}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.receivedCount").value(3))
-                .andExpect(jsonPath("$.savedCount").value(1))
-                .andExpect(jsonPath("$.rejectedCount").value(2));
+    void grpcServerCountsInvalidCoordinatesAsRejected() {
+        var response = client.uploadRoute(15, "invalid-points", List.of(
+                new LocationPointRequest(50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z")),
+                new LocationPointRequest(95.0, 30.5240, Instant.parse("2026-11-15T10:00:10Z")),
+                new LocationPointRequest(50.4520, 30.5250, null)
+        ));
+        assertThat(response.receivedCount()).isEqualTo(3);
+        assertThat(response.savedCount()).isEqualTo(1);
+        assertThat(response.rejectedCount()).isEqualTo(2);
 
         assertThat(server.receivedRoutes.getFirst()).hasSize(3);
         assertThat(server.receivedRoutes.getFirst().get(2).hasRecordedAt()).isFalse();

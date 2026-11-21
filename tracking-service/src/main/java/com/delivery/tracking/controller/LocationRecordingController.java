@@ -3,6 +3,7 @@ package com.delivery.tracking.controller;
 import com.delivery.tracking.dto.RecordLocationRequest;
 import com.delivery.tracking.dto.ShipmentLocationResponse;
 import com.delivery.tracking.service.LocationRecordingService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +24,7 @@ public class LocationRecordingController {
 
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<ShipmentLocationResponse> recordLocation(@PathVariable long shipmentId,
-                                                           @RequestBody RecordLocationRequest request) {
+                                                           @Valid @RequestBody RecordLocationRequest request) {
         LocationRecordingService.Recorded recorded = recordingService.recordLocation(shipmentId, request);
         return ResponseEntity.status(recorded.replayed() ? HttpStatus.OK : HttpStatus.CREATED).body(recorded.location());
     }

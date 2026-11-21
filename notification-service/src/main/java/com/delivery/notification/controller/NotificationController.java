@@ -3,6 +3,7 @@ package com.delivery.notification.controller;
 import com.delivery.notification.dto.NotificationRequest;
 import com.delivery.notification.dto.NotificationResponse;
 import com.delivery.notification.service.NotificationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,7 +21,7 @@ public class NotificationController {
     }
 
     @PostMapping
-    public NotificationResponse createNotification(@RequestBody NotificationRequest request) {
+    public NotificationResponse createNotification(@Valid @RequestBody NotificationRequest request) {
         return notificationService.createNotification(request);
     }
 

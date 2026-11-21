@@ -4,6 +4,7 @@ import com.delivery.notification.entity.Notification;
 import com.delivery.notification.entity.NotificationType;
 import com.delivery.notification.repository.NotificationRepository;
 import com.delivery.notification.service.NotificationService;
+import com.delivery.notification.exception.TrackingGrpcExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,7 +36,34 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 class NotificationControllerTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
-    private final MockMvc mvc = standaloneSetup(new NotificationController(new NotificationService(repository))).build();
+    private final MockMvc mvc = standaloneSetup(new NotificationController(new NotificationService(repository)))
+            .setControllerAdvice(new TrackingGrpcExceptionHandler()).build();
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"userId\":0,\"shipmentId\":15,\"type\":\"DELIVERED\",\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":-1,\"type\":\"DELIVERED\",\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":15,\"type\":null,\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":15,\"type\":\"DELIVERED\",\"message\":\" \",\"isRead\":false}",
+            "{\"isRead\":false}"
+    })
+    void invalidNotificationDoesNotReachDatabase(String body) throws Exception {
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:validation-failed"))
+                .andExpect(jsonPath("$.errors").isNotEmpty());
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void rejectsMessageLongerThanDatabaseColumn() throws Exception {
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"userId":42,"shipmentId":15,"type":"DELIVERED","message":"%s","isRead":false}
+                        """.formatted("x".repeat(256))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("message")));
+        verifyNoInteractions(repository);
+    }
 
     @Test
     void createsNotificationWithExistingRequestFormat() throws Exception {

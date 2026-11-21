@@ -13,6 +13,7 @@ import com.delivery.webui.controller.dto.CourierRegistrationRequest;
 import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -43,7 +44,7 @@ public class AuthApiController {
     }
 
     @PostMapping("/register/client")
-    public AuthRedirectResponse registerClient(@RequestBody ClientRegistrationRequest request,
+    public AuthRedirectResponse registerClient(@Valid @RequestBody ClientRegistrationRequest request,
                                                HttpServletRequest httpRequest,
                                                HttpServletResponse httpResponse) {
         UserResponse user = authUserClient.createUser(new UserRequest(
@@ -59,7 +60,7 @@ public class AuthApiController {
     }
 
     @PostMapping("/register/courier")
-    public AuthRedirectResponse registerCourier(@RequestBody CourierRegistrationRequest request,
+    public AuthRedirectResponse registerCourier(@Valid @RequestBody CourierRegistrationRequest request,
                                                 HttpServletRequest httpRequest,
                                                 HttpServletResponse httpResponse) {
         String firstName = request.firstName().trim();
@@ -87,7 +88,7 @@ public class AuthApiController {
     }
 
     @PostMapping("/login")
-    public AuthRedirectResponse login(@RequestBody LoginRequest request,
+    public AuthRedirectResponse login(@Valid @RequestBody LoginRequest request,
                                       HttpServletRequest httpRequest,
                                       HttpServletResponse httpResponse) {
         UserResponse user = authUserClient.login(request);

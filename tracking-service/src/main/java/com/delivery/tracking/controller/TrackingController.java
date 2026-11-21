@@ -6,6 +6,7 @@ import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public class TrackingController {
     public ShipmentDto createShipment(
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestHeader("X-User-Id") Long userId,
-            @RequestBody CreateShipmentRequest request) {
+            @Valid @RequestBody CreateShipmentRequest request) {
         String key = (idempotencyKey == null || idempotencyKey.isBlank())
                 ? UUID.randomUUID().toString()
                 : idempotencyKey;

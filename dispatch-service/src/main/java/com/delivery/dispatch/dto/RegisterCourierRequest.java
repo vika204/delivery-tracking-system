@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 public record RegisterCourierRequest(
         @NotNull @Positive Long userId,
         @Size(max = 100) String displayName,
-        @Size(max = 32) String phone,
+        @Size(max = 32) @Pattern(regexp = "[+0-9() .-]{7,32}") String phone,
         @NotBlank @Size(max = 255) String workZone,
         @NotBlank @Pattern(regexp = "UA\\d{17}", message = "must be a KATOTTG settlement code") String workZoneCode,
         @NotNull @Positive @DecimalMax("1000") BigDecimal maxPackageWeight,

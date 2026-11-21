@@ -39,6 +39,10 @@ class ProfileApiControllerTest {
     private static final String BODY = """
             {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com","phone":"+380671234567"}
             """;
+    private static final String COURIER_BODY = """
+            {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com","phone":"+380671234567",
+             "workZone":"Kyiv","workZoneCode":"UA80000000000093317","maxWeight":20}
+            """;
     private final UserProfileClient users = mock(UserProfileClient.class);
     private final DispatchCourierDashboardClient couriers = mock(DispatchCourierDashboardClient.class);
     private final MockMvc mvc = standaloneSetup(new ProfileApiController(users, couriers, new ShipmentCreationProperties(42), new CourierDashboardProperties(7)))
@@ -81,10 +85,7 @@ class ProfileApiControllerTest {
     void savesCourierAccountAndDispatchFieldsWithoutAdditionalReads() throws Exception {
         when(users.updateProfile(7, USER)).thenReturn(USER);
         when(couriers.updateProfile(eq(7L), eq(7L), any())).thenReturn(courier());
-        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com","phone":"+380671234567",
-                 "workZone":"Kyiv","workZoneCode":"UA80000000000093317","maxWeight":20}
-                """))
+        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content(COURIER_BODY))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.maxWeight").value(20));
         verify(users).updateProfile(7, USER);
         verify(couriers).updateProfile(7, 7, new UpdateCourierProfileRequest(
@@ -95,7 +96,7 @@ class ProfileApiControllerTest {
     @Test
     void unavailableAccountDoesNotWriteCourierData() throws Exception {
         when(users.updateProfile(eq(7L), any())).thenThrow(new ResourceAccessException("private-host"));
-        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content(BODY))
+        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content(COURIER_BODY))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(content().string(not(containsString("private-host"))));
         verifyNoInteractions(couriers);
@@ -105,7 +106,7 @@ class ProfileApiControllerTest {
     void dispatchWriteFailureDoesNotReportSuccessfulSave() throws Exception {
         when(users.updateProfile(7, USER)).thenReturn(USER);
         when(couriers.updateProfile(eq(7L), eq(7L), any())).thenThrow(new ResourceAccessException("private-dispatch"));
-        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content(BODY))
+        mvc.perform(put("/api/courier/profile").contentType(MediaType.APPLICATION_JSON).content(COURIER_BODY))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.status").value(503));
     }
 

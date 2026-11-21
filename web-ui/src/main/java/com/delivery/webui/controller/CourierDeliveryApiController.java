@@ -7,6 +7,7 @@ import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.controller.support.LocalDevOnly;
 import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.service.CourierDeliveryService;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,7 +57,7 @@ public class CourierDeliveryApiController {
 
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
-                                                                   @RequestBody RecordLocationRequest point) {
+                                                                   @Valid @RequestBody RecordLocationRequest point) {
         ResponseEntity<TrackingLocationResponse> recorded = deliveryService.recordLocation(AuthenticatedUser.currentUserId(courierId), shipmentId, point);
         return ResponseEntity.status(recorded.getStatusCode().value() == 200 ? HttpStatus.OK : HttpStatus.CREATED)
                 .body(recorded.getBody());

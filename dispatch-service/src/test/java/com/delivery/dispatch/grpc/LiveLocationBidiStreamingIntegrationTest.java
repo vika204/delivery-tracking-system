@@ -1,6 +1,7 @@
 package com.delivery.dispatch.grpc;
 
 import com.delivery.dispatch.dto.LocationPointRequest;
+import com.delivery.dispatch.dto.LiveLocationStreamResponse;
 import com.delivery.tracking.grpcclient.TrackingGrpcException;
 import io.grpc.Status;
 import org.junit.jupiter.api.AfterAll;
@@ -92,27 +93,21 @@ class LiveLocationBidiStreamingIntegrationTest {
     }
 
     @Test
-    void bidirectionalStreamingProcessesAcceptedRejectedAndSuspiciousPoints() throws Exception {
-        mockMvc.perform(post("/dispatch/shipments/15/live-locations")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"points":[
-                                  {"latitude":50.4501,"longitude":30.5234,"recordedAt":"2026-11-15T10:00:00Z"},
-                                  {"latitude":95.0,"longitude":30.5240,"recordedAt":"2026-11-15T10:00:10Z"},
-                                  {"latitude":48.0000,"longitude":24.0000,"recordedAt":"2026-11-15T10:00:20Z"},
-                                  {"latitude":50.4520,"longitude":30.5250,"recordedAt":"2026-11-15T10:00:30Z"}
-                                ]}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.shipmentId").value(15))
-                .andExpect(jsonPath("$.sentCount").value(4))
-                .andExpect(jsonPath("$.acceptedCount").value(2))
-                .andExpect(jsonPath("$.rejectedCount").value(1))
-                .andExpect(jsonPath("$.suspiciousJumpCount").value(1))
-                .andExpect(jsonPath("$.decisions[0].status").value("ACCEPTED"))
-                .andExpect(jsonPath("$.decisions[1].status").value("REJECTED"))
-                .andExpect(jsonPath("$.decisions[2].status").value("SUSPICIOUS_JUMP"))
-                .andExpect(jsonPath("$.decisions[3].status").value("ACCEPTED"));
+    void bidirectionalStreamingProcessesAcceptedRejectedAndSuspiciousPoints() {
+        var points = List.of(
+                new LocationPointRequest(50.4501, 30.5234, Instant.parse("2026-11-15T10:00:00Z")),
+                new LocationPointRequest(95.0, 30.5240, Instant.parse("2026-11-15T10:00:10Z")),
+                new LocationPointRequest(48.0, 24.0, Instant.parse("2026-11-15T10:00:20Z")),
+                new LocationPointRequest(50.4520, 30.5250, Instant.parse("2026-11-15T10:00:30Z"))
+        );
+        var response = LiveLocationStreamResponse.of(15, points.size(), client.streamLiveLocations(15, points));
+        assertThat(response.shipmentId()).isEqualTo(15);
+        assertThat(response.sentCount()).isEqualTo(4);
+        assertThat(response.acceptedCount()).isEqualTo(2);
+        assertThat(response.rejectedCount()).isEqualTo(1);
+        assertThat(response.suspiciousJumpCount()).isEqualTo(1);
+        assertThat(response.decisions()).extracting(decision -> decision.status().name())
+                .containsExactly("ACCEPTED", "REJECTED", "SUSPICIOUS_JUMP", "ACCEPTED");
 
         assertThat(server.liveStreamCalls).hasValue(1);
     }
