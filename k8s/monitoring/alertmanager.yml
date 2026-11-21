@@ -6,17 +6,14 @@ metadata:
 data:
   alertmanager.yml: |
     route:
-      receiver: telegram
+      receiver: local
       group_by: [alertname, app]
       group_wait: 10s
       group_interval: 1m
       repeat_interval: 1h
 
     receivers:
-      - name: telegram
-        webhook_configs:
-          - url: http://telegram-alert-bridge.delivery.svc:8080/alert
-            send_resolved: true
+      - name: local
 
 ---
 apiVersion: apps/v1
@@ -26,6 +23,8 @@ metadata:
   namespace: delivery
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: alertmanager
@@ -67,6 +66,17 @@ spec:
           ports:
             - containerPort: 9093
               name: web
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 15
+            periodSeconds: 15
 
           volumeMounts:
             - name: tmp
@@ -84,7 +94,8 @@ spec:
           configMap:
             name: alertmanager-config
         - name: storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: alertmanager-data
 
 ---
 apiVersion: v1

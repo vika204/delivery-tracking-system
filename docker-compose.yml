@@ -2,6 +2,7 @@ services:
 
   auth-db:
     image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${AUTH_DB_NAME}
@@ -22,16 +23,24 @@ services:
 
 
   auth-service:
+    restart: unless-stopped
     build:
       context: ./auth-service
 
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/${AUTH_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${AUTH_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${AUTH_DB_PASSWORD}
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
 
     depends_on:
       auth-db:
@@ -43,6 +52,7 @@ services:
 
   shipment-db:
     image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${SHIPMENT_DB_NAME}
@@ -63,11 +73,12 @@ services:
 
 
   shipment-service:
+    restart: unless-stopped
     build:
       context: ./shipment-service
 
     ports:
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://shipment-db:5432/${SHIPMENT_DB_NAME}
@@ -75,6 +86,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SHIPMENT_DB_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY}
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
 
     depends_on:
       shipment-db:
@@ -88,6 +106,7 @@ services:
 
   dispatch-db:
     image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${DISPATCH_DB_NAME}
@@ -108,6 +127,7 @@ services:
 
 
   dispatch-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: dispatch-service/Dockerfile
@@ -119,9 +139,16 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://dispatch-db:5432/${DISPATCH_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DISPATCH_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DISPATCH_DB_PASSWORD}
-      DISPATCH_COURIER_LOOKUP_ENABLED: ${DISPATCH_COURIER_LOOKUP_ENABLED:-false}
+      DISPATCH_COURIER_LOOKUP_ENABLED: ${DISPATCH_COURIER_LOOKUP_ENABLED:-true}
       TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
 
     depends_on:
       dispatch-db:
@@ -135,6 +162,7 @@ services:
 
   tracking-db:
     image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${TRACKING_DB_NAME}
@@ -155,23 +183,31 @@ services:
 
 
   tracking-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: tracking-service/Dockerfile
 
     ports:
-      - "8084:8080"
-      - "9094:9090"
+      - "127.0.0.1:8084:8080"
+      - "127.0.0.1:9094:9090"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://tracking-db:5432/${TRACKING_DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${TRACKING_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${TRACKING_DB_PASSWORD}
       SHIPMENT_SERVICE_URL: http://shipment-service:8080
-      TRACKING_LOCATION_HISTORY_ENABLED: ${TRACKING_LOCATION_HISTORY_ENABLED:-false}
+      TRACKING_LOCATION_HISTORY_ENABLED: ${TRACKING_LOCATION_HISTORY_ENABLED:-true}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       GRPC_REFLECTION_ENABLED: "true"
       TRACKING_RECORDED_AT_ZONE: "UTC"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
 
     depends_on:
       tracking-db:
@@ -185,6 +221,7 @@ services:
 
   notification-db:
     image: postgres:${POSTGRES_VERSION}
+    restart: unless-stopped
 
     environment:
       POSTGRES_DB: ${NOTIFICATION_DB_NAME}
@@ -205,12 +242,13 @@ services:
 
 
   notification-service:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: notification-service/Dockerfile
 
     ports:
-      - "8085:8080"
+      - "127.0.0.1:8085:8080"
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/${NOTIFICATION_DB_NAME}
@@ -218,6 +256,13 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
 
     depends_on:
       notification-db:
@@ -228,12 +273,55 @@ services:
     networks:
       - delivery-network
 
+  web-ui:
+    build:
+      context: .
+      dockerfile: web-ui/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8086:8080"
+    environment:
+      SERVER_PORT: "8080"
+      AUTH_SERVICE_URL: http://auth-service:8080
+      SHIPMENT_SERVICE_URL: http://shipment-service:8080
+      DISPATCH_SERVICE_URL: http://dispatch-service:8080
+      TRACKING_SERVICE_URL: http://tracking-service:8080
+      NOTIFICATION_SERVICE_URL: http://notification-service:8080
+      TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
+      TRACKING_GRPC_TLS_ENABLED: "false"
+      TRACKING_STREAM_ENABLED: ${TRACKING_STREAM_ENABLED:-true}
+      DISPATCH_COURIER_LOOKUP_ENABLED: ${DISPATCH_COURIER_LOOKUP_ENABLED:-true}
+      WEB_LOCAL_DEV_LOOPBACK_ONLY: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5m
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      shipment-service:
+        condition: service_healthy
+      dispatch-service:
+        condition: service_healthy
+      tracking-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - delivery-network
+
   kafka:
     image: apache/kafka:${KAFKA_VERSION}
+    restart: unless-stopped
     container_name: delivery-kafka
 
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
 
     environment:
       KAFKA_NODE_ID: 1

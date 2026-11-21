@@ -3,50 +3,19 @@ kind: Ingress
 metadata:
   name: delivery-ingress
   namespace: delivery
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          - path: /users
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: auth-service
-                port:
-                  name: http
-          - path: /shipments
-            pathType: Prefix
-            backend:
-              service:
-                name: shipment-service
-                port:
-                  name: http
-          - path: /internal/chaos
-            pathType: Prefix
-            backend:
-              service:
-                name: shipment-service
-                port:
-                  name: http
-          - path: /couriers
-            pathType: Prefix
-            backend:
-              service:
-                name: dispatch-service
-                port:
-                  name: http
-          - path: /tracking
-            pathType: Prefix
-            backend:
-              service:
-                name: tracking-service
-                port:
-                  name: http
-          - path: /notifications
-            pathType: Prefix
-            backend:
-              service:
-                name: notification-service
+                name: web-ui
                 port:
                   name: http

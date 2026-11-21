@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: delivery
+resources:
+  - namespace.yml
+  - auth/configmap.yml
+  - auth/db.yml
+  - auth/app.yml
+  - shipment/configmap.yml
+  - shipment/db.yml
+  - shipment/app.yml
+  - dispatch/configmap.yml
+  - dispatch/db.yml
+  - dispatch/app.yml
+  - tracking/configmap.yml
+  - tracking/db.yml
+  - tracking/app.yml
+  - notification/configmap.yml
+  - notification/db.yml
+  - notification/app.yml
+  - web-ui/configmap.yml
+  - web-ui/app.yml
+  - kafka/kafka.yml
+  - ingress.yml
+  - monitoring/otel-exporter-config.yml
+  - monitoring/otel-collector.yml
+  - monitoring/otel-gateway.yml
+  - monitoring/otel-log-agent.yml
+  - monitoring/tempo.yml
+  - monitoring/loki.yml
+  - monitoring/prometheus.yml
+  - monitoring/alert-rules.yml
+  - monitoring/alertmanager.yml
+  - monitoring/grafana.yml
+  - monitoring/storage.yml
+  - network-policy/00-default-deny-ingress.yml
+  - network-policy/01-allow-http.yml
+  - network-policy/02-allow-db.yml
+  - network-policy/03-allow-kafka.yml
+  - network-policy/04-allow-tracing.yml
+  - network-policy/05-allow-metrics-logs.yml
+  - network-policy/06-allow-alerts.yml
+  - network-policy/07-allow-grpc.yml

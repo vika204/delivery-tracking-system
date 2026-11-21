@@ -500,6 +500,8 @@ metadata:
     app: grafana
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: grafana
@@ -572,7 +574,8 @@ spec:
         - name: tmp
           emptyDir: {}
         - name: grafana-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: grafana-data
         - name: grafana-logs
           emptyDir: {}
         - name: datasources

@@ -13,6 +13,9 @@ spec:
     - from:
         - podSelector:
             matchLabels:
+              app: web-ui
+        - podSelector:
+            matchLabels:
               app: notification-service
         - podSelector:
             matchLabels:
