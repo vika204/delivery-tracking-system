@@ -1,6 +1,7 @@
 package com.delivery.shipment;
 
 import com.delivery.shipment.entity.OutboxEvent;
+import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.event.DispatchEvent;
 import com.delivery.shipment.event.ShipmentCreatedEvent;
@@ -18,6 +19,7 @@ import com.delivery.shipment.repository.PriceQuoteRepository;
 import com.delivery.shipment.repository.ProcessedEventRepository;
 import com.delivery.shipment.repository.ShipmentRepository;
 import com.delivery.shipment.repository.ShipmentStatusHistoryRepository;
+import com.delivery.shipment.service.ShipmentService;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -27,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -89,6 +92,7 @@ class ShipmentApiIntegrationTest {
     }
 
     @Autowired private MockMvc mockMvc;
+    @Autowired private ShipmentService shipmentService;
     @Autowired private JsonMapper jsonMapper;
     @Autowired private DispatchEventListener dispatchListener;
     @Autowired private ShipmentRepository shipments;
@@ -189,6 +193,7 @@ class ShipmentApiIntegrationTest {
     @Test
     void replayWithSameKeyReturnsSameShipment() throws Exception {
         JsonNode quote = quote(SENDER, "1");
+        double registeredBefore = registered();
         long first = id(json(create(SENDER, quote, "key-replay")));
 
         create(SENDER, quote, "key-replay")
@@ -196,18 +201,43 @@ class ShipmentApiIntegrationTest {
                 .andExpect(header().string("Idempotent-Replayed", "true"))
                 .andExpect(jsonPath("$.shipmentId").value(first));
         assertThat(shipments.count()).isEqualTo(1);
+        assertThat(idempotency.count()).isEqualTo(1);
+        assertThat(history.count()).isEqualTo(1);
+        assertThat(events(ShipmentCreatedEvent.TYPE, ShipmentCreatedEvent.class)).hasSize(1);
+        assertThat(registered()).isEqualTo(registeredBefore + 1);
     }
 
     @Test
-    void sameKeyWithDifferentDataIsRejected() throws Exception {
+    void sameKeyReturnsExistingShipmentWithoutComparingRequestData() throws Exception {
+        JsonNode quote = quote(SENDER, "1");
+        long first = id(json(create(SENDER, quote, "key-decimal")));
+
+        mockMvc.perform(post("/shipments").header("X-User-Id", SENDER)
+                        .header("Idempotency-Key", "key-decimal")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createJson(quote).replace("Marta Shevchenko", "Another Recipient")
+                                .replace("\"length\": 30", "\"length\": 45")))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replayed", "true"))
+                .andExpect(jsonPath("$.shipmentId").value(first));
+        assertThat(shipments.count()).isEqualTo(1);
+        var saved = shipments.findById(first).orElseThrow();
+        assertThat(saved.getRecipientName()).isEqualTo("Marta Shevchenko");
+        assertThat(saved.getLength()).isEqualByComparingTo("30");
+    }
+
+    @Test
+    void sameKeyWithAnotherQuoteReturnsExistingShipment() throws Exception {
         JsonNode first = quote(SENDER, "1");
         JsonNode second = quote(SENDER, "1");
-        create(SENDER, first, "key-changed").andExpect(status().isOk());
+        long shipmentId = id(json(create(SENDER, first, "key-changed").andExpect(status().isOk())));
 
         create(SENDER, second, "key-changed")
-                .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.type").value("urn:delivery:problem:idempotency-key-reuse"));
+                .andExpect(status().isOk())
+                .andExpect(header().string("Idempotent-Replayed", "true"))
+                .andExpect(jsonPath("$.shipmentId").value(shipmentId));
         assertThat(shipments.count()).isEqualTo(1);
+        assertThat(quotes.findById(UUID.fromString(second.get("quoteId").asText())).orElseThrow().getShipmentId()).isNull();
     }
 
     @Test
@@ -258,6 +288,32 @@ class ShipmentApiIntegrationTest {
         assertThat(responses.stream().map(this::shipmentId).distinct()).hasSize(1);
         assertThat(shipments.count()).isEqualTo(1);
         assertThat(events(ShipmentCreatedEvent.TYPE, ShipmentCreatedEvent.class)).hasSize(1);
+    }
+
+    @Test
+    void concurrentDifferentQuotesWithSameKeyCreateOnlyOneShipment() throws Exception {
+        List<JsonNode> candidates = List.of(quote(SENDER, "1"), quote(SENDER, "1"));
+        CyclicBarrier start = new CyclicBarrier(2);
+        List<CompletableFuture<MockHttpServletResponse>> attempts = candidates.stream()
+                .map(candidate -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        start.await();
+                        return create(SENDER, candidate, "key-different-quotes").andReturn().getResponse();
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }))
+                .toList();
+        List<MockHttpServletResponse> responses = attempts.stream().map(CompletableFuture::join).toList();
+
+        assertThat(responses).allSatisfy(response -> assertThat(response.getStatus()).isEqualTo(200));
+        assertThat(responses).filteredOn(response -> "true".equals(response.getHeader("Idempotent-Replayed"))).hasSize(1);
+        assertThat(responses.stream().map(this::shipmentId).distinct()).hasSize(1);
+        assertThat(shipments.count()).isEqualTo(1);
+        assertThat(idempotency.count()).isEqualTo(1);
+        assertThat(history.count()).isEqualTo(1);
+        assertThat(events(ShipmentCreatedEvent.TYPE, ShipmentCreatedEvent.class)).hasSize(1);
+        assertThat(quotes.findAll()).filteredOn(quote -> quote.getShipmentId() != null).hasSize(1);
     }
 
     @Test
@@ -312,6 +368,21 @@ class ShipmentApiIntegrationTest {
 
         assertThat(shipments.count()).isZero();
         assertThat(history.count()).isZero();
+        assertThat(quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow().getShipmentId()).isNull();
+    }
+
+    @Test
+    void databaseFailureWithoutCommittedDuplicatePreservesOriginalErrorAndRollsBack() throws Exception {
+        JsonNode quote = quote(SENDER, "1");
+        var failure = new DataIntegrityViolationException("Outbox insert failed");
+        doThrow(failure).when(outbox).save(any(OutboxEvent.class));
+        CreateShipmentRequest request = jsonMapper.readValue(createJson(quote), CreateShipmentRequest.class);
+
+        assertThatThrownBy(() -> shipmentService.create("key-db-error", SENDER, request)).isSameAs(failure);
+        assertThat(shipments.count()).isZero();
+        assertThat(idempotency.count()).isZero();
+        assertThat(history.count()).isZero();
+        assertThat(outbox.count()).isZero();
         assertThat(quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow().getShipmentId()).isNull();
     }
 
