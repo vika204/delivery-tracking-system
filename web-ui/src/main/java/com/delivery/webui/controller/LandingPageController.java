@@ -1,5 +1,6 @@
 package com.delivery.webui.controller;
 
+import com.delivery.webui.security.AuthenticatedUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,7 +12,7 @@ public class LandingPageController {
     public String landingPage(Model model) {
         model.addAttribute("pageTitle", "WEB EXPRESS — Great Speed. Great Delivery.");
         model.addAttribute("activePage", "home");
-        model.addAttribute("headerState", "GUEST");
+        model.addAttribute("headerState", AuthenticatedUser.currentHeaderState());
         return "pages/landing";
     }
 }

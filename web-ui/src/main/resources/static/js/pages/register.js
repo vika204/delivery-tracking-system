@@ -89,13 +89,17 @@ document.querySelectorAll('.show').forEach(toggle => {
 forms.forEach(form => {
     const password = form.querySelector('[data-password]');
     const confirmation = form.querySelector('[data-confirm-password]');
+    const statusOutput = form.querySelector('.status');
+    const submitButton = form.querySelector('button[type="submit"]');
+    let submitting = false;
 
     confirmation?.addEventListener('input', () => {
         confirmation.setCustomValidity('');
     });
 
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
         event.preventDefault();
+        if (submitting) return;
 
         if (form.dataset.registrationRole === 'courier') {
             courierWorkZone?.validate();
@@ -109,7 +113,62 @@ forms.forEach(form => {
         }
         if (!form.reportValidity()) return;
 
-        form.querySelector('.status').textContent = form.dataset.prototypeMessage;
+        let url;
+        let payload;
+        if (form.id === 'login') {
+            url = '/api/auth/login';
+            payload = {
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value
+            };
+        } else if (form.dataset.registrationRole === 'client') {
+            url = '/api/auth/register/client';
+            payload = {
+                firstName: document.getElementById('client-first-name').value.trim(),
+                lastName: document.getElementById('client-last-name').value.trim(),
+                email: document.getElementById('client-email').value.trim(),
+                phone: document.getElementById('client-phone').value.trim(),
+                password: document.getElementById('client-password').value
+            };
+        } else if (form.dataset.registrationRole === 'courier') {
+            url = '/api/auth/register/courier';
+            payload = {
+                firstName: document.getElementById('courier-first-name').value.trim(),
+                lastName: document.getElementById('courier-last-name').value.trim(),
+                email: document.getElementById('courier-email').value.trim(),
+                phone: document.getElementById('courier-phone').value.trim(),
+                workZone: document.getElementById('courier-work-zone').value.trim(),
+                workZoneCode: document.getElementById('courier-work-zone-code').value.trim(),
+                maxWeight: Number(document.getElementById('courier-max-weight').value),
+                password: document.getElementById('courier-password').value
+            };
+        }
+
+        submitting = true;
+        if (submitButton) submitButton.disabled = true;
+        statusOutput.textContent = '';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result?.redirectUrl) {
+                statusOutput.textContent = result?.detail || 'Authentication failed. Please check your details and try again.';
+                return;
+            }
+            window.location.href = result.redirectUrl;
+        } catch {
+            statusOutput.textContent = 'Service is temporarily unavailable. Check your connection and try again.';
+        } finally {
+            submitting = false;
+            if (submitButton) submitButton.disabled = false;
+        }
     });
 });
 

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.client.ResourceAccessException;
@@ -21,6 +22,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.anonymous;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = "shipment.creation.sender-id=42")
 @AutoConfigureMockMvc
+@WithMockUser(roles = "CLIENT")
 class NotificationsPageControllerTest {
 
     @Autowired
@@ -131,9 +135,9 @@ class NotificationsPageControllerTest {
 
     @Test
     void guestAndCourierNavigationDoNotGainClientNotificationsLink() throws Exception {
-        mvc.perform(get("/")).andExpect(status().isOk())
+        mvc.perform(get("/").with(anonymous())).andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("href=\"/notifications\""))));
-        mvc.perform(get("/courier/profile")).andExpect(status().isOk())
+        mvc.perform(get("/courier/profile").with(user("courier").roles("COURIER"))).andExpect(status().isOk())
                 .andExpect(content().string(not(containsString("href=\"/notifications\""))));
         verifyNoInteractions(client);
     }

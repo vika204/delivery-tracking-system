@@ -5,6 +5,7 @@ import com.delivery.webui.client.dto.CourierShipmentResponse;
 import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.service.CourierDeliveryService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -34,29 +35,29 @@ public class CourierDeliveryApiController {
 
     @GetMapping("/{shipmentId}")
     public CourierShipmentResponse shipment(@PathVariable long shipmentId) {
-        return deliveryService.view(courierId, shipmentId);
+        return deliveryService.view(AuthenticatedUser.currentUserId(courierId), shipmentId);
     }
 
     @PostMapping("/{shipmentId}/pickup")
     public CourierShipmentResponse confirmPickup(@PathVariable long shipmentId) {
-        return deliveryService.confirmPickup(courierId, shipmentId);
+        return deliveryService.confirmPickup(AuthenticatedUser.currentUserId(courierId), shipmentId);
     }
 
     @PostMapping("/{shipmentId}/deliver")
     public CourierShipmentResponse completeDelivery(@PathVariable long shipmentId) {
-        return deliveryService.completeDelivery(courierId, shipmentId);
+        return deliveryService.completeDelivery(AuthenticatedUser.currentUserId(courierId), shipmentId);
     }
 
     @PostMapping("/{shipmentId}/withdraw")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void withdraw(@PathVariable long shipmentId) {
-        deliveryService.withdraw(courierId, shipmentId);
+        deliveryService.withdraw(AuthenticatedUser.currentUserId(courierId), shipmentId);
     }
 
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                                    @RequestBody RecordLocationRequest point) {
-        ResponseEntity<TrackingLocationResponse> recorded = deliveryService.recordLocation(courierId, shipmentId, point);
+        ResponseEntity<TrackingLocationResponse> recorded = deliveryService.recordLocation(AuthenticatedUser.currentUserId(courierId), shipmentId, point);
         return ResponseEntity.status(recorded.getStatusCode().value() == 200 ? HttpStatus.OK : HttpStatus.CREATED)
                 .body(recorded.getBody());
     }
