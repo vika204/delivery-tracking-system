@@ -1,22 +1,4 @@
 (() => {
-    const dialog = document.getElementById('demo-dialog');
-    const heading = document.getElementById('dialog-heading');
-    const closeButton = document.getElementById('close-dialog');
-
-    document.querySelectorAll('[data-feature]').forEach(button => {
-        button.addEventListener('click', () => {
-            heading.textContent = `${button.dataset.feature} — coming soon!`;
-            dialog.showModal();
-        });
-    });
-
-    closeButton.addEventListener('click', () => dialog.close());
-    dialog.addEventListener('click', event => {
-        if (event.target === dialog) dialog.close();
-    });
-})();
-
-(() => {
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     const fine = matchMedia('(pointer: fine)');
 

@@ -148,6 +148,7 @@ body::after {
     font-size: 17px;
     font-weight: 700;
     letter-spacing: .01em;
+    text-decoration: none;
     text-transform: uppercase;
     cursor: pointer;
     transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
@@ -167,43 +168,6 @@ body::after {
 .landing-cta:focus-visible {
     outline: 3px solid #6f2c1e;
     outline-offset: 4px;
-}
-
-#demo-dialog {
-    width: min(380px, calc(100% - 42px));
-    padding: 28px;
-    border: 2px solid #281710;
-    border-radius: 18px;
-    background: #f3e2ca;
-    color: #211610;
-    box-shadow: 7px 8px 0 #1f130e;
-    text-align: center;
-}
-
-#demo-dialog::backdrop {
-    background: rgba(18, 12, 8, .48);
-}
-
-#demo-dialog h2 {
-    margin: 0 0 9px;
-    font: 30px/1.1 var(--font-display);
-    text-transform: uppercase;
-}
-
-#demo-dialog p {
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-#demo-dialog button {
-    margin-top: 12px;
-    padding: 11px 26px;
-    border: 0;
-    border-radius: 30px;
-    background: var(--red);
-    color: white;
-    font-weight: 700;
-    cursor: pointer;
 }
 
 .glass-text {
