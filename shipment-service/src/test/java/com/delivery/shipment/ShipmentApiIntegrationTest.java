@@ -124,6 +124,7 @@ class ShipmentApiIntegrationTest {
     void quoteShowsDistanceAndPriceBreakdown() throws Exception {
         JsonNode quote = quote(SENDER, "2.5");
 
+        assertThat(quote.has("expiresAt")).isFalse();
         assertThat(quote.get("distanceKm").asDouble()).isBetween(400.0, 750.0);
         JsonNode breakdown = quote.get("breakdown");
         assertThat(breakdown.get("basePrice").decimalValue()).isEqualByComparingTo("50.00");
@@ -253,11 +254,11 @@ class ShipmentApiIntegrationTest {
     }
 
     @Test
-    void replayStillReturnsShipmentAfterQuoteExpired() throws Exception {
+    void replayStillReturnsShipmentForOlderCalculation() throws Exception {
         JsonNode quote = quote(SENDER, "1");
         long first = id(json(create(SENDER, quote, "key-late-retry")));
         var stored = quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow();
-        stored.setExpiresAt(Instant.now().minusSeconds(60));
+        stored.setCalculatedAt(Instant.now().minusSeconds(30L * 24 * 60 * 60));
         quotes.save(stored);
 
         create(SENDER, quote, "key-late-retry")
@@ -327,16 +328,15 @@ class ShipmentApiIntegrationTest {
     }
 
     @Test
-    void expiredQuoteIsRejected() throws Exception {
+    void olderCalculationStillCreatesShipmentAtSavedPrice() throws Exception {
         JsonNode quote = quote(SENDER, "1");
         var stored = quotes.findById(UUID.fromString(quote.get("quoteId").asText())).orElseThrow();
-        stored.setExpiresAt(Instant.now().minusSeconds(1));
+        stored.setCalculatedAt(Instant.now().minusSeconds(30L * 24 * 60 * 60));
         quotes.save(stored);
 
-        create(SENDER, quote, "key-expired")
-                .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.type").value("urn:delivery:problem:quote-expired"));
-        assertThat(shipments.count()).isZero();
+        JsonNode shipment = json(create(SENDER, quote, "key-old-quote").andExpect(status().isOk()));
+        assertThat(shipment.get("price").decimalValue()).isEqualByComparingTo(stored.getTotalPrice());
+        assertThat(shipments.count()).isEqualTo(1);
     }
 
     @Test

@@ -90,7 +90,9 @@ public class ShipmentService {
                 if (existing != null) {
                     return new CreationResult(load(existing.getShipmentId()), true);
                 }
-                pricingService.requireUsable(quote);
+                if (quote.getShipmentId() != null) {
+                    throw new QuoteException(QuoteException.Reason.ALREADY_USED, quote.getQuoteId());
+                }
 
                 Shipment shipment = shipmentRepository.save(Shipment.builder()
                         .userId(userId)

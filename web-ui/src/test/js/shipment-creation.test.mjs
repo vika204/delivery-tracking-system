@@ -6,8 +6,6 @@ import {
     createRequestFrom,
     formatDistance,
     formatPrice,
-    isQuoteProblem,
-    isQuoteUsable,
     problemMessage,
     quoteRequestFrom,
     sameRequest
@@ -62,21 +60,6 @@ test('keeps key stable even if the caller mutates the request afterwards', () =>
     assert.equal(sameRequest({quoteId: 'q-1'}, {quoteId: 'q-2'}), false);
 });
 
-test('treats quote as usable only before expiry minus margin', () => {
-    const quote = {expiresAt: '2026-11-19T12:00:00Z'};
-    const expires = Date.parse(quote.expiresAt);
-    assert.equal(isQuoteUsable(quote, expires - 60_000), true);
-    assert.equal(isQuoteUsable(quote, expires - 10_000), false);
-    assert.equal(isQuoteUsable(null, 0), false);
-});
-
-test('recognises problems that require a new quote', () => {
-    assert.equal(isQuoteProblem({type: 'urn:delivery:problem:quote-expired'}), true);
-    assert.equal(isQuoteProblem({type: 'urn:delivery:problem:quote-already-used'}), true);
-    assert.equal(isQuoteProblem({type: 'urn:delivery:problem:validation-failed'}), false);
-    assert.equal(isQuoteProblem(null), false);
-});
-
 test('formats price, distance and server problems', () => {
     assert.equal(formatPrice(142), '142.00 UAH');
     assert.equal(formatPrice(null), '—');
@@ -87,6 +70,6 @@ test('formats price, distance and server problems', () => {
     assert.equal(problemMessage({detail: 'Request validation failed',
         errors: [{field: 'recipientPhone', message: 'must be a valid phone number'}]}, 'fallback'),
         'Request validation failed: recipientPhone must be a valid phone number');
-    assert.equal(problemMessage({detail: 'Price quote expired'}, 'fallback'), 'Price quote expired');
+    assert.equal(problemMessage({detail: 'Price quote not found'}, 'fallback'), 'Price quote not found');
     assert.equal(problemMessage(null, 'fallback'), 'fallback');
 });

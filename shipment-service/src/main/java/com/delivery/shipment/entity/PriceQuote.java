@@ -74,9 +74,6 @@ public class PriceQuote {
     @Column(name = "calculated_at", nullable = false)
     private Instant calculatedAt;
 
-    @Column(name = "expires_at", nullable = false)
-    private Instant expiresAt;
-
     @Column(name = "shipment_id")
     private Long shipmentId;
 }

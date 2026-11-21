@@ -53,7 +53,7 @@ class ShipmentCreationApiControllerTest {
         shipmentService.expect(requestTo("http://shipment.test/shipments/quotes"))
                 .andExpect(header("X-User-Id", "42"))
                 .andRespond(withSuccess("""
-                        {"quoteId": "%s", "expiresAt": "2026-11-19T12:15:00Z", "distanceKm": 7.3, "totalPrice": 142.00}
+                        {"quoteId": "%s", "distanceKm": 7.3, "totalPrice": 142.00}
                         """.formatted(QUOTE), MediaType.APPLICATION_JSON));
 
         mockMvc.perform(local(post("/api/shipments/quotes")).contentType(MediaType.APPLICATION_JSON).content("""
@@ -95,19 +95,19 @@ class ShipmentCreationApiControllerTest {
     }
 
     @Test
-    void passesQuoteProblemTypeSoPageCanRecalculate() throws Exception {
+    void passesQuoteNotFoundProblem() throws Exception {
         shipmentService.expect(requestTo("http://shipment.test/shipments"))
                 .andRespond(withStatus(HttpStatus.UNPROCESSABLE_CONTENT)
                         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                         .body("""
-                                {"type": "urn:delivery:problem:quote-expired", "status": 422,
-                                 "detail": "Price quote %s has expired, request a new one"}
+                                {"type": "urn:delivery:problem:quote-not-found", "status": 422,
+                                 "detail": "Price quote %s not found"}
                                 """.formatted(QUOTE)));
 
         mockMvc.perform(create("key-1"))
                 .andExpect(status().isUnprocessableContent())
-                .andExpect(jsonPath("$.type").value("urn:delivery:problem:quote-expired"))
-                .andExpect(jsonPath("$.detail").value("Price quote " + QUOTE + " has expired, request a new one"));
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:quote-not-found"))
+                .andExpect(jsonPath("$.detail").value("Price quote " + QUOTE + " not found"));
     }
 
     @Test

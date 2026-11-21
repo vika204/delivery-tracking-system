@@ -77,6 +77,16 @@ class IdempotencyScopeMigrationTest {
     }
 
     @Test
+    void removesQuoteExpirationWithoutChangingSavedPrice() {
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'price_quotes' AND column_name = 'expires_at'
+                """, Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT total_price FROM price_quotes", java.math.BigDecimal.class))
+                .isEqualByComparingTo("127.5");
+    }
+
+    @Test
     void removesDeliveryTypesWithoutChangingStoredPrices() {
         assertThat(jdbc.queryForObject("SELECT price FROM shipments WHERE shipment_id = 1", java.math.BigDecimal.class))
                 .isEqualByComparingTo("100");
