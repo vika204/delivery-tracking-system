@@ -1,6 +1,5 @@
 package com.delivery.dispatch.kafka;
 
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 
