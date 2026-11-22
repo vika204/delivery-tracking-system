@@ -3,7 +3,7 @@ package com.delivery.tracking.controller;
 import com.delivery.tracking.client.dto.CreateShipmentRequest;
 import com.delivery.tracking.client.dto.ShipmentBatchResponse;
 import com.delivery.tracking.client.dto.ShipmentDto;
-import com.delivery.tracking.entity.Location;
+import com.delivery.tracking.dto.ShipmentLocationResponse;
 import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
 import jakarta.validation.Valid;
@@ -28,13 +28,13 @@ public class TrackingController {
     }
 
     @GetMapping
-    public List<Location> getLocations() {
-        return locationService.getLocations();
+    public List<ShipmentLocationResponse> getLocations() {
+        return locationService.getLocations().stream().map(ShipmentLocationResponse::from).toList();
     }
 
     @GetMapping("/{id}")
-    public Location getLocation(@PathVariable Long id) {
-        return locationService.getLocation(id);
+    public ShipmentLocationResponse getLocation(@PathVariable Long id) {
+        return ShipmentLocationResponse.from(locationService.getLocation(id));
     }
 
     @GetMapping("/shipments/{id}")
