@@ -79,7 +79,4 @@ public class DispatchRequest {
         return status == DispatchRequestStatus.SEARCHING || status == DispatchRequestStatus.WAITING_FOR_COURIERS;
     }
 
-    public boolean hasRoute() {
-        return pickupCityCode != null && pickupLatitude != null && pickupLongitude != null && parcelWeight != null;
-    }
 }

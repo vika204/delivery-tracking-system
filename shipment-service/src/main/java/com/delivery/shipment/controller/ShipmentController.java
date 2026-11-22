@@ -128,17 +128,17 @@ public class ShipmentController {
 
 
     @PostMapping("/{id}/pickup")
-    public ShipmentResponse confirmPickup(
+    public CourierShipmentView confirmPickup(
             @PathVariable Long id,
             @RequestHeader(RequestHeaders.USER_ID) @Positive long courierId) {
-        return ShipmentResponse.from(lifecycleService.confirmPickup(id, courierId));
+        return CourierShipmentView.from(lifecycleService.confirmPickup(id, courierId));
     }
 
     @PostMapping("/{id}/deliver")
-    public ShipmentResponse completeDelivery(
+    public CourierShipmentView completeDelivery(
             @PathVariable Long id,
             @RequestHeader(RequestHeaders.USER_ID) @Positive long courierId) {
-        return ShipmentResponse.from(lifecycleService.completeDelivery(id, courierId));
+        return CourierShipmentView.from(lifecycleService.completeDelivery(id, courierId));
     }
 
     private static List<ShipmentResponse> toResponses(List<Shipment> shipments) {

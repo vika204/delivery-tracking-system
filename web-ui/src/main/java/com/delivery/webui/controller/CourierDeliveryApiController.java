@@ -58,9 +58,7 @@ public class CourierDeliveryApiController {
     @PostMapping("/{shipmentId}/locations")
     public ResponseEntity<TrackingLocationResponse> recordLocation(@PathVariable long shipmentId,
                                                                    @Valid @RequestBody RecordLocationRequest point) {
-        ResponseEntity<TrackingLocationResponse> recorded = deliveryService.recordLocation(AuthenticatedUser.currentUserId(courierId), shipmentId, point);
-        return ResponseEntity.status(recorded.getStatusCode().value() == 200 ? HttpStatus.OK : HttpStatus.CREATED)
-                .body(recorded.getBody());
+        return deliveryService.recordLocation(AuthenticatedUser.currentUserId(courierId), shipmentId, point);
     }
 
 }

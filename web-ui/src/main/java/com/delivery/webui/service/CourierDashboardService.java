@@ -4,7 +4,6 @@ import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.DispatchCourierOffer;
-import com.delivery.webui.client.dto.DispatchCourierProfile;
 import com.delivery.webui.client.dto.DispatchCourierStatus;
 import com.delivery.webui.controller.dto.CourierDashboardView;
 import org.springframework.stereotype.Service;
@@ -21,13 +20,12 @@ public class CourierDashboardService {
     }
 
     public CourierDashboardView view(long courierId) {
-        DispatchCourierProfile profile = client.profile(courierId);
         DispatchCourierStatus status = client.status(courierId, courierId);
         DispatchCourierOffer offer = client.currentOffer(courierId, courierId);
         List<DispatchCourierAssignment> assignments = client.activeAssignments(courierId, courierId);
         return new CourierDashboardView(
                 courierId,
-                profile == null ? null : profile.displayName(),
+                status.displayName(),
                 status.online(),
                 status.state(),
                 offer,

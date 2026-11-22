@@ -333,14 +333,90 @@
       },
       "response": {
         "body": {
+          "deliveryAddress": "Lviv, Svobody 10",
+          "distance": 540.0,
+          "height": 15.0,
+          "length": 30.0,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "price": 885.0,
+          "recipient": {
+            "initials": "M. S.",
+            "phone": "+380671234567"
+          },
           "shipmentId": 1,
-          "status": "IN_TRANSIT"
+          "status": "IN_TRANSIT",
+          "weight": 2.5,
+          "width": 20.0
         },
         "headers": {
           "Content-Type": "application/json"
         },
         "matchingRules": {
           "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.distance": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.recipient.initials": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipient.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
             "$.shipmentId": {
               "combine": "AND",
               "matchers": [
@@ -354,6 +430,22 @@
               "matchers": [
                 {
                   "match": "type"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
                 }
               ]
             }
@@ -533,14 +625,90 @@
       },
       "response": {
         "body": {
+          "deliveryAddress": "Lviv, Svobody 10",
+          "distance": 540.0,
+          "height": 15.0,
+          "length": 30.0,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "price": 885.0,
+          "recipient": {
+            "initials": "M. S.",
+            "phone": "+380671234567"
+          },
           "shipmentId": 1,
-          "status": "DELIVERED"
+          "status": "DELIVERED",
+          "weight": 2.5,
+          "width": 20.0
         },
         "headers": {
           "Content-Type": "application/json"
         },
         "matchingRules": {
           "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.distance": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.recipient.initials": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipient.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
             "$.shipmentId": {
               "combine": "AND",
               "matchers": [
@@ -554,6 +722,22 @@
               "matchers": [
                 {
                   "match": "type"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
                 }
               ]
             }

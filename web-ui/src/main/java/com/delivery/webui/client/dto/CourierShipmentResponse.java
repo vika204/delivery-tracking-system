@@ -19,7 +19,4 @@ public record CourierShipmentResponse(
     public record Contact(String initials, String phone) {
     }
 
-    public boolean inTransit() {
-        return "IN_TRANSIT".equals(status);
-    }
 }

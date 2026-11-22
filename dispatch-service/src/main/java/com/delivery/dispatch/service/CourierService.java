@@ -134,7 +134,6 @@ public class CourierService {
 
     @Transactional(readOnly = true)
     public Optional<OfferResponse> currentOffer(long courierId) {
-        load(courierId);
         LocalDateTime now = LocalDateTime.now(clock);
         return offerRepository.findPendingByCourier(courierId).stream()
                 .filter(offer -> offer.getExpiresAt().isAfter(now))
@@ -144,7 +143,6 @@ public class CourierService {
 
     @Transactional(readOnly = true)
     public List<AssignmentResponse> assignments(long courierId, boolean activeOnly) {
-        load(courierId);
         List<Assignment> assignments = activeOnly
                 ? assignmentRepository.findByCourierUserIdAndStatusOrderByAssignmentIdDesc(courierId, AssignmentStatus.ACTIVE)
                 : assignmentRepository.findByCourierUserIdOrderByAssignmentIdDesc(courierId);
@@ -167,6 +165,7 @@ public class CourierService {
                 .map(DeliveryOffer::getOfferId).findFirst().orElse(null);
         return new CourierStatusResponse(
                 courier.getUserId(),
+                courier.getDisplayName(),
                 courier.isAvailable(),
                 CourierAvailability.of(courier.isAvailable(), active > 0),
                 active,

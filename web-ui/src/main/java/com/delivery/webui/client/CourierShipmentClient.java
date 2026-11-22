@@ -17,13 +17,13 @@ public interface CourierShipmentClient {
     );
 
     @PostExchange("/{id}/pickup")
-    void confirmPickup(
+    CourierShipmentResponse confirmPickup(
             @RequestHeader("X-User-Id") long courierId,
             @PathVariable("id") long shipmentId
     );
 
     @PostExchange("/{id}/deliver")
-    void completeDelivery(
+    CourierShipmentResponse completeDelivery(
             @RequestHeader("X-User-Id") long courierId,
             @PathVariable("id") long shipmentId
     );

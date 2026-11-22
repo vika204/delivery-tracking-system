@@ -104,9 +104,9 @@ class DispatchProviderPactTest {
     @State("courier 10 is online")
     void courier10IsOnline() {
         when(courierService.status(10L)).thenReturn(
-                new CourierStatusResponse(10, true, CourierAvailability.AVAILABLE, 0, null));
+                new CourierStatusResponse(10, "Andrii Kovalenko", true, CourierAvailability.AVAILABLE, 0, null));
         when(courierService.setAvailability(10L, false)).thenReturn(
-                new CourierStatusResponse(10, false, CourierAvailability.UNAVAILABLE, 0, null));
+                new CourierStatusResponse(10, "Andrii Kovalenko", false, CourierAvailability.UNAVAILABLE, 0, null));
     }
 
     @State("courier 10 has a pending offer 55")

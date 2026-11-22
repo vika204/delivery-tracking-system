@@ -97,6 +97,7 @@ class DispatchServicePactTest {
     RequestResponsePact courierStatusAndAvailability(PactDslWithProvider builder) {
         PactDslJsonBody status = new PactDslJsonBody()
                 .integerType("courierId", 10L)
+                .stringType("displayName", "Andrii Kovalenko")
                 .booleanType("online", true)
                 .stringMatcher("state", "AVAILABLE|BUSY|UNAVAILABLE", "AVAILABLE")
                 .integerType("activeAssignments", 0L)
@@ -114,6 +115,7 @@ class DispatchServicePactTest {
                 .willRespondWith().status(200).headers(JSON)
                 .body(new PactDslJsonBody()
                         .integerType("courierId", 10L)
+                        .stringType("displayName", "Andrii Kovalenko")
                         .booleanType("online", false)
                         .stringType("state", "UNAVAILABLE")
                         .integerType("activeAssignments", 0L)
@@ -129,6 +131,7 @@ class DispatchServicePactTest {
         DispatchCourierStatus status = client.status(10, 10);
         assertThat(status.courierId()).isEqualTo(10);
         assertThat(status.state()).isNotBlank();
+        assertThat(status.displayName()).isNotBlank();
 
         client.setAvailability(10, 10, new AvailabilityRequest(false));
     }

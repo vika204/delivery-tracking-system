@@ -46,10 +46,10 @@ class DispatchCourierDashboardClientTest {
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("X-User-Id", "7"))
                 .andRespond(withSuccess("""
-                        {"courierId": 7, "online": true, "state": "BUSY", "activeAssignments": 1, "pendingOfferId": null}
+                        {"courierId": 7, "displayName": "Olena", "online": true, "state": "BUSY", "activeAssignments": 1, "pendingOfferId": null}
                         """, MediaType.APPLICATION_JSON));
 
-        assertThat(client.status(7, 7)).isEqualTo(new DispatchCourierStatus(7, true, "BUSY", 1, null));
+        assertThat(client.status(7, 7)).isEqualTo(new DispatchCourierStatus(7, "Olena", true, "BUSY", 1, null));
         server.verify();
     }
 
