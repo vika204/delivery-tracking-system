@@ -108,6 +108,13 @@ public class CourierController {
         return courierService.describe(assignment);
     }
 
+    @PostMapping("/shipments/{shipmentId}/withdraw")
+    public ResponseEntity<Void> withdrawShipment(@PathVariable @Positive long shipmentId,
+                                                 @RequestHeader(USER_ID) @Positive long courierId) {
+        courierService.withdrawShipment(courierId, shipmentId);
+        return ResponseEntity.noContent().build();
+    }
+
     private static void requireSelf(long courierId, long userId) {
         if (courierId != userId) {
             throw new DispatchAccessDeniedException("User " + userId + " cannot act as courier " + courierId);

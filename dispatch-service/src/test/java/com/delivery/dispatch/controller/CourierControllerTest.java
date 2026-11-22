@@ -106,6 +106,23 @@ class CourierControllerTest {
     }
 
     @Test
+    void withdrawsShipmentUsingCourierFromHeader() throws Exception {
+        mockMvc.perform(post("/couriers/shipments/15/withdraw").header("X-User-Id", "10"))
+                .andExpect(status().isNoContent());
+
+        verify(courierService).withdrawShipment(10, 15);
+        verifyNoInteractions(dispatchService);
+    }
+
+    @Test
+    void withdrawalRequiresCourierHeader() throws Exception {
+        mockMvc.perform(post("/couriers/shipments/15/withdraw"))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(courierService, dispatchService);
+    }
+
+    @Test
     void rejectsInvalidWorkZoneCode() throws Exception {
         mockMvc.perform(post("/couriers")
                         .contentType(MediaType.APPLICATION_JSON)

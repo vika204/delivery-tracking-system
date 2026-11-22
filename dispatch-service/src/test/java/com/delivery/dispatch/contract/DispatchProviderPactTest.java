@@ -40,11 +40,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-/**
- * Verifies the HTTP pacts addressed to dispatch-service. The real controllers, validation, exception handling and
- * JSON serialization run behind a real port; the service layer is stubbed per provider state, so the test pins the
- * wire format, not dispatch business rules (those have their own tests).
- */
 @Provider("dispatch-service")
 @PactFolder("../pacts")
 @SpringBootTest(
@@ -132,9 +127,6 @@ class DispatchProviderPactTest {
     @State("courier 10 has active assignment 3")
     void courier10HasAssignment() {
         when(courierService.assignments(10L, true)).thenReturn(List.of(assignment(AssignmentStatus.ACTIVE)));
-        when(dispatchService.withdrawAssignment(eq(10L), eq(3L), any()))
-                .thenReturn(Assignment.builder().assignmentId(3L).shipmentId(15L).build());
-        when(courierService.describe(any())).thenReturn(assignment(AssignmentStatus.COURIER_WITHDREW));
     }
 
     @State("shipment 15 has courier Andrii")

@@ -490,6 +490,63 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
+    void withdrawsByShipmentAndDoesNotPublishAgainOnRepeatedRequest() throws Exception {
+        courier(1, KYIV, "20", true, 50.45, 30.52);
+        courier(2, KYIV, "20", true, 50.55, 30.70);
+        long shipmentId = created(KYIV, "3");
+        Assignment assignment = acceptCurrent(shipmentId, 1);
+
+        mockMvc.perform(post("/couriers/shipments/" + shipmentId + "/withdraw").header("X-User-Id", "1"))
+                .andExpect(status().isNoContent());
+
+        assertThat(assignments.findById(assignment.getAssignmentId()).orElseThrow().getStatus())
+                .isEqualTo(AssignmentStatus.COURIER_WITHDREW);
+        assertThat(lastDispatchEvent().eventType()).isEqualTo(DispatchEvent.COURIER_UNASSIGNED);
+        DeliveryOffer replacement = pendingOffer(shipmentId);
+        assertThat(replacement.getCourier().getUserId()).isEqualTo(2L);
+        long eventCount = outbox.count();
+
+        mockMvc.perform(post("/couriers/shipments/" + shipmentId + "/withdraw").header("X-User-Id", "1"))
+                .andExpect(status().isConflict());
+
+        assertThat(outbox.count()).isEqualTo(eventCount);
+        assertThat(pendingOffer(shipmentId).getOfferId()).isEqualTo(replacement.getOfferId());
+    }
+
+    @Test
+    void withdrawalByShipmentCannotWithdrawAnotherCouriersAssignment() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        courier(2, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3");
+        Assignment assignment = acceptCurrent(shipmentId, 1);
+        long eventCount = outbox.count();
+
+        mockMvc.perform(post("/couriers/shipments/" + shipmentId + "/withdraw").header("X-User-Id", "2"))
+                .andExpect(status().isConflict());
+
+        assertThat(assignments.findById(assignment.getAssignmentId()).orElseThrow().getStatus())
+                .isEqualTo(AssignmentStatus.ACTIVE);
+        assertThat(outbox.count()).isEqualTo(eventCount);
+    }
+
+    @Test
+    void withdrawalByShipmentAfterPickupIsRejected() throws Exception {
+        courier(1, KYIV, "20", true, null, null);
+        long shipmentId = created(KYIV, "3");
+        Assignment assignment = acceptCurrent(shipmentId, 1);
+        events.process(statusEvent(shipmentId, "IN_TRANSIT", 1L));
+        long eventCount = outbox.count();
+
+        mockMvc.perform(post("/couriers/shipments/" + shipmentId + "/withdraw").header("X-User-Id", "1"))
+                .andExpect(status().isConflict());
+
+        assertThat(assignments.findById(assignment.getAssignmentId()).orElseThrow().getStatus())
+                .isEqualTo(AssignmentStatus.ACTIVE);
+        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.IN_PROGRESS);
+        assertThat(outbox.count()).isEqualTo(eventCount);
+    }
+
+    @Test
     void withdrawalAfterPickupIsRejected() {
         courier(1, KYIV, "20", true, null, null);
         long shipmentId = created(KYIV, "3");

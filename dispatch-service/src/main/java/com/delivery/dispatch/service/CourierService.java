@@ -151,6 +151,16 @@ public class CourierService {
         return assignments.stream().map(this::toResponse).toList();
     }
 
+    @Transactional
+    public void withdrawShipment(long courierId, long shipmentId) {
+        List<Assignment> assignments = assignmentRepository.findByCourierAndShipmentAndStatus(
+                courierId, shipmentId, AssignmentStatus.ACTIVE);
+        if (assignments.isEmpty()) {
+            throw new DispatchConflictException("Courier " + courierId + " has no active assignment for shipment " + shipmentId);
+        }
+        dispatchService.withdrawAssignment(courierId, assignments.getFirst().getAssignmentId(), null);
+    }
+
     private CourierStatusResponse status(Courier courier) {
         long active = assignmentRepository.countByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE);
         Long pendingOfferId = offerRepository.findPendingByCourier(courier.getUserId()).stream()
