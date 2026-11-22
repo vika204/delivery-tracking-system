@@ -53,7 +53,6 @@ class LocationRecordingControllerIntegrationTest {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.kafka.listener.auto-startup", () -> "false");
         registry.add("spring.grpc.server.port", () -> "0");
-        registry.add("tracking.location-history.enabled", () -> "true");
         registry.add("tracking.live.max-jump-meters", () -> "5000");
     }
 

@@ -6,15 +6,13 @@ import com.delivery.shipment.dto.PriceBreakdown;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PriceCalculatorTest {
 
     private final PriceCalculator calculator = new PriceCalculator(new TariffProperties(
-            new BigDecimal("50.00"), new BigDecimal("1.50"), new BigDecimal("10.00"),
-            Duration.ofMinutes(15)));
+            new BigDecimal("50.00"), new BigDecimal("1.50"), new BigDecimal("10.00")));
 
     @Test
     void priceIsBasePlusDistancePlusWeight() {

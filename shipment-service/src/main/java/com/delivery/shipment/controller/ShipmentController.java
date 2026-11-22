@@ -7,8 +7,6 @@ import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.dto.ShipmentBatchResponse;
 import com.delivery.shipment.dto.ShipmentHistoryEntryResponse;
 import com.delivery.shipment.dto.ShipmentResponse;
-import com.delivery.shipment.dto.ShipmentUpdateResponse;
-import com.delivery.shipment.dto.UpdateShipmentRequest;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.entity.StatusGroup;
@@ -118,20 +116,6 @@ public class ShipmentController {
         return CourierShipmentView.from(shipment);
     }
 
-
-    @PatchMapping("/{id}")
-    public ShipmentUpdateResponse updateShipment(
-            @PathVariable Long id,
-            @RequestHeader(RequestHeaders.USER_ID) @Positive long userId,
-            @Valid @RequestBody UpdateShipmentRequest request) {
-        ShipmentLifecycleService.UpdateResult result = lifecycleService.update(id, userId, request);
-        return new ShipmentUpdateResponse(
-                ShipmentResponse.from(result.shipment()),
-                result.priceRecalculated(),
-                result.previousPrice(),
-                result.breakdown()
-        );
-    }
 
     @PostMapping("/{id}/cancel")
     public ShipmentResponse cancelShipment(

@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-ui-config
+  namespace: delivery
+data:
+  SERVER_PORT: "8080"
+  AUTH_SERVICE_URL: http://auth-service:8080
+  SHIPMENT_SERVICE_URL: http://shipment-service:8080
+  DISPATCH_SERVICE_URL: http://dispatch-service:8080
+  TRACKING_SERVICE_URL: http://tracking-service:8080
+  NOTIFICATION_SERVICE_URL: http://notification-service:8080
+  TRACKING_GRPC_TARGET: "dns:///tracking-service:9090"
+  TRACKING_GRPC_TLS_ENABLED: "false"
+  TRACKING_STREAM_ENABLED: "true"
+  DISPATCH_COURIER_LOOKUP_ENABLED: "true"
+  WEB_LOCAL_DEV_LOOPBACK_ONLY: "false"

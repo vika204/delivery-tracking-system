@@ -2,10 +2,8 @@ package com.delivery.notification.controller;
 
 import com.delivery.notification.dto.NotificationRequest;
 import com.delivery.notification.dto.NotificationResponse;
-import com.delivery.notification.entity.Notification;
-import com.delivery.notification.dto.NotificationResponse;
-import com.delivery.notification.repository.NotificationRepository;
-import org.springframework.data.domain.PageRequest;
+import com.delivery.notification.service.NotificationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,33 +14,25 @@ import java.util.List;
 @RequestMapping("/notifications")
 public class NotificationController {
 
-    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
-    public NotificationController(NotificationRepository notificationRepository) {
-        this.notificationRepository = notificationRepository;
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     @PostMapping
-    public NotificationResponse createNotification(@RequestBody NotificationRequest request) {
-        Notification notification = new Notification();
-        notification.setUserId(request.userId());
-        notification.setShipmentId(request.shipmentId());
-        notification.setType(request.type());
-        notification.setMessage(request.message());
-        notification.setRead(request.isRead());
-        return NotificationResponse.from(notificationRepository.save(notification));
+    public NotificationResponse createNotification(@Valid @RequestBody NotificationRequest request) {
+        return notificationService.createNotification(request);
     }
 
     @GetMapping
     public List<NotificationResponse> getNotifications() {
-        return notificationRepository.findAll().stream().map(NotificationResponse::from).toList();
+        return notificationService.getNotifications();
     }
 
     @GetMapping("/{id}")
     public NotificationResponse getNotification(@PathVariable Long id) {
-        return notificationRepository.findById(id)
-                .map(NotificationResponse::from)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return notificationService.getNotification(id);
     }
 
     @GetMapping("/mine/unread")
@@ -50,7 +40,7 @@ public class NotificationController {
         if (userId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId must be positive");
         }
-        return notificationRepository.existsByUserIdAndIsReadFalse(userId);
+        return notificationService.hasUnreadNotifications(userId);
     }
 
     @PostMapping("/mine/read")
@@ -58,8 +48,7 @@ public class NotificationController {
         if (userId <= 0 || throughId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId and throughId must be positive");
         }
-        notificationRepository.markReadThroughForUser(userId, throughId);
-        return notificationRepository.existsByUserIdAndIsReadFalse(userId);
+        return notificationService.markNotificationsRead(userId, throughId);
     }
 
     @GetMapping("/mine")
@@ -69,8 +58,7 @@ public class NotificationController {
         if (userId <= 0 || limit < 1 || limit > 100) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A positive user ID and limit between 1 and 100 are required");
         }
-        return notificationRepository.findByUserIdOrderByCreatedAtDescNotificationIdDesc(userId, PageRequest.of(0, limit))
-                .stream().map(NotificationResponse::from).toList();
+        return notificationService.getMyNotifications(userId, limit);
     }
 
 }

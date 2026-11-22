@@ -135,18 +135,6 @@ class ShipmentStateMachineTest {
         assertThat(assigned().unassignCourier(99)).isFalse();
     }
 
-    @Test
-    void editingIsAllowedOnlyBeforeAssignment() {
-        waiting().requireEditableBy(SENDER);
-
-        var subject5 = assigned();
-        assertThatThrownBy(() -> subject5.requireEditableBy(SENDER))
-                .isInstanceOf(ShipmentStatusConflictException.class);
-        var subject6 = waiting();
-        assertThatThrownBy(() -> subject6.requireEditableBy(1))
-                .isInstanceOf(ShipmentAccessDeniedException.class);
-    }
-
     private static Shipment waiting() {
         return Shipment.builder().shipmentId(1L).userId(SENDER).status(ShipmentStatus.WAITING_FOR_COURIER).build();
     }

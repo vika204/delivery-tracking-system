@@ -1,6 +1,4 @@
 
-const QUOTE_PROBLEM = 'urn:delivery:problem:quote-';
-
 const text = value => String(value ?? '').trim();
 
 function positiveNumber(value) {
@@ -38,10 +36,6 @@ export function sameRequest(a, b) {
     return Boolean(a && b) && JSON.stringify(a) === JSON.stringify(b);
 }
 
-export function isQuoteUsable(quote, nowMs, marginMs = 30_000) {
-    return Boolean(quote?.expiresAt) && Date.parse(quote.expiresAt) - marginMs > nowMs;
-}
-
 export function createIdempotencyKeys(newKey = () => crypto.randomUUID()) {
     let last = null;
     return {
@@ -59,10 +53,6 @@ export function formatPrice(uah) {
 }
 
 export {formatDistance} from './format-distance.js';
-
-export function isQuoteProblem(problem) {
-    return typeof problem?.type === 'string' && problem.type.startsWith(QUOTE_PROBLEM);
-}
 
 export function problemMessage(problem, fallback) {
     const detail = text(problem?.detail);

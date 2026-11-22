@@ -1,5 +1,6 @@
 package com.delivery.webui.config;
 
+import com.delivery.webui.client.AuthUserClient;
 import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.DispatchCourierClient;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
@@ -18,6 +19,6 @@ import org.springframework.web.service.registry.ImportHttpServices;
 @ImportHttpServices(group = "dispatch", types = {DispatchCourierClient.class, DispatchCourierDashboardClient.class})
 @ImportHttpServices(group = "tracking", types = {TrackingShipmentClient.class, TrackingLocationClient.class})
 @ImportHttpServices(group = "notification", types = NotificationClient.class)
-@ImportHttpServices(group = "auth", types = UserProfileClient.class)
+@ImportHttpServices(group = "auth", types = {UserProfileClient.class, AuthUserClient.class})
 public class HttpClientConfiguration {
 }

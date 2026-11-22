@@ -13,6 +13,9 @@ spec:
     - from:
         - podSelector:
             matchLabels:
+              app: kafka
+        - podSelector:
+            matchLabels:
               app: shipment-service
         - podSelector:
             matchLabels:
@@ -26,3 +29,10 @@ spec:
       ports:
         - protocol: TCP
           port: 9092
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9093

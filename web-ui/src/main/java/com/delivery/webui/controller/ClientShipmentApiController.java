@@ -3,6 +3,7 @@ package com.delivery.webui.controller;
 import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,6 +36,6 @@ public class ClientShipmentApiController {
     @PostMapping("/{shipmentId}/cancel")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancelShipment(@PathVariable long shipmentId) {
-        client.cancelShipment(senderId, shipmentId);
+        client.cancelShipment(AuthenticatedUser.currentUserId(senderId), shipmentId);
     }
 }

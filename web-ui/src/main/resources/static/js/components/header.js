@@ -27,6 +27,19 @@ document.querySelectorAll('[data-profile-menu]').forEach(profile => {
     });
 });
 
+document.querySelectorAll('[data-logout-button]').forEach(logoutButton => {
+    logoutButton.addEventListener('click', async () => {
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                headers: {'Accept': 'application/json'}
+            });
+        } finally {
+            window.location.href = '/login';
+        }
+    });
+});
+
 (async () => {
     const link = document.querySelector('[data-notification-status-url]');
     if (!link) return;

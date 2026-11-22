@@ -14,19 +14,25 @@
 
    Файл `.env` не потрапляє в git. Значення в шаблоні — лише приклад, для власного запуску їх варто замінити, особливо паролі.
 
-2. Підняти сервіси разом із базами даних:
+2. Заповнити `GEOAPIFY_API_KEY` у локальному `.env` для розрахунку доставки. Підняти web-ui, п'ять бекендів, бази даних і Kafka:
 
    ```bash
-   docker compose up -d
+   docker compose up -d --build --wait --wait-timeout 600
    ```
 
-   Кожен сервіс стартує лише після того, як його база пройде `healthcheck`.
+   Бекенди стартують після готовності їхніх БД і, де потрібно, Kafka. UI стартує після готовності п'яти бекендів. Перший запуск включає збірку образів; для Java-застосунків передбачено до 5 хвилин початкового періоду healthcheck.
 
 3. Перевірити стан:
 
    ```bash
    docker compose ps
    ```
+
+   Відкрити [http://localhost:8086/](http://localhost:8086/). Якщо на цьому порту вже працює web-ui з IntelliJ або Kubernetes port-forward, спочатку зупини попередній процес.
+
+   GPS-історія доступна без додаткового прапорця. Пошук кур'єра для картки та SSE увімкнені в локальному Compose. За потреби їх можна вимкнути через `DISPATCH_COURIER_LOOKUP_ENABLED=false` або `TRACKING_STREAM_ENABLED=false` у `.env`. Spring Security працює; `WEB_LOCAL_DEV_LOOPBACK_ONLY=false` дозволяє доступ через Docker-мережу.
+
+   Усередині контейнерів UI звертається до `http://shipment-service:8080`, `http://tracking-service:8080` та інших імен сервісів. gRPC використовує `tracking-service:9090`. Порти на хості відкриті лише на `127.0.0.1`.
 
 ## Сервіси
 
@@ -37,6 +43,11 @@
 | dispatch-service | 8083 | dispatch-db | dispatch-db-data |
 | tracking-service | 8084 | tracking-db | tracking-db-data |
 | notification-service | 8085 | notification-db | notification-db-data |
+| web-ui | 8086 | — | — |
+
+gRPC tracking-service доступний локальним інструментам на `localhost:9094`, Kafka — на `localhost:9092`.
+
+Для ручної перевірки резервного екрана спочатку відкрий трекінг існуючої посилки, потім виконай `docker compose stop shipment-service` і онови сторінку. Відновлення: `docker compose start shipment-service`. Команда stop залишає БД і дані; `unless-stopped` не скасовує ручну зупинку. Якщо Circuit Breaker відкрився, після готовності сервісу дай йому щонайменше 10 секунд перед наступним запитом.
 
 Кожен сервіс має власну базу. Усередині мережі `delivery-network` сервіси звертаються до баз за іменами служб (`shipment-db`, `dispatch-db`), а не через `localhost`.
 
@@ -186,54 +197,106 @@ docker compose down
 
 ## Kubernetes (Minikube)
 
-Маніфести лежать у `k8s/`: `namespace.yml`, `auth/`, `shipment/`, `dispatch/`, `tracking/`, `notification/`, `ingress.yml`. Усі ресурси створюються в namespace `delivery`.
+Усі ресурси застосунку та моніторингу описані в `k8s/kustomization.yaml`. Команда `kubectl apply -k k8s` розгортає шість застосунків, п'ять PostgreSQL, Kafka, Grafana, Prometheus, Loki, Tempo, OpenTelemetry та Alertmanager. Telegram і Toxiproxy підключаються окремо.
 
-1. Запустити Minikube з Ingress-контролером:
+Це локальне dev-середовище. Зовнішній Ingress веде лише до `web-ui`; REST API бекендів, PostgreSQL, Kafka, gRPC і chaos endpoint залишаються всередині кластера.
 
-   ```bash
-   minikube start
-   minikube addons enable ingress
-   ```
+### Кластер і образи
 
-2. Зібрати образи безпосередньо в Minikube (Java 25):
+Для нового кластера потрібен CNI з підтримкою NetworkPolicy. Приклад створює окремий профіль `delivery-dev` із Calico, не видаляючи наявний профіль `minikube` та його дані. Для повного набору з моніторингом у прикладі виділено 6 CPU і 10 GiB RAM.
 
-   ```bash
-   minikube image build -t auth-service:1.0.0 ./auth-service
-   minikube image build -t shipment-service:1.0.0 ./shipment-service
-   minikube image build -t dispatch-service:1.0.0 ./dispatch-service
-   minikube image build -t tracking-service:1.0.0 ./tracking-service
-   minikube image build -t notification-service:1.0.0 ./notification-service
-   ```
+```powershell
+minikube start -p delivery-dev --driver=docker --cni=calico --cpus=6 --memory=10240
+minikube -p delivery-dev addons enable ingress
+kubectl config use-context delivery-dev
 
-3. Створити namespace і файли зі секретами. Реальні `secret.yml` не потрапляють у git, у репозиторії лише шаблони `secret.yml.example`:
+minikube -p delivery-dev image build -t auth-service:1.0.0 ./auth-service
+minikube -p delivery-dev image build -t shipment-service:1.0.0 ./shipment-service
+minikube -p delivery-dev image build -t dispatch-service:1.0.0 -f dispatch-service/Dockerfile .
+minikube -p delivery-dev image build -t tracking-service:1.0.0 -f tracking-service/Dockerfile .
+minikube -p delivery-dev image build -t notification-service:1.0.0 -f notification-service/Dockerfile .
+minikube -p delivery-dev image build -t web-ui:1.0.0 -f web-ui/Dockerfile .
+```
 
-   ```bash
-   kubectl apply -f k8s/namespace.yml
-   cp k8s/auth/secret.yml.example k8s/auth/secret.yml
-   cp k8s/shipment/secret.yml.example k8s/shipment/secret.yml
-   cp k8s/dispatch/secret.yml.example k8s/dispatch/secret.yml
-   cp k8s/tracking/secret.yml.example k8s/tracking/secret.yml
-   cp k8s/notification/secret.yml.example k8s/notification/secret.yml
-   ```
+Для вже наявного профілю заміни `delivery-dev` на його назву. Звичайний запуск Minikube без Calico або іншого відповідного CNI не гарантує виконання NetworkPolicy. Перемикання профілю не переносить БД між кластерами.
 
-   Замініть `CHANGE_ME` у створених файлах на власні логін і пароль.
+### Секрети й розгортання
 
-4. Перевірити маніфести перед розгортанням і розгорнути:
+Заповни локальний `.env` за `.env.example`: логіни й паролі п'яти БД та `GEOAPIFY_API_KEY`. Скрипт читає ці значення, перевіряє їх і надсилає в Kubernetes через stdin. Він не створює файлів із паролями й не друкує значень.
 
-   ```bash
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml --dry-run=client
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml --dry-run=server
-   kubectl apply -f k8s/auth -f k8s/shipment -f k8s/dispatch -f k8s/tracking -f k8s/notification -f k8s/ingress.yml
-   kubectl -n delivery get pods
-   ```
+```powershell
+kubectl --context=delivery-dev apply -f k8s/namespace.yml
+.\docs\scripts\apply-k8s-secrets.ps1 -Context delivery-dev -ValidateOnly
+.\docs\scripts\apply-k8s-secrets.ps1 -Context delivery-dev
 
-5. Перевірити маршрути Ingress без правки системних файлів:
+kubectl --context=delivery-dev apply --dry-run=server -k k8s
+kubectl --context=delivery-dev apply -k k8s
 
-   ```bash
-   kubectl -n ingress-nginx port-forward svc/ingress-nginx-controller 8080:80
-   curl localhost:8080/users
-   curl localhost:8080/shipments
-   curl localhost:8080/couriers
-   curl localhost:8080/tracking
-   curl localhost:8080/notifications
-   ```
+foreach ($name in @('auth-service', 'shipment-service', 'dispatch-service', 'tracking-service', 'notification-service', 'web-ui')) {
+    kubectl --context=delivery-dev -n delivery rollout status deployment/$name --timeout=600s
+    if ($LASTEXITCODE -ne 0) { break }
+}
+kubectl --context=delivery-dev -n delivery get pods,pvc
+```
+
+Секрети не входять до Kustomization: вони мають бути створені перед запуском застосунків. Зміна Secret або ConfigMap сама не перезапускає вже запущені контейнери; після зміни потрібен `kubectl rollout restart deployment/<name> -n delivery`.
+
+Для нового образу з тим самим тегом спочатку зупини потрібний Deployment через `kubectl scale deployment/<name> --replicas=0 -n delivery`, перебудуй образ у потрібному профілі й поверни попередню кількість реплік. Це локальне оновлення з перервою в роботі, а не production rollout.
+
+### Відкриття застосунку
+
+У двох окремих терміналах залиш працювати:
+
+```powershell
+kubectl --context=delivery-dev -n ingress-nginx port-forward service/ingress-nginx-controller 8086:80
+```
+
+```powershell
+kubectl --context=delivery-dev -n delivery port-forward service/grafana 3000:3000
+```
+
+WEB EXPRESS: [http://localhost:8086/](http://localhost:8086/). Grafana: [http://localhost:3000/](http://localhost:3000/). Попередній локальний процес web-ui на порту 8086 потрібно зупинити.
+
+Для ручних REST-запитів використовуй окремий port-forward, наприклад:
+
+```powershell
+kubectl --context=delivery-dev -n delivery port-forward service/shipment-service 18082:8080
+```
+
+### Особливості локального розгортання
+
+- `startupProbe` дає Java-застосункам до 5 хвилин на запуск перед перевіркою liveness.
+- `web-ui` і `tracking-service` мають по одній репліці: HTTP-сесія UI та live gRPC-підписки зараз зберігаються в пам'яті процесів.
+- `WEB_LOCAL_DEV_LOOPBACK_ONLY=false` дозволяє UI приймати запити через локальний Kubernetes-проксі. При звичайному запуску перевірка localhost зберігається. Spring Security та перевірки даних залишаються активними.
+- GPS history, SSE й courier lookup увімкнені явно в ConfigMap цього dev-середовища.
+- NetworkPolicy дозволяють Ingress-контролеру звертатися до UI, UI — до HTTP/gRPC бекендів, а бекендам — до їхніх БД, Kafka та моніторингу. Обмежено вхідний трафік; вихідний трафік не ізольований, тому працюють DNS і Geoapify.
+- П'ять БД, Kafka і сховища моніторингу використовують PVC. Старі дані з `emptyDir` автоматично не копіюються в новий PVC: перед оновленням старого кластера окремо збережи потрібну історію Kafka й моніторингу. Наявні PVC PostgreSQL не видаляються.
+- Grafana налаштована для локального перегляду без входу. Цей набір не призначений для публікації в інтернет.
+- Класи `tracking-api` і `tracking-grpc-client` — Maven-бібліотеки, окремі контейнери їм не потрібні.
+
+### Додаткові сценарії
+
+Для Toxiproxy:
+
+```powershell
+kubectl --context=delivery-dev apply -f k8s/testing/toxiproxy.yml
+kubectl --context=delivery-dev -n delivery set env deployment/tracking-service SHIPMENT_SERVICE_URL=http://toxiproxy:8666
+kubectl --context=delivery-dev -n delivery rollout status deployment/tracking-service --timeout=600s
+```
+
+Після цього в окремих терміналах відкрий порти `18084:8080` для `service/tracking-service` і `18474:8474` для `service/toxiproxy` та запусти `docs/scripts/scenario-toxiproxy.ps1 -ShipmentId <існуючий-ID>`. Після демонстрації поверни пряме з'єднання:
+
+```powershell
+kubectl --context=delivery-dev -n delivery set env deployment/tracking-service SHIPMENT_SERVICE_URL=http://shipment-service:8080
+```
+
+Без Telegram сповіщення про збої доступні в Alertmanager. Для Telegram додай `BOT_TOKEN` і `CHAT_ID` у локальний `.env`, після чого:
+
+```powershell
+.\docs\scripts\apply-k8s-secrets.ps1 -Context delivery-dev -IncludeTelegram
+minikube -p delivery-dev image build -t telegram-alert-bridge:1.0.0 ./telegram-alert-bridge
+kubectl --context=delivery-dev apply -f k8s/monitoring/telegram-alert-bridge.yml
+kubectl --context=delivery-dev -n delivery rollout restart deployment/alertmanager
+```
+
+Повторне `apply -k k8s` повертає локальний receiver Alertmanager; якщо потрібен Telegram, після нього повторно застосуй `telegram-alert-bridge.yml` і перезапусти Alertmanager.

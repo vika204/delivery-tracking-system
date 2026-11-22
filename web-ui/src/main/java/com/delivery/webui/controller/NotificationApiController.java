@@ -3,6 +3,7 @@ package com.delivery.webui.controller;
 import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.NotificationClient;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,7 @@ public class NotificationApiController {
 
     @GetMapping("/unread")
     public boolean hasUnreadNotifications() {
-        return client.hasUnreadNotifications(userId);
+        return client.hasUnreadNotifications(AuthenticatedUser.currentUserId(userId));
     }
 
     @PostMapping("/read")
@@ -42,6 +43,6 @@ public class NotificationApiController {
         if (throughId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "throughId must be positive");
         }
-        return client.markNotificationsRead(userId, throughId);
+        return client.markNotificationsRead(AuthenticatedUser.currentUserId(userId), throughId);
     }
 }

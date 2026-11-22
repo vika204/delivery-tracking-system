@@ -58,11 +58,32 @@ class IdempotencyScopeMigrationTest {
 
     @Test
     void sameKeyIsUniquePerSenderOnly() {
-        jdbc.update("INSERT INTO idempotency_records (user_id, idempotency_key, request_hash, shipment_id, created_at) VALUES (43, 'k', 'h', 1, now())");
+        jdbc.update("INSERT INTO idempotency_records (user_id, idempotency_key, shipment_id, created_at) VALUES (43, 'k', 1, now())");
 
         assertThatThrownBy(() -> jdbc.update(
-                "INSERT INTO idempotency_records (user_id, idempotency_key, request_hash, shipment_id, created_at) VALUES (42, 'k', 'h', 1, now())"))
+                "INSERT INTO idempotency_records (user_id, idempotency_key, shipment_id, created_at) VALUES (42, 'k', 1, now())"))
                 .hasMessageContaining("uq_idempotency_sender_key");
+    }
+
+    @Test
+    void removesRequestHashAndPreservesExistingKeys() {
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'idempotency_records' AND column_name = 'request_hash'
+                """, Integer.class)).isZero();
+        assertThat(jdbc.queryForObject(
+                "SELECT shipment_id FROM idempotency_records WHERE user_id = 42 AND idempotency_key = 'k'", Long.class))
+                .isEqualTo(1L);
+    }
+
+    @Test
+    void removesQuoteExpirationWithoutChangingSavedPrice() {
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = 'public' AND table_name = 'price_quotes' AND column_name = 'expires_at'
+                """, Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT total_price FROM price_quotes", java.math.BigDecimal.class))
+                .isEqualByComparingTo("127.5");
     }
 
     @Test

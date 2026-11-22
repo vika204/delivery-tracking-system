@@ -1,8 +1,5 @@
 package com.delivery.shipment.service;
 
-import com.delivery.shipment.dto.PriceBreakdown;
-import com.delivery.shipment.dto.RouteQuote;
-import com.delivery.shipment.dto.UpdateShipmentRequest;
 import com.delivery.shipment.entity.ActorType;
 import com.delivery.shipment.entity.ProcessedEvent;
 import com.delivery.shipment.entity.Shipment;
@@ -20,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 
@@ -33,7 +29,6 @@ public class ShipmentLifecycleService {
     private final ShipmentStatusHistoryRepository historyRepository;
     private final ProcessedEventRepository processedEventRepository;
     private final ShipmentEventOutbox eventOutbox;
-    private final PricingService pricingService;
     private final Clock clock;
 
     public ShipmentLifecycleService(
@@ -41,14 +36,12 @@ public class ShipmentLifecycleService {
             ShipmentStatusHistoryRepository historyRepository,
             ProcessedEventRepository processedEventRepository,
             ShipmentEventOutbox eventOutbox,
-            PricingService pricingService,
             Clock clock
     ) {
         this.shipmentRepository = shipmentRepository;
         this.historyRepository = historyRepository;
         this.processedEventRepository = processedEventRepository;
         this.eventOutbox = eventOutbox;
-        this.pricingService = pricingService;
         this.clock = clock;
     }
 
@@ -67,43 +60,6 @@ public class ShipmentLifecycleService {
                     shipmentId, previous, courierId);
         }
         return shipment;
-    }
-
-    @Transactional
-    public UpdateResult update(long shipmentId, long senderId, UpdateShipmentRequest request) {
-        Shipment shipment = load(shipmentId);
-        shipment.requireEditableBy(senderId);
-
-        BigDecimal previousPrice = shipment.getPrice();
-        PriceBreakdown breakdown = null;
-
-        shipment.updateContacts(request.senderName(), request.senderPhone(),
-                request.recipientName(), request.recipientPhone());
-        shipment.updateDimensions(request.length(), request.width(), request.height());
-
-        if (request.changesRouteOrPrice()) {
-            String pickupAddress = request.pickupAddress() != null ? request.pickupAddress().trim() : shipment.getPickupAddress();
-            String pickupCode = request.pickupCityCode() != null ? request.pickupCityCode() : shipment.getPickupCityCode();
-            String deliveryAddress = request.deliveryAddress() != null ? request.deliveryAddress().trim() : shipment.getDeliveryAddress();
-            String deliveryCode = request.deliveryCityCode() != null ? request.deliveryCityCode() : shipment.getDeliveryCityCode();
-            BigDecimal weight = request.weight() != null ? request.weight() : shipment.getWeight();
-
-            RouteQuote route = pricingService.calculate(pickupCode, pickupAddress, deliveryCode, deliveryAddress, weight);
-            breakdown = route.breakdown();
-
-            shipment.updateRoute(
-                    pickupAddress, pickupCode, route.pickup().latitude(), route.pickup().longitude(),
-                    deliveryAddress, deliveryCode, route.delivery().latitude(), route.delivery().longitude(),
-                    weight, route.distanceKm(), breakdown.total()
-            );
-        }
-
-        boolean priceRecalculated = breakdown != null;
-        eventOutbox.detailsUpdated(shipment, priceRecalculated);
-
-        log.info("Shipment details updated: shipmentId={}, priceRecalculated={}, previousPrice={}, price={}",
-                shipmentId, priceRecalculated, previousPrice, shipment.getPrice());
-        return new UpdateResult(shipment, priceRecalculated, previousPrice, breakdown);
     }
 
     @Transactional
@@ -182,7 +138,4 @@ public class ShipmentLifecycleService {
         eventOutbox.statusChanged(shipment, previous, courierId, courierName, actorType, reason);
     }
 
-    public record UpdateResult(Shipment shipment, boolean priceRecalculated, BigDecimal previousPrice,
-                               PriceBreakdown breakdown) {
-    }
 }

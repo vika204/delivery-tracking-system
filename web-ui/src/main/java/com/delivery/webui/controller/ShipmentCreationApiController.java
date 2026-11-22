@@ -7,6 +7,8 @@ import com.delivery.webui.client.dto.CreatedShipmentResponse;
 import com.delivery.webui.client.dto.ShipmentQuoteRequest;
 import com.delivery.webui.client.dto.ShipmentQuoteResponse;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,15 +36,15 @@ public class ShipmentCreationApiController {
     }
 
     @PostMapping("/quotes")
-    public ShipmentQuoteResponse quote(@RequestBody ShipmentQuoteRequest request) {
-        return client.quote(senderId, request);
+    public ShipmentQuoteResponse quote(@Valid @RequestBody ShipmentQuoteRequest request) {
+        return client.quote(AuthenticatedUser.currentUserId(senderId), request);
     }
 
     @PostMapping
     public ResponseEntity<CreatedShipmentResponse> create(
             @RequestHeader(IDEMPOTENCY_KEY) String idempotencyKey,
-            @RequestBody CreateShipmentRequest request) {
-        ResponseEntity<CreatedShipmentResponse> creation = client.create(senderId, idempotencyKey, request);
+            @Valid @RequestBody CreateShipmentRequest request) {
+        ResponseEntity<CreatedShipmentResponse> creation = client.create(AuthenticatedUser.currentUserId(senderId), idempotencyKey, request);
         ResponseEntity.BodyBuilder response = ResponseEntity.ok();
         if ("true".equals(creation.getHeaders().getFirst(REPLAYED))) {
             response.header(REPLAYED, "true");

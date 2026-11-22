@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
@@ -16,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "CLIENT")
 class CreateShipmentPageControllerTest {
 
     @Autowired
@@ -26,7 +28,7 @@ class CreateShipmentPageControllerTest {
         mockMvc.perform(get("/ship"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/create-shipment"))
-                .andExpect(model().attribute("headerState", "CLIENT"))
+                .andExpect(content().string(containsString("data-profile-menu")))
                 .andExpect(model().attribute("activePage", "ship"))
                 .andExpect(content().string(containsString("CREATE SHIPMENT")))
                 .andExpect(content().string(containsString("DELIVERY ROUTE")))

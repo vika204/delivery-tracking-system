@@ -4,7 +4,9 @@ import com.delivery.webui.config.CourierDashboardProperties;
 import com.delivery.webui.client.dto.AvailabilityRequest;
 import com.delivery.webui.controller.dto.CourierDashboardView;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.service.CourierDashboardService;
+import jakarta.validation.Valid;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,22 +33,22 @@ public class CourierDashboardApiController {
 
     @GetMapping
     public CourierDashboardView dashboard() {
-        return dashboardService.view(courierId);
+        return dashboardService.view(AuthenticatedUser.currentUserId(courierId));
     }
 
     @PutMapping("/availability")
-    public CourierDashboardView setAvailability(@RequestBody AvailabilityRequest request) {
-        return dashboardService.setAvailability(courierId, request.online());
+    public CourierDashboardView setAvailability(@Valid @RequestBody AvailabilityRequest request) {
+        return dashboardService.setAvailability(AuthenticatedUser.currentUserId(courierId), request.online());
     }
 
     @PostMapping("/offers/{offerId}/accept")
     public CourierDashboardView accept(@PathVariable long offerId) {
-        return dashboardService.acceptOffer(courierId, offerId);
+        return dashboardService.acceptOffer(AuthenticatedUser.currentUserId(courierId), offerId);
     }
 
     @PostMapping("/offers/{offerId}/decline")
     public CourierDashboardView decline(@PathVariable long offerId) {
-        return dashboardService.declineOffer(courierId, offerId);
+        return dashboardService.declineOffer(AuthenticatedUser.currentUserId(courierId), offerId);
     }
 
 }

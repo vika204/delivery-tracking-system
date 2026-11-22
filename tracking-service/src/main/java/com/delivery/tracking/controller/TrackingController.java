@@ -4,11 +4,10 @@ import com.delivery.tracking.client.dto.CreateShipmentRequest;
 import com.delivery.tracking.client.dto.ShipmentBatchResponse;
 import com.delivery.tracking.client.dto.ShipmentDto;
 import com.delivery.tracking.entity.Location;
-import com.delivery.tracking.repository.TrackingRepository;
+import com.delivery.tracking.service.LocationService;
 import com.delivery.tracking.service.TrackingService;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,24 +18,23 @@ import java.util.UUID;
 @RequestMapping("/tracking")
 public class TrackingController {
 
-    private final TrackingRepository trackingRepository;
+    private final LocationService locationService;
     private final TrackingService trackingService;
     private static final Logger log = LoggerFactory.getLogger(TrackingController.class);
 
-    public TrackingController(TrackingRepository trackingRepository, TrackingService trackingService) {
-        this.trackingRepository = trackingRepository;
+    public TrackingController(LocationService locationService, TrackingService trackingService) {
+        this.locationService = locationService;
         this.trackingService = trackingService;
     }
 
     @GetMapping
     public List<Location> getLocations() {
-        return trackingRepository.findAll();
+        return locationService.getLocations();
     }
 
     @GetMapping("/{id}")
     public Location getLocation(@PathVariable Long id) {
-        return trackingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return locationService.getLocation(id);
     }
 
     @GetMapping("/shipments/{id}")
@@ -57,7 +55,7 @@ public class TrackingController {
     public ShipmentDto createShipment(
             @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestHeader("X-User-Id") Long userId,
-            @RequestBody CreateShipmentRequest request) {
+            @Valid @RequestBody CreateShipmentRequest request) {
         String key = (idempotencyKey == null || idempotencyKey.isBlank())
                 ? UUID.randomUUID().toString()
                 : idempotencyKey;

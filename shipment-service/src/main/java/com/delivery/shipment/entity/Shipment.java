@@ -140,45 +140,6 @@ public class Shipment {
         cancellationReason = reason;
     }
 
-    public void requireEditableBy(long senderId) {
-        requireSender(senderId);
-        if (status != ShipmentStatus.WAITING_FOR_COURIER) {
-            throw new ShipmentStatusConflictException("Shipment " + shipmentId
-                    + " can be edited only before a courier is assigned; cancel it and create a new one instead");
-        }
-    }
-
-    public void updateContacts(String senderName, String senderPhone, String recipientName, String recipientPhone) {
-        if (senderName != null) this.senderName = senderName;
-        if (senderPhone != null) this.senderPhone = senderPhone;
-        if (recipientName != null) this.recipientName = recipientName;
-        if (recipientPhone != null) this.recipientPhone = recipientPhone;
-    }
-
-    public void updateDimensions(BigDecimal length, BigDecimal width, BigDecimal height) {
-        if (length != null) this.length = length;
-        if (width != null) this.width = width;
-        if (height != null) this.height = height;
-    }
-
-    public void updateRoute(
-            String pickupAddress, String pickupCityCode, double pickupLatitude, double pickupLongitude,
-            String deliveryAddress, String deliveryCityCode, double deliveryLatitude, double deliveryLongitude,
-            BigDecimal weight, BigDecimal distance, BigDecimal price
-    ) {
-        this.pickupAddress = pickupAddress;
-        this.pickupCityCode = pickupCityCode;
-        this.pickupLatitude = pickupLatitude;
-        this.pickupLongitude = pickupLongitude;
-        this.deliveryAddress = deliveryAddress;
-        this.deliveryCityCode = deliveryCityCode;
-        this.deliveryLatitude = deliveryLatitude;
-        this.deliveryLongitude = deliveryLongitude;
-        this.weight = weight;
-        this.distance = distance;
-        this.price = price;
-    }
-
     public boolean assignCourier(long courierId, String courierName, Instant at) {
         if (status != ShipmentStatus.WAITING_FOR_COURIER) {
             return false;

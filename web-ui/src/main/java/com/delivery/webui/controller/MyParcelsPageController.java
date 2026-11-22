@@ -4,6 +4,7 @@ import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.ClientShipmentClient;
 import com.delivery.webui.client.dto.ClientShipmentResponse;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.viewmodel.ParcelViewModel;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -44,9 +45,10 @@ public class MyParcelsPageController {
         if (page < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page must not be negative");
         }
-        List<ClientShipmentResponse> shipments = shipmentClient.getMyShipments(senderId, page, PAGE_SIZE);
+        long currentSenderId = AuthenticatedUser.currentUserId(senderId);
+        List<ClientShipmentResponse> shipments = shipmentClient.getMyShipments(currentSenderId, page, PAGE_SIZE);
         if (shipments == null || shipments.size() > PAGE_SIZE || shipments.stream().anyMatch(
-                shipment -> shipment == null || shipment.shipmentId() <= 0 || shipment.userId() != senderId)) {
+                shipment -> shipment == null || shipment.shipmentId() <= 0 || shipment.userId() != currentSenderId)) {
             throw new RestClientException("Shipment service returned an invalid parcel list");
         }
 
@@ -62,11 +64,12 @@ public class MyParcelsPageController {
         if (shipmentId <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "shipmentId must be positive");
         }
+        long currentSenderId = AuthenticatedUser.currentUserId(senderId);
         ClientShipmentResponse shipment = shipmentClient.getShipment(shipmentId);
         if (shipment == null || shipment.shipmentId() != shipmentId) {
             throw new RestClientException("Shipment service returned invalid shipment details");
         }
-        if (shipment.userId() != senderId) {
+        if (shipment.userId() != currentSenderId) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Shipment not found");
         }
 

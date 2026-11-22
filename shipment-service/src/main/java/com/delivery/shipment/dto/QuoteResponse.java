@@ -4,12 +4,10 @@ import com.delivery.shipment.entity.PriceQuote;
 import com.delivery.shipment.service.PricingService;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
 public record QuoteResponse(
         UUID quoteId,
-        Instant expiresAt,
         Point pickup,
         Point delivery,
         BigDecimal distanceKm,
@@ -24,7 +22,6 @@ public record QuoteResponse(
     public static QuoteResponse from(PriceQuote quote) {
         return new QuoteResponse(
                 quote.getQuoteId(),
-                quote.getExpiresAt(),
                 new Point(quote.getPickupAddress(), quote.getPickupCityCode(),
                         quote.getPickupLatitude(), quote.getPickupLongitude()),
                 new Point(quote.getDeliveryAddress(), quote.getDeliveryCityCode(),

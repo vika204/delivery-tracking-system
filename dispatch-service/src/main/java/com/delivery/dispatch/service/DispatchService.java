@@ -22,6 +22,8 @@ import com.delivery.dispatch.repository.CourierRepository;
 import com.delivery.dispatch.repository.DeliveryOfferRepository;
 import com.delivery.dispatch.repository.DispatchRequestRepository;
 
+import lombok.RequiredArgsConstructor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -32,13 +34,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class DispatchService {
 
     private static final String NOT_FOUND_SUFFIX = " not found";
@@ -56,209 +59,85 @@ public class DispatchService {
     private final ApplicationEventPublisher applicationEvents;
     private final Clock clock;
 
-    public DispatchService(
-            DispatchRequestRepository requestRepository,
-            CourierRepository courierRepository,
-            DeliveryOfferRepository offerRepository,
-            AssignmentRepository assignmentRepository,
-            DispatchEventOutbox eventOutbox,
-            ServiceZones zones,
-            DispatchProperties properties,
-            DispatchMetrics metrics,
-            ApplicationEventPublisher applicationEvents,
-            Clock clock
-    ) {
-        this.requestRepository = requestRepository;
-        this.courierRepository = courierRepository;
-        this.offerRepository = offerRepository;
-        this.assignmentRepository = assignmentRepository;
-        this.eventOutbox = eventOutbox;
-        this.zones = zones;
-        this.properties = properties;
-        this.metrics = metrics;
-        this.applicationEvents = applicationEvents;
-        this.clock = clock;
-    }
-
-
     @Transactional
-    public void onShipmentCreated(ShipmentSnapshot snapshot) {
-        createFromSnapshot(snapshot);
-    }
-
-    private void createFromSnapshot(ShipmentSnapshot snapshot) {
-        Optional<DispatchRequest> existing = requestRepository.findByIdForUpdate(snapshot.shipmentId());
-        if (existing.isPresent()) {
+    public void onShipmentCreated(ShipmentSnapshot shipmentData) {
+        DispatchRequest existing = requestRepository.findByIdForUpdate(shipmentData.shipmentId()).orElse(null);
+        if (existing != null) {
             log.info("Dispatch request already exists: shipmentId={}, status={}",
-                    snapshot.shipmentId(), existing.get().getStatus());
+                    shipmentData.shipmentId(), existing.getStatus());
             return;
         }
-        DispatchRequest draft = newRequest(snapshot.shipmentId(), DispatchRequestStatus.SEARCHING);
-        applySnapshot(draft, snapshot);
-        DispatchRequest request = requestRepository.save(draft);
+        Instant now = Instant.now(clock);
+        DispatchRequest request = DispatchRequest.builder()
+                .shipmentId(shipmentData.shipmentId())
+                .senderId(shipmentData.userId())
+                .pickupAddress(shipmentData.pickupAddress())
+                .pickupCityCode(shipmentData.pickupCityCode())
+                .pickupLatitude(shipmentData.pickupLatitude())
+                .pickupLongitude(shipmentData.pickupLongitude())
+                .deliveryAddress(shipmentData.deliveryAddress())
+                .deliveryCityCode(shipmentData.deliveryCityCode())
+                .deliveryLatitude(shipmentData.deliveryLatitude())
+                .deliveryLongitude(shipmentData.deliveryLongitude())
+                .parcelWeight(shipmentData.weight())
+                .distanceKm(shipmentData.distance())
+                .price(shipmentData.price())
+                .status(DispatchRequestStatus.SEARCHING)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+        request = requestRepository.save(request);
         log.info("Courier search started: shipmentId={}, pickupCityCode={}, weight={}",
                 request.getShipmentId(), request.getPickupCityCode(), request.getParcelWeight());
-        dispatch(request);
+        offerToBestCourier(request);
     }
-
-    @Transactional
-    public void onShipmentDetailsUpdated(ShipmentSnapshot snapshot) {
-        List<DeliveryOffer> pending = lockPendingOffers(snapshot.shipmentId());
-        Optional<DispatchRequest> found = requestRepository.findByIdForUpdate(snapshot.shipmentId());
-        if (found.isEmpty()) {
-            createFromSnapshot(snapshot);
-            return;
-        }
-        DispatchRequest request = found.get();
-        if (!request.isSearchable() && request.getStatus() != DispatchRequestStatus.OFFERED) {
-            applySnapshot(request, snapshot);
-            log.warn("Shipment details updated after assignment, snapshot refreshed only: shipmentId={}, status={}",
-                    request.getShipmentId(), request.getStatus());
-            return;
-        }
-
-        applySnapshot(request, snapshot);
-        cancelOffers(pending, "shipment details changed");
-        request.setStatus(DispatchRequestStatus.SEARCHING);
-        log.info("Courier search restarted after details update: shipmentId={}", request.getShipmentId());
-        dispatch(request);
-    }
-
-    @Transactional
-    public void onShipmentStatusChanged(long shipmentId, String status, Long courierId) {
-        switch (status) {
-            case "CANCELLED" -> onShipmentCancelled(shipmentId);
-            case "IN_TRANSIT" -> onParcelPickedUp(shipmentId, courierId);
-            case "DELIVERED" -> onShipmentDelivered(shipmentId);
-            default -> log.debug("Shipment status not relevant for dispatch: shipmentId={}, status={}", shipmentId, status);
-        }
-    }
-
-    private void onShipmentCancelled(long shipmentId) {
-        List<DeliveryOffer> pending = lockPendingOffers(shipmentId);
-        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElseGet(() -> {
-            DispatchRequest tombstone = newRequest(shipmentId, DispatchRequestStatus.CANCELLED);
-            return requestRepository.save(tombstone);
-        });
-        if (request.getStatus() == DispatchRequestStatus.CANCELLED) {
-            return;
-        }
-
-        int offers = cancelOffers(pending, "shipment cancelled");
-        boolean released = endActiveAssignments(shipmentId, AssignmentStatus.CANCELLED, "shipment cancelled by sender");
-        request.setStatus(DispatchRequestStatus.CANCELLED);
-        touch(request);
-
-        log.info("Courier search aborted for cancelled shipment: shipmentId={}, offersCancelled={}, courierReleased={}",
-                shipmentId, offers, released);
-        if (released) {
-            capacityFreed();
-        }
-    }
-
-    private void onShipmentDelivered(long shipmentId) {
-        requestRepository.findByIdForUpdate(shipmentId).ifPresent(request -> {
-            request.setStatus(DispatchRequestStatus.COMPLETED);
-            touch(request);
-        });
-        if (endActiveAssignments(shipmentId, AssignmentStatus.COMPLETED, null)) {
-            log.info("Assignment completed for delivered shipment: shipmentId={}", shipmentId);
-            capacityFreed();
-        }
-    }
-
-    private void onParcelPickedUp(long shipmentId, Long courierId) {
-        List<DeliveryOffer> pending = lockPendingOffers(shipmentId);
-        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
-        if (request == null || courierId == null) {
-            log.warn("Cannot reconcile assignment: shipmentId={}, courierId={}, requestFound={}",
-                    shipmentId, courierId, request != null);
-            return;
-        }
-
-        List<Assignment> active = assignmentRepository.findByShipmentIdAndStatusForUpdate(shipmentId, AssignmentStatus.ACTIVE);
-        Assignment current = active.stream()
-                .filter(a -> a.getCourier().getUserId().equals(courierId))
-                .findFirst()
-                .orElse(null);
-
-        if (current == null) {
-            current = assignmentRepository
-                    .findByCourierAndShipmentAndStatus(courierId, shipmentId, AssignmentStatus.COURIER_WITHDREW)
-                    .stream().findFirst().orElse(null);
-            if (current == null) {
-                log.error("Shipment reports courier without dispatch assignment: shipmentId={}, courierId={}",
-                        shipmentId, courierId);
-                return;
-            }
-            current.setStatus(AssignmentStatus.ACTIVE);
-            current.setEndedAt(null);
-            current.setEndReason(null);
-            cancelOffers(pending, "courier withdrawal superseded by shipment progress");
-            log.warn("Courier withdrawal reverted: shipment progressed with courier: shipmentId={}, courierId={}",
-                    shipmentId, courierId);
-        }
-
-        Assignment kept = current;
-        boolean releasedOthers = false;
-        for (Assignment other : active) {
-            if (other != kept) {
-                other.setStatus(AssignmentStatus.CANCELLED);
-                other.setEndedAt(LocalDateTime.now(clock));
-                other.setEndReason("superseded: shipment progressed with courier " + courierId);
-                eventOutbox.courierUnassigned(other, "superseded");
-                releasedOthers = true;
-            }
-        }
-
-        if (kept.getPickedUpAt() == null) {
-            kept.setPickedUpAt(Instant.now(clock));
-        }
-        request.setStatus(DispatchRequestStatus.IN_PROGRESS);
-        touch(request);
-        if (releasedOthers) {
-            capacityFreed();
-        }
-    }
-
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public DispatchRequestStatus dispatch(long shipmentId) {
-        return requestRepository.findByIdForUpdate(shipmentId)
-                .map(this::dispatch)
-                .orElse(null);
+        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
+        if (request == null) {
+            return null;
+        }
+        return offerToBestCourier(request);
     }
 
-    private DispatchRequestStatus dispatch(DispatchRequest request) {
+    private DispatchRequestStatus offerToBestCourier(DispatchRequest request) {
         if (!request.isSearchable()) {
             return request.getStatus();
         }
         if (!request.hasRoute()) {
-            log.warn("Dispatch request has no route snapshot, skipped: shipmentId={}", request.getShipmentId());
+            log.warn("Dispatch request has no shipment details, skipped: shipmentId={}", request.getShipmentId());
             request.setStatus(DispatchRequestStatus.WAITING_FOR_COURIERS);
-            touch(request);
+            request.setUpdatedAt(Instant.now(clock));
             return request.getStatus();
         }
 
-        Set<Long> excluded = excludedCouriers(request.getShipmentId());
-        List<Candidate> candidates = courierRepository
-                .findFree(request.getParcelWeight())
-                .stream()
-                .filter(courier -> !excluded.contains(courier.getUserId()))
-                .filter(courier -> zones.sameZone(courier.getWorkZoneCode(), request.getPickupCityCode()))
-                .map(courier -> new Candidate(courier, distanceToPickup(courier, request)))
-                .sorted(Comparator
-                        .comparingDouble(Candidate::distanceToPickupKm)
-                        .thenComparing(c -> c.courier().getLastAssignedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
-                        .thenComparing(c -> c.courier().getUserId()))
-                .toList();
+        Set<Long> excludedCourierIds = new HashSet<>(offerRepository.findCourierIdsByShipmentIdAndStatusIn(
+                request.getShipmentId(), List.of(OfferStatus.REJECTED, OfferStatus.EXPIRED)));
+        excludedCourierIds.addAll(assignmentRepository.findCourierIdsByShipmentIdAndStatus(
+                request.getShipmentId(), AssignmentStatus.COURIER_WITHDREW));
+        List<CourierCandidate> candidates = new ArrayList<>();
+        for (Courier courier : courierRepository.findFree(request.getParcelWeight())) {
+            if (excludedCourierIds.contains(courier.getUserId())
+                    || !zones.sameZone(courier.getWorkZoneCode(), request.getPickupCityCode())) {
+                continue;
+            }
+            candidates.add(new CourierCandidate(courier, distanceToPickup(courier, request)));
+        }
+        candidates.sort(Comparator
+                .comparingDouble(CourierCandidate::distanceToPickupKm)
+                .thenComparing(candidate -> candidate.courier().getLastAssignedAt(), Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(candidate -> candidate.courier().getUserId()));
 
         request.setSearchAttempts(request.getSearchAttempts() + 1);
         request.setLastSearchAt(Instant.now(clock));
 
-        for (Candidate candidate : candidates) {
+        for (CourierCandidate candidate : candidates) {
             Courier courier = courierRepository.findByIdForUpdate(candidate.courier().getUserId()).orElse(null);
-            if (courier == null || !stillFree(courier, request)) {
+            if (courier == null || !courier.isAvailable()
+                    || courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) < 0
+                    || !offerRepository.findPendingByCourier(courier.getUserId()).isEmpty()
+                    || assignmentRepository.existsByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)) {
                 continue;
             }
 
@@ -273,7 +152,7 @@ public class DispatchService {
                     .build());
 
             request.setStatus(DispatchRequestStatus.OFFERED);
-            touch(request);
+            request.setUpdatedAt(Instant.now(clock));
             metrics.offer("sent");
             log.info("Courier proposal sent: shipmentId={}, offerId={}, courierId={}, distanceToPickupKm={}, candidates={}, attempt={}",
                     request.getShipmentId(), offer.getOfferId(), courier.getUserId(),
@@ -282,40 +161,19 @@ public class DispatchService {
         }
 
         request.setStatus(DispatchRequestStatus.WAITING_FOR_COURIERS);
-        touch(request);
+        request.setUpdatedAt(Instant.now(clock));
         log.info("No courier available, shipment waits for assignment: shipmentId={}, excluded={}, attempt={}",
-                request.getShipmentId(), excluded.size(), request.getSearchAttempts());
-        notifyDelayIfWaitingTooLong(request);
-        return request.getStatus();
-    }
-
-    private void notifyDelayIfWaitingTooLong(DispatchRequest request) {
-        Instant threshold = Instant.now(clock).minus(properties.searchDelayThreshold());
-        if (request.getDelayNotifiedAt() != null || request.getCreatedAt().isAfter(threshold)) {
-            return;
+                request.getShipmentId(), excludedCourierIds.size(), request.getSearchAttempts());
+        Instant now = Instant.now(clock);
+        if (request.getDelayNotifiedAt() == null
+                && !request.getCreatedAt().isAfter(now.minus(properties.searchDelayThreshold()))) {
+            request.setDelayNotifiedAt(now);
+            eventOutbox.searchDelayed(request,
+                    "no available courier for " + properties.searchDelayThreshold().toMinutes() + "+ min");
+            log.info("Courier search delayed: shipmentId={}, waitingSince={}, attempts={}",
+                    request.getShipmentId(), request.getCreatedAt(), request.getSearchAttempts());
         }
-        request.setDelayNotifiedAt(Instant.now(clock));
-        eventOutbox.searchDelayed(request, "no available courier for " + properties.searchDelayThreshold().toMinutes() + "+ min");
-        log.info("Courier search delayed: shipmentId={}, waitingSince={}, attempts={}",
-                request.getShipmentId(), request.getCreatedAt(), request.getSearchAttempts());
-    }
-
-    private Set<Long> excludedCouriers(long shipmentId) {
-        Set<Long> excluded = new HashSet<>(offerRepository.findCourierIdsByShipmentIdAndStatusIn(
-                shipmentId, List.of(OfferStatus.REJECTED, OfferStatus.EXPIRED)));
-        excluded.addAll(assignmentRepository.findCourierIdsByShipmentIdAndStatus(shipmentId, AssignmentStatus.COURIER_WITHDREW));
-        return excluded;
-    }
-
-    private boolean stillFree(Courier courier, DispatchRequest request) {
-        return courier.isAvailable()
-                && courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) >= 0
-                && offerRepository.findPendingByCourier(courier.getUserId()).isEmpty()
-                && !hasActiveAssignment(courier.getUserId());
-    }
-
-    private boolean hasActiveAssignment(long courierId) {
-        return assignmentRepository.existsByCourierUserIdAndStatus(courierId, AssignmentStatus.ACTIVE);
+        return request.getStatus();
     }
 
     private double distanceToPickup(Courier courier, DispatchRequest request) {
@@ -334,17 +192,21 @@ public class DispatchService {
         return zones.distanceKm(lat, lon, request.getPickupLatitude(), request.getPickupLongitude());
     }
 
-
     @Transactional(noRollbackFor = OfferNoLongerAvailableException.class)
     public Assignment acceptOffer(long courierId, long offerId) {
-        DeliveryOffer offer = lockOwnOffer(courierId, offerId);
+        DeliveryOffer offer = findOwnOfferForUpdate(courierId, offerId);
 
         if (offer.getStatus() == OfferStatus.ACCEPTED) {
-            return assignmentRepository.findByCourierAndShipmentAndStatus(courierId, offer.getShipmentId(), AssignmentStatus.ACTIVE)
-                    .stream().findFirst()
-                    .orElseThrow(() -> new DispatchConflictException("Offer " + offerId + " was accepted but the assignment has ended"));
+            List<Assignment> active = assignmentRepository
+                    .findByCourierAndShipmentAndStatus(courierId, offer.getShipmentId(), AssignmentStatus.ACTIVE);
+            if (active.isEmpty()) {
+                throw new DispatchConflictException("Offer " + offerId + " was accepted but the assignment has ended");
+            }
+            return active.getFirst();
         }
-        requirePending(offer);
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new DispatchConflictException("Offer " + offerId + " is already " + offer.getStatus());
+        }
         if (!offer.getExpiresAt().isAfter(LocalDateTime.now(clock))) {
             throw new DispatchConflictException("Offer " + offerId + " has expired");
         }
@@ -352,12 +214,17 @@ public class DispatchService {
         DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId())
                 .orElseThrow(() -> new DispatchNotFoundException("Dispatch request for shipment " + offer.getShipmentId() + NOT_FOUND_SUFFIX));
         if (request.getStatus() != DispatchRequestStatus.OFFERED) {
-            cancelOffers(List.of(offer), "shipment no longer waits for this offer");
+            cancelPendingOffers(List.of(offer), "shipment no longer waits for this offer");
             throw new OfferNoLongerAvailableException("Shipment " + offer.getShipmentId() + " is no longer available");
         }
 
         Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow();
-        requireCanTakeDelivery(courier);
+        if (!courier.isAvailable()) {
+            throw new DispatchConflictException("Courier " + courierId + " is offline: go online to accept offers");
+        }
+        if (assignmentRepository.existsByCourierUserIdAndStatus(courierId, AssignmentStatus.ACTIVE)) {
+            throw new DispatchConflictException("Courier " + courierId + " already has an active delivery");
+        }
         Instant now = Instant.now(clock);
         Assignment assignment = assignmentRepository.save(Assignment.builder()
                 .shipmentId(offer.getShipmentId())
@@ -369,7 +236,7 @@ public class DispatchService {
         offer.setStatus(OfferStatus.ACCEPTED);
         offer.setRespondedAt(now);
         request.setStatus(DispatchRequestStatus.ASSIGNED);
-        touch(request);
+        request.setUpdatedAt(Instant.now(clock));
         courier.setLastAssignedAt(now);
 
         eventOutbox.courierAssigned(assignment);
@@ -382,10 +249,13 @@ public class DispatchService {
     @Transactional
     public void goOffline(long courierId) {
         List<DeliveryOffer> pending = offerRepository.findPendingByCourierForUpdate(courierId);
-        List<DispatchRequest> offered = pending.stream()
-                .map(offer -> requestRepository.findByIdForUpdate(offer.getShipmentId()))
-                .flatMap(Optional::stream)
-                .toList();
+        List<DispatchRequest> offered = new ArrayList<>();
+        for (DeliveryOffer offer : pending) {
+            DispatchRequest request = requestRepository.findByIdForUpdate(offer.getShipmentId()).orElse(null);
+            if (request != null) {
+                offered.add(request);
+            }
+        }
         Courier courier = courierRepository.findByIdForUpdate(courierId)
                 .orElseThrow(() -> new DispatchNotFoundException("Courier " + courierId + NOT_FOUND_SUFFIX));
 
@@ -393,22 +263,24 @@ public class DispatchService {
             courier.setAvailable(false);
             log.info("Courier went offline: courierId={}, offersReleased={}", courierId, pending.size());
         }
-        cancelOffers(pending, "courier went offline");
+        cancelPendingOffers(pending, "courier went offline");
         for (DispatchRequest request : offered) {
             if (request.getStatus() == DispatchRequestStatus.OFFERED) {
                 request.setStatus(DispatchRequestStatus.SEARCHING);
-                dispatch(request);
+                offerToBestCourier(request);
             }
         }
     }
 
     @Transactional
     public void declineOffer(long courierId, long offerId) {
-        DeliveryOffer offer = lockOwnOffer(courierId, offerId);
+        DeliveryOffer offer = findOwnOfferForUpdate(courierId, offerId);
         if (offer.getStatus() == OfferStatus.REJECTED) {
             return;
         }
-        requirePending(offer);
+        if (offer.getStatus() != OfferStatus.PENDING) {
+            throw new DispatchConflictException("Offer " + offerId + " is already " + offer.getStatus());
+        }
 
         offer.setStatus(OfferStatus.REJECTED);
         offer.setRespondedAt(Instant.now(clock));
@@ -416,8 +288,8 @@ public class DispatchService {
         log.info("Courier proposal rejected: shipmentId={}, offerId={}, courierId={}",
                 offer.getShipmentId(), offerId, courierId);
 
-        searchAgain(offer.getShipmentId());
-        capacityFreed();
+        offerToNextCourier(offer.getShipmentId());
+        applicationEvents.publishEvent(new CourierCapacityFreedEvent());
     }
 
     @Transactional
@@ -433,30 +305,29 @@ public class DispatchService {
         log.info("Courier proposal expired: shipmentId={}, offerId={}, courierId={}",
                 offer.getShipmentId(), offerId, offer.getCourier().getUserId());
 
-        searchAgain(offer.getShipmentId());
-        capacityFreed();
+        offerToNextCourier(offer.getShipmentId());
+        applicationEvents.publishEvent(new CourierCapacityFreedEvent());
         return true;
     }
 
-    private void searchAgain(long shipmentId) {
-        requestRepository.findByIdForUpdate(shipmentId).ifPresent(request -> {
-            if (request.getStatus() == DispatchRequestStatus.OFFERED) {
-                request.setStatus(DispatchRequestStatus.SEARCHING);
-                dispatch(request);
-            }
-        });
+    private void offerToNextCourier(long shipmentId) {
+        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
+        if (request == null || request.getStatus() != DispatchRequestStatus.OFFERED) {
+            return;
+        }
+        request.setStatus(DispatchRequestStatus.SEARCHING);
+        offerToBestCourier(request);
     }
-
 
     @Transactional
     public Assignment withdrawAssignment(long courierId, long assignmentId, String reason) {
-        Assignment snapshot = assignmentRepository.findById(assignmentId)
+        Assignment existingAssignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new DispatchNotFoundException("Assignment " + assignmentId + NOT_FOUND_SUFFIX));
-        if (!snapshot.getCourier().getUserId().equals(courierId)) {
+        if (!existingAssignment.getCourier().getUserId().equals(courierId)) {
             throw new DispatchAccessDeniedException("Assignment " + assignmentId + " belongs to another courier");
         }
 
-        DispatchRequest request = requestRepository.findByIdForUpdate(snapshot.getShipmentId()).orElse(null);
+        DispatchRequest request = requestRepository.findByIdForUpdate(existingAssignment.getShipmentId()).orElse(null);
         Assignment assignment = assignmentRepository.findByIdForUpdate(assignmentId).orElseThrow();
 
         if (assignment.getStatus() == AssignmentStatus.COURIER_WITHDREW) {
@@ -482,14 +353,122 @@ public class DispatchService {
 
         if (request != null && request.getStatus() == DispatchRequestStatus.ASSIGNED) {
             request.setStatus(DispatchRequestStatus.SEARCHING);
-            dispatch(request);
+            offerToBestCourier(request);
         }
-        capacityFreed();
+        applicationEvents.publishEvent(new CourierCapacityFreedEvent());
         return assignment;
     }
 
+    @Transactional
+    public void onShipmentStatusChanged(long shipmentId, String status, Long courierId) {
+        if ("IN_TRANSIT".equals(status)) {
+            onParcelPickedUp(shipmentId, courierId);
+            return;
+        }
+        boolean cancelled = "CANCELLED".equals(status);
+        if (!cancelled && !"DELIVERED".equals(status)) {
+            log.debug("Shipment status not relevant for dispatch: shipmentId={}, status={}", shipmentId, status);
+            return;
+        }
+        List<DeliveryOffer> pending = cancelled
+                ? offerRepository.findByShipmentIdAndStatusForUpdate(shipmentId, OfferStatus.PENDING)
+                : List.of();
+        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
+        if (cancelled) {
+            if (request == null) {
+                Instant now = Instant.now(clock);
+                requestRepository.save(DispatchRequest.builder()
+                        .shipmentId(shipmentId)
+                        .status(DispatchRequestStatus.CANCELLED)
+                        .createdAt(now)
+                        .updatedAt(now)
+                        .build());
+                return;
+            }
+            if (request.getStatus() == DispatchRequestStatus.CANCELLED) {
+                return;
+            }
+            cancelPendingOffers(pending, "shipment cancelled");
+        }
 
-    private DeliveryOffer lockOwnOffer(long courierId, long offerId) {
+        AssignmentStatus assignmentStatus = cancelled ? AssignmentStatus.CANCELLED : AssignmentStatus.COMPLETED;
+        DispatchRequestStatus requestStatus = cancelled ? DispatchRequestStatus.CANCELLED : DispatchRequestStatus.COMPLETED;
+        String endReason = cancelled ? "shipment cancelled by sender" : null;
+        List<Assignment> assignments = assignmentRepository.findByShipmentIdAndStatusForUpdate(
+                shipmentId, AssignmentStatus.ACTIVE);
+        for (Assignment assignment : assignments) {
+            assignment.setStatus(assignmentStatus);
+            assignment.setEndedAt(LocalDateTime.now(clock));
+            assignment.setEndReason(endReason);
+        }
+        if (request != null) {
+            request.setStatus(requestStatus);
+            request.setUpdatedAt(Instant.now(clock));
+        }
+        if (!assignments.isEmpty()) {
+            applicationEvents.publishEvent(new CourierCapacityFreedEvent());
+        }
+        log.info("Shipment finished: shipmentId={}, status={}, offersCancelled={}, assignmentsClosed={}",
+                shipmentId, status, pending.size(), assignments.size());
+    }
+
+    private void onParcelPickedUp(long shipmentId, Long courierId) {
+        List<DeliveryOffer> pending = offerRepository.findByShipmentIdAndStatusForUpdate(shipmentId, OfferStatus.PENDING);
+        DispatchRequest request = requestRepository.findByIdForUpdate(shipmentId).orElse(null);
+        if (request == null || courierId == null) {
+            log.warn("Cannot reconcile assignment: shipmentId={}, courierId={}, requestFound={}",
+                    shipmentId, courierId, request != null);
+            return;
+        }
+
+        List<Assignment> active = assignmentRepository.findByShipmentIdAndStatusForUpdate(shipmentId, AssignmentStatus.ACTIVE);
+        Assignment pickedUpAssignment = null;
+        for (Assignment assignment : active) {
+            if (assignment.getCourier().getUserId().equals(courierId)) {
+                pickedUpAssignment = assignment;
+                break;
+            }
+        }
+
+        if (pickedUpAssignment == null) {
+            List<Assignment> withdrawn = assignmentRepository
+                    .findByCourierAndShipmentAndStatus(courierId, shipmentId, AssignmentStatus.COURIER_WITHDREW);
+            if (withdrawn.isEmpty()) {
+                log.error("Shipment reports courier without dispatch assignment: shipmentId={}, courierId={}",
+                        shipmentId, courierId);
+                return;
+            }
+            pickedUpAssignment = withdrawn.getFirst();
+            pickedUpAssignment.setStatus(AssignmentStatus.ACTIVE);
+            pickedUpAssignment.setEndedAt(null);
+            pickedUpAssignment.setEndReason(null);
+            cancelPendingOffers(pending, "courier withdrawal superseded by shipment progress");
+            log.warn("Courier withdrawal reverted: shipment progressed with courier: shipmentId={}, courierId={}",
+                    shipmentId, courierId);
+        }
+
+        boolean releasedOthers = false;
+        for (Assignment other : active) {
+            if (other != pickedUpAssignment) {
+                other.setStatus(AssignmentStatus.CANCELLED);
+                other.setEndedAt(LocalDateTime.now(clock));
+                other.setEndReason("superseded: shipment progressed with courier " + courierId);
+                eventOutbox.courierUnassigned(other, "superseded");
+                releasedOthers = true;
+            }
+        }
+
+        if (pickedUpAssignment.getPickedUpAt() == null) {
+            pickedUpAssignment.setPickedUpAt(Instant.now(clock));
+        }
+        request.setStatus(DispatchRequestStatus.IN_PROGRESS);
+        request.setUpdatedAt(Instant.now(clock));
+        if (releasedOthers) {
+            applicationEvents.publishEvent(new CourierCapacityFreedEvent());
+        }
+    }
+
+    private DeliveryOffer findOwnOfferForUpdate(long courierId, long offerId) {
         DeliveryOffer offer = offerRepository.findByIdForUpdate(offerId)
                 .orElseThrow(() -> new DispatchNotFoundException("Offer " + offerId + NOT_FOUND_SUFFIX));
         if (!offer.getCourier().getUserId().equals(courierId)) {
@@ -498,26 +477,7 @@ public class DispatchService {
         return offer;
     }
 
-    private void requireCanTakeDelivery(Courier courier) {
-        if (!courier.isAvailable()) {
-            throw new DispatchConflictException("Courier " + courier.getUserId() + " is offline: go online to accept offers");
-        }
-        if (hasActiveAssignment(courier.getUserId())) {
-            throw new DispatchConflictException("Courier " + courier.getUserId() + " already has an active delivery");
-        }
-    }
-
-    private static void requirePending(DeliveryOffer offer) {
-        if (offer.getStatus() != OfferStatus.PENDING) {
-            throw new DispatchConflictException("Offer " + offer.getOfferId() + " is already " + offer.getStatus());
-        }
-    }
-
-    private List<DeliveryOffer> lockPendingOffers(long shipmentId) {
-        return offerRepository.findByShipmentIdAndStatusForUpdate(shipmentId, OfferStatus.PENDING);
-    }
-
-    private int cancelOffers(List<DeliveryOffer> pending, String reason) {
+    private void cancelPendingOffers(List<DeliveryOffer> pending, String reason) {
         for (DeliveryOffer offer : pending) {
             offer.setStatus(OfferStatus.CANCELLED);
             offer.setRespondedAt(Instant.now(clock));
@@ -526,57 +486,10 @@ public class DispatchService {
                     offer.getShipmentId(), offer.getOfferId(), offer.getCourier().getUserId(), reason);
         }
         if (!pending.isEmpty()) {
-            capacityFreed();
+            applicationEvents.publishEvent(new CourierCapacityFreedEvent());
         }
-        return pending.size();
     }
 
-    private boolean endActiveAssignments(long shipmentId, AssignmentStatus endStatus, String reason) {
-        List<Assignment> active = assignmentRepository.findByShipmentIdAndStatusForUpdate(shipmentId, AssignmentStatus.ACTIVE);
-        for (Assignment assignment : active) {
-            assignment.setStatus(endStatus);
-            assignment.setEndedAt(LocalDateTime.now(clock));
-            assignment.setEndReason(reason);
-            log.info("Courier released: shipmentId={}, assignmentId={}, courierId={}, status={}",
-                    shipmentId, assignment.getAssignmentId(), assignment.getCourier().getUserId(), endStatus);
-        }
-        return !active.isEmpty();
-    }
-
-    private void capacityFreed() {
-        applicationEvents.publishEvent(new CourierCapacityFreedEvent());
-    }
-
-    private DispatchRequest newRequest(long shipmentId, DispatchRequestStatus status) {
-        Instant now = Instant.now(clock);
-        return DispatchRequest.builder()
-                .shipmentId(shipmentId)
-                .status(status)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-    }
-
-    private void applySnapshot(DispatchRequest request, ShipmentSnapshot snapshot) {
-        request.setSenderId(snapshot.userId());
-        request.setPickupAddress(snapshot.pickupAddress());
-        request.setPickupCityCode(snapshot.pickupCityCode());
-        request.setPickupLatitude(snapshot.pickupLatitude());
-        request.setPickupLongitude(snapshot.pickupLongitude());
-        request.setDeliveryAddress(snapshot.deliveryAddress());
-        request.setDeliveryCityCode(snapshot.deliveryCityCode());
-        request.setDeliveryLatitude(snapshot.deliveryLatitude());
-        request.setDeliveryLongitude(snapshot.deliveryLongitude());
-        request.setParcelWeight(snapshot.weight());
-        request.setDistanceKm(snapshot.distance());
-        request.setPrice(snapshot.price());
-        touch(request);
-    }
-
-    private void touch(DispatchRequest request) {
-        request.setUpdatedAt(Instant.now(clock));
-    }
-
-    private record Candidate(Courier courier, double distanceToPickupKm) {
+    private record CourierCandidate(Courier courier, double distanceToPickupKm) {
     }
 }

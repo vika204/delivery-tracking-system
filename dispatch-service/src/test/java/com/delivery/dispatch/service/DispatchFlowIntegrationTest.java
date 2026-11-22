@@ -23,6 +23,8 @@ import com.delivery.dispatch.scheduling.DispatchQueueProcessor;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -561,6 +563,23 @@ class DispatchFlowIntegrationTest {
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.COMPLETED);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"CANCELLED", "DELIVERED"})
+    void repeatedCompletionDoesNotCloseAnotherDelivery(String status) {
+        courier(1, KYIV, "20", true, null, null);
+        long firstShipment = created(KYIV, "3");
+        acceptCurrent(firstShipment, 1);
+        long nextShipment = created(KYIV, "3");
+
+        events.process(statusEvent(firstShipment, status, 1L));
+        Assignment nextAssignment = acceptCurrent(nextShipment, 1);
+        events.process(statusEvent(firstShipment, status, 1L));
+
+        assertThat(assignments.findById(nextAssignment.getAssignmentId()).orElseThrow().getStatus())
+                .isEqualTo(AssignmentStatus.ACTIVE);
+        assertThat(request(nextShipment)).isEqualTo(DispatchRequestStatus.ASSIGNED);
+    }
+
     @Test
     void cancellationArrivingBeforeCreationLeavesTombstone() {
         courier(1, KYIV, "20", true, null, null);
@@ -571,20 +590,6 @@ class DispatchFlowIntegrationTest {
 
         assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.CANCELLED);
         assertThat(offers.count()).isZero();
-    }
-
-    @Test
-    void detailsUpdateRestartsSearchWithNewSnapshot() {
-        courier(1, KYIV, "5", true, 50.45, 30.52);
-        courier(2, KYIV, "50", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3");
-        long firstOffer = pendingOffer(shipmentId).getOfferId();
-
-        events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
-                Instant.now(), snapshot(shipmentId, KYIV, "20")));
-
-        assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
-        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
     }
 
     @Test
@@ -714,7 +719,9 @@ class DispatchFlowIntegrationTest {
     }
 
     private DeliveryOffer pendingOffer(long shipmentId) {
-        List<DeliveryOffer> pending = offers.findWithCourierByShipmentIdAndStatus(shipmentId, OfferStatus.PENDING);
+        List<DeliveryOffer> pending = offers.findAll().stream()
+                .filter(offer -> offer.getShipmentId() == shipmentId && offer.getStatus() == OfferStatus.PENDING)
+                .toList();
         assertThat(pending).as("pending offers for shipment %d", shipmentId).hasSize(1);
         return pending.getFirst();
     }

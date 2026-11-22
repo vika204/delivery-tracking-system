@@ -5,7 +5,6 @@ import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.event.ShipmentCreatedEvent;
-import com.delivery.shipment.event.ShipmentDetailsUpdatedEvent;
 import com.delivery.shipment.event.ShipmentPayload;
 import com.delivery.shipment.event.ShipmentStatusChangedEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
@@ -58,13 +57,6 @@ public class ShipmentEventOutbox {
                 shipment.getDeliveryLatitude(),
                 shipment.getDeliveryLongitude()
         );
-        save(event.eventId(), shipment, event.eventType(), event);
-    }
-
-    public void detailsUpdated(Shipment shipment, boolean priceRecalculated) {
-        ShipmentDetailsUpdatedEvent event = new ShipmentDetailsUpdatedEvent(
-                UUID.randomUUID(), ShipmentDetailsUpdatedEvent.TYPE, Instant.now(clock),
-                payload(shipment), priceRecalculated);
         save(event.eventId(), shipment, event.eventType(), event);
     }
 

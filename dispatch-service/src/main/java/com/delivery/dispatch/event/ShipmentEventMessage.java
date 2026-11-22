@@ -10,5 +10,4 @@ public record ShipmentEventMessage(
         ShipmentSnapshot payload
 ) {
     public static final String SHIPMENT_CREATED = "SHIPMENT_CREATED";
-    public static final String SHIPMENT_DETAILS_UPDATED = "SHIPMENT_DETAILS_UPDATED";
 }

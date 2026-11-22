@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
@@ -15,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "CLIENT")
 class ShipmentCreatedPageControllerTest {
 
     @Autowired
@@ -25,7 +27,7 @@ class ShipmentCreatedPageControllerTest {
         mockMvc.perform(get("/ship/success/18"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("pages/shipment-created"))
-                .andExpect(model().attribute("headerState", "CLIENT"))
+                .andExpect(content().string(containsString("data-profile-menu")))
                 .andExpect(model().attribute("activePage", "ship"))
                 .andExpect(model().attribute("shipmentId", 18L))
                 .andExpect(content().string(containsString("SHIPMENT")))
@@ -33,7 +35,7 @@ class ShipmentCreatedPageControllerTest {
                 .andExpect(content().string(containsString("CREATED!")))
                 .andExpect(content().string(containsString("href=\"/my-parcels\"")))
                 .andExpect(content().string(containsString(
-                        "href=\"/tracking?shipmentId=18&amp;previewRole=CLIENT\""
+                        "href=\"/tracking?shipmentId=18\""
                 )))
                 .andExpect(content().string(containsString("shipment-stamp-ukraine-cat.png")))
                 .andExpect(content().string(containsString("shipment-stamp-japan-kitten.png")))

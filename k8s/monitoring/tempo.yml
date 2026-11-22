@@ -127,7 +127,8 @@ spec:
           configMap:
             name: tempo-config
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: tempo-data
 ---
 apiVersion: v1
 kind: Service

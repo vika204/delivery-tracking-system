@@ -18,7 +18,6 @@ public class NotificationsPageAdvice {
     void pageAttributes(Model model) {
         model.addAttribute("pageTitle", "Notifications — WEB EXPRESS");
         model.addAttribute("activePage", "notifications");
-        model.addAttribute("headerState", "CLIENT");
         model.addAttribute("notificationsError", false);
     }
 

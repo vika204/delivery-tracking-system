@@ -49,7 +49,7 @@ class ShipmentCreationClientTest {
                          "weight": 2.5}
                         """))
                 .andRespond(withSuccess("""
-                        {"quoteId": "%s", "expiresAt": "2026-11-19T12:15:00Z", "distanceKm": 540.2,
+                        {"quoteId": "%s", "distanceKm": 540.2,
                          "totalPrice": 1340.70, "breakdown": {"total": 1340.70}}
                         """.formatted(QUOTE), MediaType.APPLICATION_JSON));
 

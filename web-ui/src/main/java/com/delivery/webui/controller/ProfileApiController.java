@@ -8,7 +8,9 @@ import com.delivery.webui.client.dto.UpdateCourierProfileRequest;
 import com.delivery.webui.client.dto.UserProfile;
 import com.delivery.webui.controller.dto.CourierProfile;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -43,24 +45,26 @@ public class ProfileApiController {
 
     @GetMapping("/profile")
     public UserProfile clientProfile() {
-        return userClient.profile(clientId);
+        return userClient.profile(AuthenticatedUser.currentUserId(clientId));
     }
 
     @PutMapping("/profile")
-    public UserProfile updateClientProfile(@RequestBody UserProfile profile) {
-        return userClient.updateProfile(clientId, profile);
+    public UserProfile updateClientProfile(@Valid @RequestBody UserProfile profile) {
+        return userClient.updateProfile(AuthenticatedUser.currentUserId(clientId), profile);
     }
 
     @GetMapping("/courier/profile")
     public CourierProfile courierProfile() {
-        return CourierProfile.from(userClient.profile(courierId), courierClient.profile(courierId));
+        long currentCourierId = AuthenticatedUser.currentUserId(courierId);
+        return CourierProfile.from(userClient.profile(currentCourierId), courierClient.profile(currentCourierId));
     }
 
     @PutMapping("/courier/profile")
-    public CourierProfile updateCourierProfile(@RequestBody CourierProfile profile) {
-        UserProfile user = userClient.updateProfile(courierId,
+    public CourierProfile updateCourierProfile(@Valid @RequestBody CourierProfile profile) {
+        long currentCourierId = AuthenticatedUser.currentUserId(courierId);
+        UserProfile user = userClient.updateProfile(currentCourierId,
                 new UserProfile(profile.firstName(), profile.lastName(), profile.email(), profile.phone()));
-        var courier = courierClient.updateProfile(courierId, courierId,
+        var courier = courierClient.updateProfile(currentCourierId, currentCourierId,
                 new UpdateCourierProfileRequest(user.firstName() + " " + user.lastName(), user.phone(),
                         profile.workZone(), profile.workZoneCode(), profile.maxWeight()));
         return CourierProfile.from(user, courier);

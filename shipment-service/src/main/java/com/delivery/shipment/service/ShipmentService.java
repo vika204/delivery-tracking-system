@@ -10,7 +10,6 @@ import com.delivery.shipment.entity.PriceQuote;
 import com.delivery.shipment.entity.Shipment;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.entity.ShipmentStatusHistory;
-import com.delivery.shipment.exception.IdempotencyKeyReuseException;
 import com.delivery.shipment.exception.QuoteException;
 import com.delivery.shipment.exception.ShipmentNotFoundException;
 import com.delivery.shipment.metrics.ShipmentMetrics;
@@ -26,16 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class ShipmentService {
@@ -75,12 +69,12 @@ public class ShipmentService {
     public CreationResult create(String idempotencyKey, long userId, CreateShipmentRequest request) {
         try {
             chaos.inject();
-            CreationResult result = doCreate(idempotencyKey, userId, request);
+            CreationResult result = createInTransaction(idempotencyKey, userId, request);
             if (!result.replayed()) {
                 metrics.shipmentCreated(result.shipment().getWeight());
             }
             return result;
-        } catch (IdempotencyKeyReuseException | QuoteException clientError) {
+        } catch (QuoteException clientError) {
             throw clientError;
         } catch (RuntimeException e) {
             metrics.shipmentFailed();
@@ -88,76 +82,66 @@ public class ShipmentService {
         }
     }
 
-    private CreationResult doCreate(String idempotencyKey, long userId, CreateShipmentRequest request) {
-        String requestHash = hash(userId, request);
+    private CreationResult createInTransaction(String idempotencyKey, long userId, CreateShipmentRequest request) {
         try {
-            return transactionTemplate.execute(status -> createOrReplay(idempotencyKey, requestHash, userId, request));
-        } catch (DataIntegrityViolationException _) {
-            return transactionTemplate.execute(status -> replay(userId, idempotencyKey, requestHash));
+            return transactionTemplate.execute(status -> {
+                PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
+                IdempotencyRecord existing = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).orElse(null);
+                if (existing != null) {
+                    return new CreationResult(load(existing.getShipmentId()), true);
+                }
+                if (quote.getShipmentId() != null) {
+                    throw new QuoteException(QuoteException.Reason.ALREADY_USED, quote.getQuoteId());
+                }
+
+                Shipment shipment = shipmentRepository.save(Shipment.builder()
+                        .userId(userId)
+                        .senderName(request.senderName().trim())
+                        .senderPhone(request.senderPhone().trim())
+                        .recipientName(request.recipientName().trim())
+                        .recipientPhone(request.recipientPhone().trim())
+                        .pickupAddress(quote.getPickupAddress())
+                        .pickupCityCode(quote.getPickupCityCode())
+                        .pickupLatitude(quote.getPickupLatitude())
+                        .pickupLongitude(quote.getPickupLongitude())
+                        .deliveryAddress(quote.getDeliveryAddress())
+                        .deliveryCityCode(quote.getDeliveryCityCode())
+                        .deliveryLatitude(quote.getDeliveryLatitude())
+                        .deliveryLongitude(quote.getDeliveryLongitude())
+                        .weight(quote.getWeight())
+                        .length(request.length())
+                        .width(request.width())
+                        .height(request.height())
+                        .distance(quote.getDistanceKm())
+                        .price(quote.getTotalPrice())
+                        .quoteId(quote.getQuoteId())
+                        .status(ShipmentStatus.WAITING_FOR_COURIER)
+                        .build());
+
+                quote.setShipmentId(shipment.getShipmentId());
+                idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
+                        .userId(userId)
+                        .idempotencyKey(idempotencyKey)
+                        .shipmentId(shipment.getShipmentId())
+                        .build());
+                historyRepository.save(ShipmentStatusHistory.builder()
+                        .shipmentId(shipment.getShipmentId())
+                        .toStatus(ShipmentStatus.WAITING_FOR_COURIER)
+                        .changedAt(Instant.now(clock))
+                        .actorType(ActorType.SENDER)
+                        .actorId(userId)
+                        .build());
+                eventOutbox.shipmentCreated(shipment);
+                return new CreationResult(shipment, false);
+            });
+        } catch (DataIntegrityViolationException failure) {
+            return transactionTemplate.execute(status -> {
+                IdempotencyRecord existing = idempotencyRecordRepository
+                        .findByUserIdAndIdempotencyKey(userId, idempotencyKey)
+                        .orElseThrow(() -> failure);
+                return new CreationResult(load(existing.getShipmentId()), true);
+            });
         }
-    }
-
-    private CreationResult createOrReplay(String idempotencyKey, String requestHash, long userId,
-                                          CreateShipmentRequest request) {
-        PriceQuote quote = pricingService.lockQuote(request.quoteId(), userId);
-        if (idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey).isPresent()) {
-            return replay(userId, idempotencyKey, requestHash);
-        }
-        pricingService.requireUsable(quote);
-
-        Shipment shipment = shipmentRepository.save(Shipment.builder()
-                .userId(userId)
-                .senderName(request.senderName().trim())
-                .senderPhone(request.senderPhone().trim())
-                .recipientName(request.recipientName().trim())
-                .recipientPhone(request.recipientPhone().trim())
-                .pickupAddress(quote.getPickupAddress())
-                .pickupCityCode(quote.getPickupCityCode())
-                .pickupLatitude(quote.getPickupLatitude())
-                .pickupLongitude(quote.getPickupLongitude())
-                .deliveryAddress(quote.getDeliveryAddress())
-                .deliveryCityCode(quote.getDeliveryCityCode())
-                .deliveryLatitude(quote.getDeliveryLatitude())
-                .deliveryLongitude(quote.getDeliveryLongitude())
-                .weight(quote.getWeight())
-                .length(request.length())
-                .width(request.width())
-                .height(request.height())
-                .distance(quote.getDistanceKm())
-                .price(quote.getTotalPrice())
-                .quoteId(quote.getQuoteId())
-                .status(ShipmentStatus.WAITING_FOR_COURIER)
-                .build());
-
-        quote.setShipmentId(shipment.getShipmentId());
-
-        idempotencyRecordRepository.saveAndFlush(IdempotencyRecord.builder()
-                .userId(userId)
-                .idempotencyKey(idempotencyKey)
-                .requestHash(requestHash)
-                .shipmentId(shipment.getShipmentId())
-                .build());
-
-        historyRepository.save(ShipmentStatusHistory.builder()
-                .shipmentId(shipment.getShipmentId())
-                .toStatus(ShipmentStatus.WAITING_FOR_COURIER)
-                .changedAt(Instant.now(clock))
-                .actorType(ActorType.SENDER)
-                .actorId(userId)
-                .build());
-
-        eventOutbox.shipmentCreated(shipment);
-
-        return new CreationResult(shipment, false);
-    }
-
-    private CreationResult replay(long userId, String idempotencyKey, String requestHash) {
-        IdempotencyRecord existing = idempotencyRecordRepository.findByUserIdAndIdempotencyKey(userId, idempotencyKey)
-                .orElseThrow();
-        if (!existing.getRequestHash().equals(requestHash)) {
-            throw new IdempotencyKeyReuseException(idempotencyKey);
-        }
-        return new CreationResult(load(existing.getShipmentId()), true);
     }
 
     @Transactional(readOnly = true)
@@ -196,25 +180,6 @@ public class ShipmentService {
                 .filter(id -> !found.containsKey(id))
                 .toList();
         return new ShipmentBatchResponse(shipments, missingIds);
-    }
-
-    private String hash(long userId, CreateShipmentRequest request) {
-        String canonical = Stream.of(
-                        userId, request.quoteId(), request.senderName(), request.senderPhone(),
-                        request.recipientName(), request.recipientPhone(),
-                        plain(request.length()), plain(request.width()), plain(request.height()))
-                .map(String::valueOf)
-                .collect(Collectors.joining("\u0000"));
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private String plain(BigDecimal value) {
-        return value.stripTrailingZeros().toPlainString();
     }
 
     public record CreationResult(Shipment shipment, boolean replayed) {

@@ -4,6 +4,7 @@ import com.delivery.webui.config.ShipmentCreationProperties;
 import com.delivery.webui.client.NotificationClient;
 import com.delivery.webui.client.dto.NotificationResponse;
 import com.delivery.webui.controller.support.LocalDevOnly;
+import com.delivery.webui.security.AuthenticatedUser;
 import com.delivery.webui.viewmodel.NotificationViewModel;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +37,7 @@ public class NotificationsPageController {
 
     @GetMapping("/notifications")
     public String notifications(@RequestParam(defaultValue = "false") boolean fragment, Model model) {
-        List<NotificationResponse> notifications = client.getMyNotifications(userId, LIMIT);
+        List<NotificationResponse> notifications = client.getMyNotifications(AuthenticatedUser.currentUserId(userId), LIMIT);
         if (notifications == null || notifications.size() > LIMIT || notifications.stream().anyMatch(item ->
                 item == null || item.notificationId() <= 0 || item.shipmentId() <= 0 || item.type() == null || item.type().isBlank()
                         || item.message() == null || item.createdAt() == null)) {

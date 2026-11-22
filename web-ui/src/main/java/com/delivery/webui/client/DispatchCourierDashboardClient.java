@@ -5,6 +5,7 @@ import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.DispatchCourierOffer;
 import com.delivery.webui.client.dto.DispatchCourierProfile;
 import com.delivery.webui.client.dto.DispatchCourierStatus;
+import com.delivery.webui.client.dto.RegisterCourierRequest;
 import com.delivery.webui.client.dto.UpdateCourierProfileRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,9 @@ import java.util.List;
 
 @HttpExchange("/couriers")
 public interface DispatchCourierDashboardClient {
+
+    @PostExchange(contentType = MediaType.APPLICATION_JSON_VALUE)
+    DispatchCourierProfile register(@RequestBody RegisterCourierRequest request);
 
     @GetExchange("/{id}")
     DispatchCourierProfile profile(@PathVariable("id") long courierId);

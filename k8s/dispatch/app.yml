@@ -84,6 +84,11 @@ spec:
                 configMapKeyRef:
                   name: dispatch-config
                   key: TRACKING_GRPC_TARGET
+            - name: DISPATCH_COURIER_LOOKUP_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: dispatch-config
+                  key: DISPATCH_COURIER_LOOKUP_ENABLED
             - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
               valueFrom:
                 configMapKeyRef:
@@ -113,6 +118,13 @@ spec:
                   fieldPath: spec.nodeName
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: "k8s.namespace.name=$(POD_NAMESPACE),k8s.pod.name=$(POD_NAME),k8s.node.name=$(NODE_NAME)"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

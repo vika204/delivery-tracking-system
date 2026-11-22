@@ -36,10 +36,10 @@ public class ShipmentEventProcessor {
         if (alreadyProcessed(event.eventId(), event.eventType())) {
             return;
         }
-        switch (event.eventType()) {
-            case ShipmentEventMessage.SHIPMENT_CREATED -> dispatchService.onShipmentCreated(event.payload());
-            case ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED -> dispatchService.onShipmentDetailsUpdated(event.payload());
-            default -> log.debug("Shipment event type ignored by dispatch: {}", event.eventType());
+        if (ShipmentEventMessage.SHIPMENT_CREATED.equals(event.eventType())) {
+            dispatchService.onShipmentCreated(event.payload());
+        } else {
+            log.debug("Shipment event type ignored by dispatch: {}", event.eventType());
         }
     }
 

@@ -19,7 +19,7 @@
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 
-<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+<header th:replace="~{fragments/header :: siteHeader}"></header>
 
 <main class="registration-page">
     <aside class="visual" aria-label="Web Express courier illustration">
@@ -39,8 +39,7 @@
 
         <form id="login"
               action="#"
-              data-auth-form
-              data-prototype-message="This is a design preview. Login will be available after Keycloak integration.">
+              data-auth-form>
             <div class="field">
                 <label for="email">EMAIL ADDRESS</label>
                 <input id="email" type="email" autocomplete="email"

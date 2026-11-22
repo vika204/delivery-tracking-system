@@ -12,7 +12,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 
@@ -35,10 +34,9 @@ class PricingServiceTest {
         RoutingClient routing = mock(RoutingClient.class);
         PriceQuoteRepository repository = mock(PriceQuoteRepository.class);
         TariffProperties tariff = new TariffProperties(
-                new BigDecimal("50.00"), new BigDecimal("1.50"), new BigDecimal("10.00"),
-                Duration.ofMinutes(15));
+                new BigDecimal("50.00"), new BigDecimal("1.50"), new BigDecimal("10.00"));
         PricingService service = new PricingService(routing, new PriceCalculator(tariff),
-                repository, tariff, Clock.fixed(Instant.parse("2026-11-19T17:00:00Z"), ZoneOffset.UTC));
+                repository, Clock.fixed(Instant.parse("2026-11-19T17:00:00Z"), ZoneOffset.UTC));
         String cityCode = "UA80000000000093317";
         String pickupAddress = "Київ, Іллінська, 2";
         String deliveryAddress = "Київ, Контрактова площа, 2";

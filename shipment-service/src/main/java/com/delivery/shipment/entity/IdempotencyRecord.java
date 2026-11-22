@@ -27,9 +27,6 @@ public class IdempotencyRecord {
     @Column(name = "idempotency_key", nullable = false)
     private String idempotencyKey;
 
-    @Column(name = "request_hash", nullable = false, length = 64)
-    private String requestHash;
-
     @Column(name = "shipment_id", nullable = false)
     private Long shipmentId;
 

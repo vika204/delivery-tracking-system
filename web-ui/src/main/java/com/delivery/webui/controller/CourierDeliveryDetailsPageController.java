@@ -19,7 +19,6 @@ public class CourierDeliveryDetailsPageController {
         model.addAttribute("pageTitle", "Delivery Details — WEB EXPRESS");
         model.addAttribute("shipmentId", shipmentId);
         model.addAttribute("activePage", "courier-dashboard");
-        model.addAttribute("headerState", "COURIER");
         return "pages/courier-delivery-details";
     }
 }

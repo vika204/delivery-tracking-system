@@ -103,6 +103,8 @@ metadata:
   namespace: delivery
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: prometheus
@@ -140,6 +142,17 @@ spec:
           ports:
             - containerPort: 9090
               name: web
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: web
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 15
 
           resources:
             requests:
@@ -173,7 +186,8 @@ spec:
           configMap:
             name: prometheus-alert-rules
         - name: storage
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: prometheus-data
 
 ---
 apiVersion: v1

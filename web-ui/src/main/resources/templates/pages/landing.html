@@ -26,7 +26,7 @@
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 
 <div class="landing-page" id="top">
-    <header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+    <header th:replace="~{fragments/header :: siteHeader}"></header>
 
     <main class="landing-hero">
         <div class="landing-runner"
@@ -55,20 +55,12 @@
             tracked the whole way, no detours, no drama.
         </p>
 
-        <button type="button" class="landing-cta web-button" data-feature="Send a package">
+        <a class="landing-cta web-button" href="/ship" th:href="@{/ship}">
             <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
             <span class="web-button__label">SEND A PACKAGE</span>
-        </button>
+        </a>
     </main>
 </div>
 
-<dialog id="demo-dialog" aria-labelledby="dialog-heading">
-    <h2 id="dialog-heading">Coming soon!</h2>
-    <p>
-        This is a visual demo of the Web Express landing page.
-        The delivery service itself is not connected yet.
-    </p>
-    <button type="button" id="close-dialog">GOT IT</button>
-</dialog>
 </body>
 </html>

@@ -6,8 +6,10 @@ import com.delivery.tracking.event.LocationSavedEvent;
 import com.delivery.tracking.repository.TrackingRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +23,17 @@ public class LocationService {
     public LocationService(TrackingRepository trackingRepository, ApplicationEventPublisher eventPublisher) {
         this.trackingRepository = trackingRepository;
         this.eventPublisher = eventPublisher;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Location> getLocations() {
+        return trackingRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Location getLocation(Long id) {
+        return trackingRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @Transactional

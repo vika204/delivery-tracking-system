@@ -20,7 +20,7 @@
 <body>
 <div aria-hidden="true"><canvas id="cursor-webs"></canvas></div>
 
-<header th:replace="~{fragments/header :: siteHeader(headerState=${headerState})}"></header>
+<header th:replace="~{fragments/header :: siteHeader}"></header>
 
 <main class="registration-page">
     <aside class="visual" aria-label="Web Express courier illustration">
@@ -70,12 +70,30 @@
             <form id="client-register"
                   action="#"
                   data-auth-form
-                  data-registration-role="client"
-                  data-prototype-message="This is a design preview. Client registration will be available after Keycloak integration.">
+                  data-registration-role="client">
+                <div class="field">
+                    <label for="client-first-name">FIRST NAME</label>
+                    <input id="client-first-name" type="text" autocomplete="given-name"
+                           placeholder="e.g. Olena" maxlength="70" required>
+                </div>
+
+                <div class="field">
+                    <label for="client-last-name">LAST NAME</label>
+                    <input id="client-last-name" type="text" autocomplete="family-name"
+                           placeholder="e.g. Kovalenko" maxlength="70" required>
+                </div>
+
                 <div class="field">
                     <label for="client-email">EMAIL ADDRESS</label>
                     <input id="client-email" type="email" autocomplete="email"
-                           placeholder="you@example.com" required>
+                           placeholder="you@example.com" maxlength="254" required>
+                </div>
+
+                <div class="field">
+                    <label for="client-phone">PHONE NUMBER</label>
+                    <input id="client-phone" type="tel" autocomplete="tel"
+                           placeholder="+380 XX XXX XX XX" maxlength="25"
+                           pattern="[+0-9() .-]{7,25}" required>
                 </div>
 
                 <div class="field">
@@ -124,18 +142,23 @@
             <form id="courier-register"
                   action="#"
                   data-auth-form
-                  data-registration-role="courier"
-                  data-prototype-message="This is a design preview. Courier registration will be available after Keycloak integration.">
+                  data-registration-role="courier">
                 <div class="field">
-                    <label for="courier-full-name">FULL NAME</label>
-                    <input id="courier-full-name" type="text" autocomplete="name"
-                           placeholder="e.g. Andrii Kovalenko" maxlength="140" required>
+                    <label for="courier-first-name">FIRST NAME</label>
+                    <input id="courier-first-name" type="text" autocomplete="given-name"
+                           placeholder="e.g. Andrii" maxlength="70" required>
+                </div>
+
+                <div class="field">
+                    <label for="courier-last-name">LAST NAME</label>
+                    <input id="courier-last-name" type="text" autocomplete="family-name"
+                           placeholder="e.g. Kovalenko" maxlength="70" required>
                 </div>
 
                 <div class="field">
                     <label for="courier-email">EMAIL ADDRESS</label>
                     <input id="courier-email" type="email" autocomplete="email"
-                           placeholder="you@example.com" required>
+                           placeholder="you@example.com" maxlength="254" required>
                 </div>
 
                 <div class="field">

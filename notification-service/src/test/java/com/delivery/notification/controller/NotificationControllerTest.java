@@ -3,14 +3,18 @@ package com.delivery.notification.controller;
 import com.delivery.notification.entity.Notification;
 import com.delivery.notification.entity.NotificationType;
 import com.delivery.notification.repository.NotificationRepository;
+import com.delivery.notification.service.NotificationService;
+import com.delivery.notification.exception.TrackingGrpcExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,6 +26,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,7 +36,81 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 class NotificationControllerTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
-    private final MockMvc mvc = standaloneSetup(new NotificationController(repository)).build();
+    private final MockMvc mvc = standaloneSetup(new NotificationController(new NotificationService(repository)))
+            .setControllerAdvice(new TrackingGrpcExceptionHandler()).build();
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"userId\":0,\"shipmentId\":15,\"type\":\"DELIVERED\",\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":-1,\"type\":\"DELIVERED\",\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":15,\"type\":null,\"message\":\"Delivered\",\"isRead\":false}",
+            "{\"userId\":42,\"shipmentId\":15,\"type\":\"DELIVERED\",\"message\":\" \",\"isRead\":false}",
+            "{\"isRead\":false}"
+    })
+    void invalidNotificationDoesNotReachDatabase(String body) throws Exception {
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:validation-failed"))
+                .andExpect(jsonPath("$.errors").isNotEmpty());
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void rejectsMessageLongerThanDatabaseColumn() throws Exception {
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"userId":42,"shipmentId":15,"type":"DELIVERED","message":"%s","isRead":false}
+                        """.formatted("x".repeat(256))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("message")));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void createsNotificationWithExistingRequestFormat() throws Exception {
+        when(repository.save(any(Notification.class))).thenAnswer(call -> {
+            Notification saved = call.getArgument(0);
+            saved.setNotificationId(3L);
+            saved.setCreatedAt(LocalDateTime.of(2026, 11, 19, 10, 3));
+            return saved;
+        });
+
+        mvc.perform(post("/notifications").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"userId":42,"shipmentId":15,"type":"DELIVERED",
+                         "message":"Package delivered","isRead":false}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notificationId").value(3))
+                .andExpect(jsonPath("$.shipmentId").value(15))
+                .andExpect(jsonPath("$.type").value("DELIVERED"))
+                .andExpect(jsonPath("$.message").value("Package delivered"))
+                .andExpect(jsonPath("$.read").value(false))
+                .andExpect(jsonPath("$.userId").doesNotExist());
+
+        var saved = org.mockito.ArgumentCaptor.forClass(Notification.class);
+        verify(repository).save(saved.capture());
+        org.assertj.core.api.Assertions.assertThat(saved.getValue().getUserId()).isEqualTo(42L);
+    }
+
+    @Test
+    void readsExistingListAndIndividualNotification() throws Exception {
+        Notification notification = notification(2, NotificationType.DELIVERED);
+        when(repository.findAll()).thenReturn(List.of(notification));
+        when(repository.findById(2L)).thenReturn(Optional.of(notification));
+
+        mvc.perform(get("/notifications"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].notificationId").value(2));
+        mvc.perform(get("/notifications/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notificationId").value(2))
+                .andExpect(jsonPath("$.type").value("DELIVERED"));
+    }
+
+    @Test
+    void missingNotificationStillReturns404() throws Exception {
+        mvc.perform(get("/notifications/999"))
+                .andExpect(status().isNotFound());
+    }
 
     @Test
     void readsOnlyRequestedUserNotificationsWithBoundedNewestFirstQuery() throws Exception {

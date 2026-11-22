@@ -4,8 +4,6 @@ import {
     createRequestFrom,
     formatDistance,
     formatPrice,
-    isQuoteProblem,
-    isQuoteUsable,
     problemMessage,
     quoteRequestFrom,
     sameRequest
@@ -117,7 +115,7 @@ function startCreateShipment() {
             setQuoteStatus('Price is calculated by WEB EXPRESS once the route and weight are filled in.');
             return null;
         }
-        if (quote && sameRequest(request, quoteRequest) && isQuoteUsable(quote, Date.now())) {
+        if (quote && sameRequest(request, quoteRequest)) {
             return quote;
         }
         if (pendingQuote && sameRequest(request, pendingQuote.request)) {
@@ -228,12 +226,6 @@ function startCreateShipment() {
                 return;
             }
             modal.hidden = true;
-            if (isQuoteProblem(result.body)) {
-                quote = quoteRequest = null;
-                setQuoteStatus('The price has to be recalculated. Check it and confirm again.', true);
-                await currentQuote();
-                return;
-            }
             if (result.status >= 400 && result.status < 500) {
                 await showProblem(problemMessage(result.body, shipmentCreationErrorMessage()));
                 return;

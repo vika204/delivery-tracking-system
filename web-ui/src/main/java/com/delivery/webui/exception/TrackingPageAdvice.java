@@ -28,7 +28,6 @@ public class TrackingPageAdvice {
         String shipmentId = request.getParameter("shipmentId");
         model.addAttribute("pageTitle", "Track your delivery — WEB EXPRESS");
         model.addAttribute("activePage", "tracking");
-        model.addAttribute("headerState", "CLIENT".equalsIgnoreCase(request.getParameter("previewRole")) ? "CLIENT" : "GUEST");
         model.addAttribute("trackingStreamEnabled", trackingStreamEnabled);
         model.addAttribute("trackingInput", shipmentId == null ? "" : shipmentId.trim());
     }

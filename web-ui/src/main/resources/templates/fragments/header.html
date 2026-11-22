@@ -1,6 +1,6 @@
 <header class="site-header"
-        th:fragment="siteHeader(headerState)"
-        th:with="state=${headerState == null ? 'GUEST' : headerState},
+        th:fragment="siteHeader"
+        th:with="state=${T(com.delivery.webui.security.AuthenticatedUser).currentHeaderState()},
                  currentPage=${activePage == null ? '' : activePage}"
         xmlns:th="http://www.thymeleaf.org">
 
@@ -31,7 +31,7 @@
                th:classappend="${currentPage == 'my-parcels'} ? 'active' : ''">
                 MY PARCELS
             </a>
-            <a th:href="@{/tracking(previewRole='CLIENT')}"
+            <a th:href="@{/tracking}"
                th:classappend="${currentPage == 'tracking'} ? 'active' : ''">
                 TRACK
             </a>
@@ -93,7 +93,7 @@
                         <span class="site-header__notification-dot" role="img" aria-label="New notifications"
                               data-notification-indicator hidden></span>
                     </a>
-                    <button type="button" role="menuitem">LOG OUT</button>
+                    <button type="button" role="menuitem" data-logout-button>LOG OUT</button>
                 </div>
             </div>
         </th:block>
@@ -139,9 +139,10 @@
                        th:classappend="${currentPage == 'courier-profile'} ? 'active' : ''">
                         MY PROFILE
                     </a>
-                    <button type="button" role="menuitem">LOG OUT</button>
+                    <button type="button" role="menuitem" data-logout-button>LOG OUT</button>
                 </div>
             </div>
         </th:block>
     </nav>
+    <script defer th:src="@{/js/components/offline.js}"></script>
 </header>

@@ -4,24 +4,30 @@ import com.delivery.auth.entity.User;
 import com.delivery.auth.entity.UserRole;
 import com.delivery.auth.exception.UserExceptionHandler;
 import com.delivery.auth.repository.UserRepository;
+import com.delivery.auth.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,8 +40,94 @@ class UserProfileTest {
             {"firstName":"Vika","lastName":"Roman","email":"vika@example.com","phone":"+380971234567"}
             """;
     private final UserRepository repository = mock(UserRepository.class);
-    private final MockMvc mvc = standaloneSetup(new UserController(repository))
+    private final MockMvc mvc = standaloneSetup(new UserController(new UserService(repository)))
             .setControllerAdvice(new UserExceptionHandler()).build();
+
+    @Test
+    void rejectsOversizedPasswordBeforeAuthentication() throws Exception {
+        mvc.perform(post("/users/login").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"email":"olena@example.com","password":"%s"}
+                        """.formatted("x".repeat(73))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("password")));
+        verifyNoInteractions(repository);
+    }
+
+    @ParameterizedTest
+    @EnumSource(UserRole.class)
+    void registersClientAndCourierWithoutReturningPassword(UserRole role) throws Exception {
+        when(repository.save(any(User.class))).thenAnswer(call -> {
+            User saved = call.getArgument(0);
+            saved.setUserId(42L);
+            return saved;
+        });
+
+        mvc.perform(post("/users").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com",
+                         "phone":"+380671234567","password":"test-password","role":"%s"}
+                        """.formatted(role.name())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(42))
+                .andExpect(jsonPath("$.role").value(role.name()))
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+
+        var saved = org.mockito.ArgumentCaptor.forClass(User.class);
+        verify(repository).save(saved.capture());
+        assertThat(new BCryptPasswordEncoder().matches("test-password", saved.getValue().getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void rejectsRemovedAdminRoleBeforeSavingUser() throws Exception {
+        mvc.perform(post("/users").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com",
+                         "phone":"+380671234567","password":"test-password","role":"ADMIN"}
+                        """))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void duplicateEmailStillReturnsConflict() throws Exception {
+        when(repository.existsByEmailIgnoreCase("olena@example.com")).thenReturn(true);
+
+        mvc.perform(post("/users").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"firstName":"Olena","lastName":"Kovalenko","email":"olena@example.com",
+                         "phone":"+380671234567","password":"test-password","role":"CLIENT"}
+                        """))
+                .andExpect(status().isConflict());
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void logsInWithCorrectPasswordWithoutReturningHash() throws Exception {
+        User user = user();
+        user.setPasswordHash(new BCryptPasswordEncoder().encode("test-password"));
+        when(repository.findByEmailIgnoreCase("olena@example.com")).thenReturn(Optional.of(user));
+
+        mvc.perform(post("/users/login").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"email":"olena@example.com","password":"test-password"}
+                        """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(42))
+                .andExpect(jsonPath("$.role").value("CLIENT"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void rejectsWrongPasswordAndUnknownEmail(boolean existingUser) throws Exception {
+        if (existingUser) {
+            User user = user();
+            user.setPasswordHash(new BCryptPasswordEncoder().encode("test-password"));
+            when(repository.findByEmailIgnoreCase("olena@example.com")).thenReturn(Optional.of(user));
+        }
+
+        mvc.perform(post("/users/login").contentType(MediaType.APPLICATION_JSON).content("""
+                        {"email":"olena@example.com","password":"wrong-password"}
+                        """))
+                .andExpect(status().isUnauthorized());
+    }
 
     @Test
     void readsOnlyProfileFieldsForUserFromHeader() throws Exception {
@@ -85,6 +177,16 @@ class UserProfileTest {
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void profileValidationIncludesInvalidFieldEvenWithValidatedUserHeader() throws Exception {
+        mvc.perform(put("/users/profile").header("X-User-Id", "42")
+                        .contentType(MediaType.APPLICATION_JSON).content(UPDATE.replace("vika@example.com", "bad")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:validation-failed"))
+                .andExpect(jsonPath("$.errors[*].field").value(hasItem("email")));
         verifyNoInteractions(repository);
     }
 
