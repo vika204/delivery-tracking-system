@@ -19,8 +19,6 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.support.RestClientAdapter;
 import org.springframework.web.service.invoker.HttpServiceProxyFactory;
 
-import static org.springframework.test.web.client.ExpectedCount.never;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.anything;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -83,8 +81,7 @@ class CourierDeliveryApiControllerTest {
         shipmentService.expect(requestTo("http://shipment.test/shipments/15/pickup"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("X-User-Id", "7"))
-                .andRespond(withSuccess("{\"shipmentId\": 15, \"status\": \"IN_TRANSIT\"}", MediaType.APPLICATION_JSON));
-        expectCourierView("IN_TRANSIT");
+                .andRespond(courierView("IN_TRANSIT"));
 
         mockMvc.perform(local(post("/api/courier/shipments/15/pickup")))
                 .andExpect(status().isOk())
@@ -104,8 +101,7 @@ class CourierDeliveryApiControllerTest {
     }
 
     @Test
-    void recordsGpsPointForShipmentInTransit() throws Exception {
-        expectCourierView("IN_TRANSIT");
+    void recordsGpsPointStraightInTracking() throws Exception {
         trackingService.expect(requestTo("http://tracking.test/tracking/shipments/15/locations"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().json(POINT))
@@ -117,13 +113,11 @@ class CourierDeliveryApiControllerTest {
         mockMvc.perform(point())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.locationId").value(101));
-        shipmentService.verify();
         trackingService.verify();
     }
 
     @Test
     void reportsRepeatedPointWithoutDuplicate() throws Exception {
-        expectCourierView("IN_TRANSIT");
         trackingService.expect(requestTo("http://tracking.test/tracking/shipments/15/locations"))
                 .andExpect(content().json(POINT))
                 .andRespond(withSuccess("""
@@ -137,30 +131,7 @@ class CourierDeliveryApiControllerTest {
     }
 
     @Test
-    void refusesGpsBeforePickup() throws Exception {
-        expectCourierView("ASSIGNED");
-        trackingService.expect(never(), anything());
-
-        mockMvc.perform(point())
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.type").value("urn:delivery:problem:shipment-not-in-transit"));
-        trackingService.verify();
-    }
-
-    @Test
-    void refusesGpsForAnotherCouriersShipment() throws Exception {
-        shipmentService.expect(requestTo("http://shipment.test/shipments/15/courier-view"))
-                .andRespond(problem(HttpStatus.FORBIDDEN, "urn:delivery:problem:shipment-access-denied",
-                        "Courier 7 is not assigned to shipment 15"));
-        trackingService.expect(never(), anything());
-
-        mockMvc.perform(point()).andExpect(status().isForbidden());
-        trackingService.verify();
-    }
-
-    @Test
     void passesTrackingValidationError() throws Exception {
-        expectCourierView("IN_TRANSIT");
         trackingService.expect(requestTo("http://tracking.test/tracking/shipments/15/locations"))
                 .andRespond(problem(HttpStatus.BAD_REQUEST, "urn:delivery:problem:location-invalid",
                         "recordedAt must not be in the future"));
@@ -210,8 +181,7 @@ class CourierDeliveryApiControllerTest {
     @Test
     void completesDelivery() throws Exception {
         shipmentService.expect(requestTo("http://shipment.test/shipments/15/deliver"))
-                .andRespond(withNoContent());
-        expectCourierView("DELIVERED");
+                .andRespond(courierView("DELIVERED"));
 
         mockMvc.perform(local(post("/api/courier/shipments/15/deliver")))
                 .andExpect(jsonPath("$.status").value("DELIVERED"));
@@ -231,12 +201,16 @@ class CourierDeliveryApiControllerTest {
         shipmentService.expect(requestTo("http://shipment.test/shipments/15/courier-view"))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("X-User-Id", "7"))
-                .andRespond(withSuccess("""
+                .andRespond(courierView(status));
+    }
+
+    private static org.springframework.test.web.client.ResponseCreator courierView(String status) {
+        return withSuccess("""
                         {"shipmentId": 15, "status": "%s", "pickupAddress": "Київ, A", "deliveryAddress": "Київ, B",
                          "recipient": {"initials": "M. S.", "phone": "+380671234567"},
                          "weight": 2.4, "length": 40, "width": 30, "height": 20, "distance": 7.3, "price": 142,
                          "assignedAt": "2026-11-19T09:00:00Z"}
-                        """.formatted(status), MediaType.APPLICATION_JSON));
+                        """.formatted(status), MediaType.APPLICATION_JSON);
     }
 
     private MockHttpServletRequestBuilder point() {

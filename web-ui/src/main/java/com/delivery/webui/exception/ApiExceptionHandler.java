@@ -13,7 +13,6 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.net.http.HttpTimeoutException;
 import java.util.Map;
 
@@ -30,13 +29,6 @@ public class ApiExceptionHandler extends ProblemExceptionHandler {
             }
         }
         return unavailable();
-    }
-
-    @ExceptionHandler(ShipmentNotInTransitException.class)
-    ProblemDetail notInTransit(ShipmentNotInTransitException ex) {
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
-        problem.setType(URI.create("urn:delivery:problem:shipment-not-in-transit"));
-        return problem;
     }
 
     @ExceptionHandler(RestClientResponseException.class)

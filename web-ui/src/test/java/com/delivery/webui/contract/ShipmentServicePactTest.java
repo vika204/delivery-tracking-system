@@ -147,6 +147,22 @@ class ShipmentServicePactTest {
         assertThatThrownBy(() -> client.getShipment(404)).isInstanceOf(HttpClientErrorException.NotFound.class);
     }
 
+
+    private static PactDslJsonBody courierView(String status) {
+        return new PactDslJsonBody()
+                .integerType("shipmentId", 1L)
+                .stringType("status", status)
+                .stringType("pickupAddress", "Kyiv, Khreshchatyk 1")
+                .stringType("deliveryAddress", "Lviv, Svobody 10")
+                .object("recipient").stringType("initials", "M. S.").stringType("phone", "+380671234567").closeObject().asBody()
+                .decimalType("weight", 2.5)
+                .decimalType("length", 30.0)
+                .decimalType("width", 20.0)
+                .decimalType("height", 15.0)
+                .decimalType("distance", 540.0)
+                .decimalType("price", 885.0);
+    }
+
     @Pact(consumer = "web-ui", provider = "shipment-service")
     RequestResponsePact courierView(PactDslWithProvider builder) {
         PactDslJsonBody view = new PactDslJsonBody()
@@ -193,14 +209,15 @@ class ShipmentServicePactTest {
                 .uponReceiving("a pickup confirmation by the assigned courier")
                 .method("POST").path("/shipments/1/pickup").headers(asUser("7"))
                 .willRespondWith().status(200).headers(JSON)
-                .body(new PactDslJsonBody().integerType("shipmentId", 1L).stringType("status", "IN_TRANSIT"))
+                .body(courierView("IN_TRANSIT"))
                 .toPact();
     }
 
     @Test
     @PactTestFor(pactMethod = "courierPickup")
     void courierConfirmsPickup(MockServer server) {
-        PactClients.create(CourierShipmentClient.class, server.getUrl()).confirmPickup(7, 1);
+        assertThat(PactClients.create(CourierShipmentClient.class, server.getUrl()).confirmPickup(7, 1).status())
+                .isEqualTo("IN_TRANSIT");
     }
 
     @Pact(consumer = "web-ui", provider = "shipment-service")
@@ -210,14 +227,15 @@ class ShipmentServicePactTest {
                 .uponReceiving("a delivery completion by the assigned courier")
                 .method("POST").path("/shipments/1/deliver").headers(asUser("7"))
                 .willRespondWith().status(200).headers(JSON)
-                .body(new PactDslJsonBody().integerType("shipmentId", 1L).stringType("status", "DELIVERED"))
+                .body(courierView("DELIVERED"))
                 .toPact();
     }
 
     @Test
     @PactTestFor(pactMethod = "courierDelivery")
     void courierCompletesDelivery(MockServer server) {
-        PactClients.create(CourierShipmentClient.class, server.getUrl()).completeDelivery(7, 1);
+        assertThat(PactClients.create(CourierShipmentClient.class, server.getUrl()).completeDelivery(7, 1).status())
+                .isEqualTo("DELIVERED");
     }
 
     @Pact(consumer = "web-ui", provider = "shipment-service")
