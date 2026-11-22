@@ -152,7 +152,6 @@ class ShipmentProviderPactTest {
                 .weightCharge(new BigDecimal("25.00"))
                 .totalPrice(new BigDecimal("885.00"))
                 .calculatedAt(now)
-                .expiresAt(now.plus(1, ChronoUnit.HOURS))
                 .build());
     }
 

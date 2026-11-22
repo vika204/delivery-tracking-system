@@ -294,7 +294,7 @@ class ShipmentChaosIntegrationTest {
                 .basePrice(new BigDecimal("50.00")).pricePerKm(new BigDecimal("1.50")).pricePerKg(new BigDecimal("10.00"))
                 .distanceCharge(new BigDecimal("810.00")).weightCharge(new BigDecimal("25.00"))
                 .totalPrice(new BigDecimal("885.00"))
-                .calculatedAt(now).expiresAt(now.plus(1, ChronoUnit.HOURS))
+                .calculatedAt(now)
                 .build());
     }
 }

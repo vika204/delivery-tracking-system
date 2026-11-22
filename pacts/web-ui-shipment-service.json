@@ -218,7 +218,6 @@
       "response": {
         "body": {
           "distanceKm": 540.0,
-          "expiresAt": "2026-11-22T12:00:00Z",
           "quoteId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
           "totalPrice": 885.0
         },
@@ -239,14 +238,6 @@
               "matchers": [
                 {
                   "match": "decimal"
-                }
-              ]
-            },
-            "$.expiresAt": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "type"
                 }
               ]
             },

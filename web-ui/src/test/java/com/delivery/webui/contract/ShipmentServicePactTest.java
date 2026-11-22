@@ -230,7 +230,6 @@ class ShipmentServicePactTest {
                 .decimalType("weight", 2.5);
         PactDslJsonBody quote = new PactDslJsonBody()
                 .uuid("quoteId")
-                .stringType("expiresAt", "2026-11-22T12:00:00Z")
                 .decimalType("distanceKm", 540.0)
                 .decimalType("totalPrice", 885.0);
         PactDslJsonBody createRequest = new PactDslJsonBody()

@@ -103,20 +103,19 @@ class OutboxKafkaChaosIntegrationTest {
         brokerDown.set(true);
         Shipment shipment = shipment();
         eventOutbox.shipmentCreated(shipment);
-        eventOutbox.statusChanged(shipment, ShipmentStatus.WAITING_FOR_COURIER, null, null, ActorType.SYSTEM, null);
-        eventOutbox.detailsUpdated(shipment, false);
+        changed(shipment);
 
         await().atMost(Duration.ofSeconds(10)).until(() -> attempts.get() >= 6);
         assertThat(acknowledged).as("nothing can be acknowledged by a dead broker").isEmpty();
-        assertThat(outbox.findTop50ByPublishedFalseOrderByCreatedAtAsc()).as("nothing is lost or marked published").hasSize(3);
+        assertThat(outbox.findTop50ByPublishedFalseOrderByCreatedAtAsc()).as("nothing is lost or marked published").hasSize(2);
 
         brokerDown.set(false);
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(outbox.findTop50ByPublishedFalseOrderByCreatedAtAsc()).isEmpty());
-        assertThat(acknowledged).hasSize(3);
+        assertThat(acknowledged).hasSize(2);
         assertThat(acknowledged).extracting(record -> record.split("\\|")[0])
-                .containsExactlyInAnyOrder("shipment.events", "shipment.status.changed", "shipment.details.updated");
+                .containsExactlyInAnyOrder("shipment.events", "shipment.status.changed");
         assertThat(acknowledged).as("all records of one shipment share the shipment id as key")
                 .allSatisfy(record -> assertThat(record.split("\\|")[1]).isEqualTo(String.valueOf(shipment.getShipmentId())));
     }
@@ -140,8 +139,8 @@ class OutboxKafkaChaosIntegrationTest {
     void aFailedEventIsNotOvertakenByALaterEventOnTheSameTopicAndKey() {
         Shipment shipment = shipment();
         failNextSendOnly.set(true);
-        eventOutbox.detailsUpdated(shipment, false);
-        eventOutbox.detailsUpdated(shipment, true);
+        changed(shipment);
+        changed(shipment);
         List<String> createdOrder = outbox.findAll().stream()
                 .sorted(java.util.Comparator.comparing(OutboxEvent::getCreatedAt))
                 .map(event -> event.getEventId().toString())
@@ -151,7 +150,7 @@ class OutboxKafkaChaosIntegrationTest {
                 assertThat(outbox.findTop50ByPublishedFalseOrderByCreatedAtAsc()).isEmpty());
 
         // same topic + same key = same partition: consumers apply these in arrival order, so a stale
-        // SHIPMENT_DETAILS_UPDATED must never land after a newer one
+        // SHIPMENT_STATUS_CHANGED must never land after a newer one
         assertThat(acknowledged).hasSize(2);
         List<String> deliveredOrder = acknowledged.stream()
                 .map(record -> createdOrder.stream().filter(record::contains).findFirst().orElseThrow())
@@ -178,13 +177,17 @@ class OutboxKafkaChaosIntegrationTest {
         brokerFlaps.set(true);
         Shipment shipment = shipment();
         for (int i = 0; i < 10; i++) {
-            eventOutbox.detailsUpdated(shipment, false);
+            changed(shipment);
         }
 
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
                 assertThat(outbox.findTop50ByPublishedFalseOrderByCreatedAtAsc()).isEmpty());
         assertThat(acknowledged).as("no event was lost").hasSize(10);
         assertThat(acknowledged).as("no event was delivered twice").doesNotHaveDuplicates();
+    }
+
+    private void changed(Shipment shipment) {
+        eventOutbox.statusChanged(shipment, ShipmentStatus.WAITING_FOR_COURIER, null, null, ActorType.SYSTEM, null);
     }
 
     private Shipment shipment() {

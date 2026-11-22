@@ -77,7 +77,6 @@ class ShipmentEventsPactTest {
     MessagePact shipmentEvents(MessagePactBuilder builder) {
         return builder
                 .expectsToReceive("a SHIPMENT_CREATED event").withContent(snapshotEvent("SHIPMENT_CREATED"))
-                .expectsToReceive("a SHIPMENT_DETAILS_UPDATED event").withContent(snapshotEvent("SHIPMENT_DETAILS_UPDATED"))
                 .expectsToReceive("a SHIPMENT_STATUS_CHANGED event to IN_TRANSIT").withContent(statusEvent("IN_TRANSIT"))
                 .toPact();
     }
@@ -85,19 +84,18 @@ class ShipmentEventsPactTest {
     @Test
     @PactTestFor(pactMethod = "shipmentEvents")
     void listenerHandsEveryMessageToTheProcessor(List<Message> messages) {
-        assertThat(messages).hasSize(3);
+        assertThat(messages).hasSize(2);
         ShipmentEventProcessor processor = mock(ShipmentEventProcessor.class);
         JsonMapper mapper = JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
         ShipmentEventsListener listener = new ShipmentEventsListener(mapper, processor);
 
         listener.onShipmentEvent(messages.get(0).contentsAsString());
-        listener.onShipmentEvent(messages.get(1).contentsAsString());
-        listener.onShipmentStatusChanged(messages.get(2).contentsAsString());
+        listener.onShipmentStatusChanged(messages.get(1).contentsAsString());
 
         ArgumentCaptor<ShipmentEventMessage> snapshots = ArgumentCaptor.forClass(ShipmentEventMessage.class);
         verify(processor, atLeastOnce()).process(snapshots.capture());
         assertThat(snapshots.getAllValues()).extracting(ShipmentEventMessage::eventType)
-                .containsExactly("SHIPMENT_CREATED", "SHIPMENT_DETAILS_UPDATED");
+                .containsExactly("SHIPMENT_CREATED");
         assertThat(snapshots.getAllValues().getFirst().payload().deliveryLatitude()).isNotNull();
         assertThat(snapshots.getAllValues().getFirst().payload().weight()).isNotNull();
 

@@ -22,10 +22,10 @@ the consumer code.
 | tracking-service | shipment-service | HTTP | 4 | `ShipmentServicePactTest` (tracking) | `ShipmentProviderPactTest` |
 | notification-service | shipment-service | Kafka | 2 | `ShipmentEventsPactTest` (notification) | `ShipmentMessageProviderPactTest` |
 | tracking-service | shipment-service | Kafka | 2 | `ShipmentStatusEventPactTest` | `ShipmentMessageProviderPactTest` |
-| dispatch-service | shipment-service | Kafka | 3 | `ShipmentEventsPactTest` (dispatch) | `ShipmentMessageProviderPactTest` |
+| dispatch-service | shipment-service | Kafka | 2 | `ShipmentEventsPactTest` (dispatch) | `ShipmentMessageProviderPactTest` |
 | shipment-service | dispatch-service | Kafka | 3 | `DispatchEventsPactTest` | `dispatch-service/.../contract/DispatchMessageProviderPactTest` |
 
-51 interactions in total. The Kafka consumer of tracking-service is registered as `tracking-service-events` because
+50 interactions in total. The Kafka consumer of tracking-service is registered as `tracking-service-events` because
 its HTTP pact with shipment-service already owns the file name `tracking-service-shipment-service.json`.
 
 What each side proves:
@@ -71,7 +71,7 @@ should and recovers without a restart.
 | Class | Fault injected | Steady state asserted |
 |---|---|---|
 | `shipment-service/.../chaos/ShipmentChaosIntegrationTest` | Postgres behind **Toxiproxy**: 600 ms latency, connection cut, half-open hang (no answer); plus `/internal/chaos` failure rate 1, 0.5 and 700 ms latency | reads stay correct but slower; a dead DB fails fast (5xx, no stack trace) and the service heals by itself; a hung connection is released by the socket timeout; **a shipment is created completely (row + outbox event + consumed quote) or not at all**, and a retry with the same idempotency key succeeds |
-| `shipment-service/.../chaos/OutboxKafkaChaosIntegrationTest` | Kafka down, Kafka never answers (metadata timeout), Kafka flapping every second call | events wait in the outbox, are delivered after recovery, none lost, none delivered twice once acknowledged |
+| `shipment-service/.../chaos/OutboxKafkaChaosIntegrationTest` | Kafka down, Kafka never answers (metadata timeout), Kafka flapping every second call, a failed send followed by a newer event of the same shipment | events wait in the outbox, are delivered after recovery, none lost, none delivered twice once acknowledged |
 | `tracking-service/.../client/ShipmentClientChaosIntegrationTest` | WireMock faults: connection reset, empty response, truncated chunk, random bytes, non-JSON body, 4.5 s delay (read timeout is 3 s), burst of 40 callers | single lookup degrades to an explicit `UNAVAILABLE` answer; batch/create answer a clean 503; 4xx is never retried; the breaker opens, stops calling the sick service, half-opens and closes by itself; the bulkhead sheds load with 503 |
 | `shipment-service/.../chaos/ChaosControllerTest` | the fault-injection switch itself | validated input, observable state, full reset |
 
@@ -113,8 +113,8 @@ end-to-end behaviour across several real services.
 
 1. **Outbox relay reordered events of the same shipment after a transient Kafka failure (fixed).**
    `OutboxRelay.publishBatch` fired all sends without waiting, so when an earlier event failed the later ones were
-   already out, and the retry reached Kafka after them (a stale `SHIPMENT_DETAILS_UPDATED` could overwrite a newer
-   one). Both `shipment-service` and `dispatch-service` relays now await each send and hold back the rest of that
+   already out, and the retry reached Kafka after them (a stale `SHIPMENT_STATUS_CHANGED` could be applied after a
+   newer one). Both `shipment-service` and `dispatch-service` relays now await each send and hold back the rest of that
    key's events in the batch after a failure; other keys keep flowing. Regression tests:
    `OutboxKafkaChaosIntegrationTest` in shipment-service and dispatch-service. Trade-off: sends are sequential
    (10 s timeout each), so throughput per cycle is lower than with fire-and-forget.

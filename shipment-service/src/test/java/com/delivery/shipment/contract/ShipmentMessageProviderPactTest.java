@@ -82,12 +82,6 @@ class ShipmentMessageProviderPactTest {
         return onlyPayload();
     }
 
-    @PactVerifyProvider("a SHIPMENT_DETAILS_UPDATED event")
-    String shipmentDetailsUpdated() {
-        eventOutbox.detailsUpdated(shipment(ShipmentStatus.WAITING_FOR_COURIER), true);
-        return onlyPayload();
-    }
-
     @PactVerifyProvider("a SHIPMENT_STATUS_CHANGED event to DELIVERED")
     String statusChangedToDelivered() {
         eventOutbox.statusChanged(shipment(ShipmentStatus.DELIVERED), ShipmentStatus.IN_TRANSIT,
