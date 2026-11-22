@@ -2,7 +2,7 @@ package com.delivery.auth.controller;
 
 import com.delivery.auth.entity.User;
 import com.delivery.auth.entity.UserRole;
-import com.delivery.auth.exception.UserExceptionHandler;
+import com.delivery.auth.exception.GlobalExceptionHandler;
 import com.delivery.auth.repository.UserRepository;
 import com.delivery.auth.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class UserProfileTest {
             """;
     private final UserRepository repository = mock(UserRepository.class);
     private final MockMvc mvc = standaloneSetup(new UserController(new UserService(repository)))
-            .setControllerAdvice(new UserExceptionHandler()).build();
+            .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test
     void rejectsOversizedPasswordBeforeAuthentication() throws Exception {

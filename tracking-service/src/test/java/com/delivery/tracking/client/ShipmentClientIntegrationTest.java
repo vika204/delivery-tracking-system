@@ -33,7 +33,11 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = {
+        "spring.kafka.bootstrap-servers=localhost:9999",
+        "spring.kafka.listener.auto-startup=false",
+        "spring.grpc.server.port=0"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Testcontainers

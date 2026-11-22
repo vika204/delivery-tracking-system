@@ -4,7 +4,7 @@ import com.delivery.notification.entity.Notification;
 import com.delivery.notification.entity.NotificationType;
 import com.delivery.notification.repository.NotificationRepository;
 import com.delivery.notification.service.NotificationService;
-import com.delivery.notification.exception.TrackingGrpcExceptionHandler;
+import com.delivery.notification.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -37,7 +37,7 @@ class NotificationControllerTest {
 
     private final NotificationRepository repository = mock(NotificationRepository.class);
     private final MockMvc mvc = standaloneSetup(new NotificationController(new NotificationService(repository)))
-            .setControllerAdvice(new TrackingGrpcExceptionHandler()).build();
+            .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @ParameterizedTest
     @ValueSource(strings = {

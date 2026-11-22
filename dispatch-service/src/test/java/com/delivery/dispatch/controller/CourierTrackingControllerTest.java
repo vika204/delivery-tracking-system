@@ -1,7 +1,7 @@
 package com.delivery.dispatch.controller;
 
 import com.delivery.dispatch.dto.LocationPointRequest;
-import com.delivery.dispatch.exception.DispatchExceptionHandler;
+import com.delivery.dispatch.exception.GlobalExceptionHandler;
 import com.delivery.dispatch.service.CourierTrackingService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +29,7 @@ class CourierTrackingControllerTest {
             """;
     private final CourierTrackingService service = mock(CourierTrackingService.class);
     private final MockMvc mvc = standaloneSetup(new CourierTrackingController(service))
-            .setControllerAdvice(new DispatchExceptionHandler()).build();
+            .setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @ParameterizedTest
     @ValueSource(strings = {

@@ -5,7 +5,7 @@ import com.delivery.dispatch.dto.RegisterCourierRequest;
 import com.delivery.dispatch.entity.Assignment;
 import com.delivery.dispatch.entity.AssignmentStatus;
 import com.delivery.dispatch.entity.Courier;
-import com.delivery.dispatch.exception.DispatchExceptionHandler;
+import com.delivery.dispatch.exception.GlobalExceptionHandler;
 import com.delivery.dispatch.service.CourierService;
 import com.delivery.dispatch.service.DispatchService;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class CourierControllerTest {
     private final CourierService courierService = mock(CourierService.class);
     private final DispatchService dispatchService = mock(DispatchService.class);
     private final MockMvc mockMvc = standaloneSetup(new CourierController(courierService, dispatchService))
-            .setControllerAdvice(new DispatchExceptionHandler())
+            .setControllerAdvice(new GlobalExceptionHandler())
             .build();
 
     @Test

@@ -186,6 +186,21 @@ curl localhost:8085/notifications/1
 
 3. Повторити читання з розділу вище. Раніше створені посилки та кур'єри мають повернутися без змін.
 
+## Колекція запитів
+
+`docs/api/delivery-tracking.postman_collection.json` (Postman, Insomnia або Bruno). Усі запити йдуть через єдину точку входу web-ui (`{{baseUrl}}` = `http://localhost:8086`), сесійна cookie після входу підхоплюється автоматично. Папки 1–5 запускаються по черзі: реєстрація й вхід, створення посилки, публічне відстеження, дії кур'єра, помилки валідації та перевищення rate limit (`429` з `Retry-After`). Папка 6 звертається до сервісів напряму й призначена лише для локального налагодження.
+
+## Тести і CI
+
+```bash
+for m in tracking-api tracking-grpc-client web-problems; do (cd $m && mvn install); done
+for m in web-ui tracking-service notification-service dispatch-service shipment-service auth-service; do (cd $m && mvn verify); done
+```
+
+Потрібен лише Docker: бази й брокер піднімають Testcontainers і вбудований Kafka. Контрактні тести Pact виконуються в тому самому прогоні: споживачі оновлюють `pacts/`, провайдери їх перевіряють. Звіти покриття JaCoCo: `<модуль>/target/site/jacoco/index.html`.
+
+GitHub Actions (`.github/workflows/build.yml`) запускає те саме на кожен pull request, падає, якщо закомічені pact-файли не збігаються з тестами споживачів, і збирає Docker-образи всіх сервісів.
+
 ## Зупинка
 
 ```bash

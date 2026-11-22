@@ -87,7 +87,7 @@ public class TrackingService {
         metrics.fallbackUsed();
         return new ShipmentDto(
                 shipmentId,
-                "Дані тимчасово недоступні (Fallback)",
+                "Data temporarily unavailable (Fallback)",
                 "UNAVAILABLE"
         );
     }
