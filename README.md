@@ -68,10 +68,6 @@ cp .env.example .env
 
 Усередині мережі `delivery-network` сервіси звертаються один до одного за іменами (`http://shipment-service:8080`, `tracking-service:9090`, `shipment-db:5432`, `kafka:29092`).
 
-### Необов'язкові перемикачі
-
-У `.env` можна вимкнути функції web-ui: `TRACKING_STREAM_ENABLED=false` (живе оновлення карти через SSE) або `DISPATCH_COURIER_LOOKUP_ENABLED=false` (ім'я кур'єра на сторінці відстеження).
-
 ### Оновлення після зміни коду
 
 ```bash
@@ -275,14 +271,3 @@ for m in web-ui tracking-service notification-service dispatch-service shipment-
 Потрібен лише Docker: бази й Toxiproxy піднімають Testcontainers, Kafka в тестах вбудований або замінений заглушкою. Запущений Compose-стек тестам не потрібен. Контрактні тести Pact виконуються в тому самому прогоні: споживачі оновлюють `pacts/`, провайдери їх перевіряють. Звіти покриття JaCoCo: `<модуль>/target/site/jacoco/index.html`.
 
 GitHub Actions (`.github/workflows/build.yml`) запускає те саме на кожен pull request, падає, якщо закомічені pact-файли не збігаються з тестами споживачів, і збирає Docker-образи всіх сервісів.
-
-## Якщо щось не працює
-
-| Симптом | Що перевірити |
-|---|---|
-| Не створюється посилка, помилка розрахунку ціни | `GEOAPIFY_API_KEY` у `.env` (у Kubernetes — після зміни перезапустіть `shipment-service` секретами з кроку 3) |
-| Поведінка не збігається з кодом | Образи не перезібрані: `docker compose up -d --build` або оновлення образу в Minikube |
-| `docker compose up --wait` закінчується тайм-аутом | `docker compose ps` і `docker compose logs <service>`; найчастіше бракує пам'яті Docker |
-| Под у `CrashLoopBackOff` або `CreateContainerConfigError` | Немає секретів: крок 3, потім `kubectl -n delivery describe pod <pod>` |
-| Порт 8086 зайнятий | Працює інший web-ui (Compose, IDE або port-forward); зупиніть його |
-| Після збою сервісу tracking ще віддає `UNAVAILABLE` | Circuit Breaker відкритий: зачекайте близько 10 секунд і повторіть запит |
