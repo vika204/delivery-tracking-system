@@ -2,7 +2,6 @@ package com.delivery.tracking.controller;
 
 import com.delivery.tracking.dto.ShipmentLocationResponse;
 import com.delivery.tracking.service.LocationService;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,11 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/tracking/shipments")
-@ConditionalOnProperty(
-        prefix = "tracking.location-history",
-        name = "enabled",
-        havingValue = "true"
-)
 public class ShipmentLocationController {
 
     private static final int MAX_LIMIT = 100;

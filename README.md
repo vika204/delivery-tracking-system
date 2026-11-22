@@ -30,7 +30,7 @@
 
    Відкрити [http://localhost:8086/](http://localhost:8086/). Якщо на цьому порту вже працює web-ui з IntelliJ або Kubernetes port-forward, спочатку зупини попередній процес.
 
-   Пошук кур'єра для картки, GPS-історія та SSE увімкнені в локальному Compose. За потреби їх можна вимкнути через `DISPATCH_COURIER_LOOKUP_ENABLED=false`, `TRACKING_LOCATION_HISTORY_ENABLED=false` або `TRACKING_STREAM_ENABLED=false` у `.env`. Spring Security працює; `WEB_LOCAL_DEV_LOOPBACK_ONLY=false` дозволяє доступ через Docker-мережу.
+   GPS-історія доступна без додаткового прапорця. Пошук кур'єра для картки та SSE увімкнені в локальному Compose. За потреби їх можна вимкнути через `DISPATCH_COURIER_LOOKUP_ENABLED=false` або `TRACKING_STREAM_ENABLED=false` у `.env`. Spring Security працює; `WEB_LOCAL_DEV_LOOPBACK_ONLY=false` дозволяє доступ через Docker-мережу.
 
    Усередині контейнерів UI звертається до `http://shipment-service:8080`, `http://tracking-service:8080` та інших імен сервісів. gRPC використовує `tracking-service:9090`. Порти на хості відкриті лише на `127.0.0.1`.
 

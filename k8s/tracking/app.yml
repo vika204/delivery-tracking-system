@@ -117,11 +117,6 @@ spec:
                 configMapKeyRef:
                   name: tracking-config
                   key: SPRING_KAFKA_BOOTSTRAP_SERVERS
-            - name: TRACKING_LOCATION_HISTORY_ENABLED
-              valueFrom:
-                configMapKeyRef:
-                  name: tracking-config
-                  key: TRACKING_LOCATION_HISTORY_ENABLED
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
