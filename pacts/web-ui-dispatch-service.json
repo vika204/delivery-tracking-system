@@ -1,0 +1,933 @@
+{
+  "consumer": {
+    "name": "web-ui"
+  },
+  "interactions": [
+    {
+      "description": "a courier profile read",
+      "providerStates": [
+        {
+          "name": "courier 10 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/couriers/10"
+      },
+      "response": {
+        "body": {
+          "displayName": "Andrii Kovalenko",
+          "maxPackageWeight": 15.5,
+          "phone": "+380501234567",
+          "userId": 10,
+          "workZone": "Kyiv",
+          "workZoneCode": "UA80000000000093317"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.maxPackageWeight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.userId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.workZone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZoneCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a courier profile update by someone else",
+      "providerStates": [
+        {
+          "name": "courier 10 exists"
+        }
+      ],
+      "request": {
+        "body": {
+          "displayName": "Andrii Kovalenko",
+          "maxPackageWeight": 15.5,
+          "phone": "+380501234567",
+          "workZone": "Kyiv",
+          "workZoneCode": "UA80000000000093317"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-User-Id": "11"
+        },
+        "matchingRules": {
+          "body": {
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.maxPackageWeight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZoneCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "PATCH",
+        "path": "/couriers/10"
+      },
+      "response": {
+        "status": 403
+      }
+    },
+    {
+      "description": "a courier profile update by the courier",
+      "providerStates": [
+        {
+          "name": "courier 10 exists"
+        }
+      ],
+      "request": {
+        "body": {
+          "displayName": "Andrii Kovalenko",
+          "maxPackageWeight": 15.5,
+          "phone": "+380501234567",
+          "workZone": "Kyiv",
+          "workZoneCode": "UA80000000000093317"
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-User-Id": "10"
+        },
+        "matchingRules": {
+          "body": {
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.maxPackageWeight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZoneCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "PATCH",
+        "path": "/couriers/10"
+      },
+      "response": {
+        "body": {
+          "displayName": "Andrii Kovalenko",
+          "maxPackageWeight": 15.5,
+          "phone": "+380501234567",
+          "userId": 10,
+          "workZone": "Kyiv",
+          "workZoneCode": "UA80000000000093317"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.maxPackageWeight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.userId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.workZone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.workZoneCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a current offer read",
+      "providerStates": [
+        {
+          "name": "courier 10 has a pending offer 55"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "GET",
+        "path": "/couriers/10/offers/current"
+      },
+      "response": {
+        "body": {
+          "deliveryAddress": "Lviv, Svobody 10",
+          "distanceKm": 540.0,
+          "distanceToPickupKm": 1.2,
+          "expiresAt": "2026-11-22T12:00:00",
+          "offerId": 55,
+          "parcelWeight": 2.5,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "price": 885.0,
+          "secondsLeft": 60,
+          "shipmentId": 15,
+          "status": "PENDING"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.distanceKm": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.distanceToPickupKm": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.expiresAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.offerId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.parcelWeight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.secondsLeft": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "an offer accept",
+      "providerStates": [
+        {
+          "name": "courier 10 has a pending offer 55"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "POST",
+        "path": "/couriers/10/offers/55/accept"
+      },
+      "response": {
+        "body": {
+          "assignmentId": 3,
+          "deliveryAddress": "Lviv, Svobody 10",
+          "pickedUp": false,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "shipmentId": 15,
+          "status": "ACTIVE"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.assignmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pickedUp": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "an offer decline",
+      "providerStates": [
+        {
+          "name": "courier 10 has a pending offer 55"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "POST",
+        "path": "/couriers/10/offers/55/decline"
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "description": "an active assignments read",
+      "providerStates": [
+        {
+          "name": "courier 10 has active assignment 3"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "GET",
+        "path": "/couriers/10/assignments",
+        "query": {
+          "active": [
+            "true"
+          ]
+        }
+      },
+      "response": {
+        "body": [
+          {
+            "assignmentId": 3,
+            "deliveryAddress": "Lviv, Svobody 10",
+            "pickedUp": false,
+            "pickupAddress": "Kyiv, Khreshchatyk 1",
+            "shipmentId": 15,
+            "status": "ACTIVE"
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].assignmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].pickedUp": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "an assignment withdraw",
+      "providerStates": [
+        {
+          "name": "courier 10 has active assignment 3"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "POST",
+        "path": "/couriers/10/assignments/3/withdraw"
+      },
+      "response": {
+        "body": {
+          "assignmentId": 3,
+          "pickedUp": false,
+          "shipmentId": 15,
+          "status": "COURIER_WITHDREW"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.assignmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.pickedUp": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a current offer read without an offer",
+      "providerStates": [
+        {
+          "name": "courier 10 has no pending offer"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "GET",
+        "path": "/couriers/10/offers/current"
+      },
+      "response": {
+        "status": 204
+      }
+    },
+    {
+      "description": "a courier status read",
+      "providerStates": [
+        {
+          "name": "courier 10 is online"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "10"
+        },
+        "method": "GET",
+        "path": "/couriers/10/status"
+      },
+      "response": {
+        "body": {
+          "activeAssignments": 0,
+          "courierId": 10,
+          "online": true,
+          "pendingOfferId": null,
+          "state": "AVAILABLE"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.activeAssignments": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.courierId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.online": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.state": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "AVAILABLE|BUSY|UNAVAILABLE"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a go-offline request",
+      "providerStates": [
+        {
+          "name": "courier 10 is online"
+        }
+      ],
+      "request": {
+        "body": {
+          "online": false
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-User-Id": "10"
+        },
+        "matchingRules": {
+          "body": {
+            "$.online": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "PUT",
+        "path": "/couriers/10/availability"
+      },
+      "response": {
+        "body": {
+          "activeAssignments": 0,
+          "courierId": 10,
+          "online": false,
+          "pendingOfferId": null,
+          "state": "UNAVAILABLE"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.activeAssignments": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.courierId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.online": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.state": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a current courier lookup for an assigned shipment",
+      "providerStates": [
+        {
+          "name": "shipment 15 has courier Andrii"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/dispatch/shipments/15/courier"
+      },
+      "response": {
+        "body": {
+          "assigned": true,
+          "courierName": "Andrii Kovalenko",
+          "shipmentId": 15
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.assigned": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.courierName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a current courier lookup for an unassigned shipment",
+      "providerStates": [
+        {
+          "name": "shipment 16 has no courier"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/dispatch/shipments/16/courier"
+      },
+      "response": {
+        "body": {
+          "assigned": false,
+          "courierName": null,
+          "shipmentId": 16
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "dispatch-service"
+  }
+}

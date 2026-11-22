@@ -110,6 +110,22 @@
             <version>${pact.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact.consumer</groupId>
+            <artifactId>junit5</artifactId>
+            <version>${pact.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-toxiproxy</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -119,6 +135,8 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
+                        <pact.rootDir>${project.basedir}/../pacts</pact.rootDir>
+                        <pact.writer.overwrite>true</pact.writer.overwrite>
                         <pact_do_not_track>true</pact_do_not_track>
                     </systemPropertyVariables>
                 </configuration>

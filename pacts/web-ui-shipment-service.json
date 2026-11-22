@@ -1,0 +1,910 @@
+{
+  "consumer": {
+    "name": "web-ui"
+  },
+  "interactions": [
+    {
+      "description": "a read of an unknown parcel",
+      "request": {
+        "method": "GET",
+        "path": "/shipments/404"
+      },
+      "response": {
+        "status": 404
+      }
+    },
+    {
+      "description": "a shipment creation from that quote",
+      "providerStates": [
+        {
+          "name": "a usable price quote exists for user 42"
+        }
+      ],
+      "request": {
+        "body": {
+          "height": 15.0,
+          "length": 30.0,
+          "quoteId": "7d444840-9dc0-11d1-b245-5ffdce74fad2",
+          "recipientName": "Marta Shevchenko",
+          "recipientPhone": "+380671234567",
+          "senderName": "Olena Kovalenko",
+          "senderPhone": "+380501234567",
+          "width": 20.0
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "key-1",
+          "X-User-Id": "42"
+        },
+        "matchingRules": {
+          "body": {
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.quoteId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipientPhone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.senderName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.senderPhone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/shipments"
+      },
+      "response": {
+        "body": {
+          "price": 885.0,
+          "shipmentId": 1,
+          "status": "WAITING_FOR_COURIER"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a price quote request",
+      "providerStates": [
+        {
+          "name": "routing can geocode Kyiv and Lviv"
+        }
+      ],
+      "request": {
+        "body": {
+          "deliveryAddress": "Svobody 10",
+          "deliveryCityCode": "UA46060250010015970",
+          "pickupAddress": "Khreshchatyk 1",
+          "pickupCityCode": "UA80000000000093317",
+          "weight": 2.5
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-User-Id": "42"
+        },
+        "matchingRules": {
+          "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.deliveryCityCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "UA\\d{17}"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pickupCityCode": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "UA\\d{17}"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/shipments/quotes"
+      },
+      "response": {
+        "body": {
+          "distanceKm": 540.0,
+          "quoteId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+          "totalPrice": 885.0
+        },
+        "generators": {
+          "body": {
+            "$.quoteId": {
+              "type": "Uuid"
+            }
+          }
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.distanceKm": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.quoteId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                }
+              ]
+            },
+            "$.totalPrice": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "status": 201
+      }
+    },
+    {
+      "description": "a price quote request with an unknown settlement",
+      "providerStates": [
+        {
+          "name": "routing can geocode Kyiv and Lviv"
+        }
+      ],
+      "request": {
+        "body": {
+          "deliveryAddress": "Nowhere 1",
+          "deliveryCityCode": "UA99000000000000000",
+          "pickupAddress": "Khreshchatyk 1",
+          "pickupCityCode": "UA80000000000093317",
+          "weight": 2.5
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "X-User-Id": "42"
+        },
+        "matchingRules": {
+          "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/shipments/quotes"
+      },
+      "response": {
+        "status": 422
+      }
+    },
+    {
+      "description": "a pickup confirmation by the assigned courier",
+      "providerStates": [
+        {
+          "name": "shipment 1 is assigned to courier 7"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "7"
+        },
+        "method": "POST",
+        "path": "/shipments/1/pickup"
+      },
+      "response": {
+        "body": {
+          "shipmentId": 1,
+          "status": "IN_TRANSIT"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "the assigned courier's view",
+      "providerStates": [
+        {
+          "name": "shipment 1 is assigned to courier 7"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "7"
+        },
+        "method": "GET",
+        "path": "/shipments/1/courier-view"
+      },
+      "response": {
+        "body": {
+          "deliveryAddress": "Lviv, Svobody 10",
+          "distance": 540.0,
+          "height": 15.0,
+          "length": 30.0,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "price": 885.0,
+          "recipient": {
+            "initials": "M. S.",
+            "phone": "+380671234567"
+          },
+          "shipmentId": 1,
+          "status": "ASSIGNED",
+          "weight": 2.5,
+          "width": 20.0
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.distance": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.recipient.initials": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipient.phone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "the courier view requested by a different courier",
+      "providerStates": [
+        {
+          "name": "shipment 1 is assigned to courier 7"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "8"
+        },
+        "method": "GET",
+        "path": "/shipments/1/courier-view"
+      },
+      "response": {
+        "status": 403
+      }
+    },
+    {
+      "description": "a delivery completion by the assigned courier",
+      "providerStates": [
+        {
+          "name": "shipment 1 is in transit with courier 7"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "7"
+        },
+        "method": "POST",
+        "path": "/shipments/1/deliver"
+      },
+      "response": {
+        "body": {
+          "shipmentId": 1,
+          "status": "DELIVERED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a cancel by someone who is not the sender",
+      "providerStates": [
+        {
+          "name": "user 42 has waiting shipment 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "99"
+        },
+        "method": "POST",
+        "path": "/shipments/1/cancel"
+      },
+      "response": {
+        "status": 403
+      }
+    },
+    {
+      "description": "a cancel by the sender",
+      "providerStates": [
+        {
+          "name": "user 42 has waiting shipment 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "42"
+        },
+        "method": "POST",
+        "path": "/shipments/1/cancel"
+      },
+      "response": {
+        "body": {
+          "shipmentId": 1,
+          "status": "CANCELLED"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a parcel read",
+      "providerStates": [
+        {
+          "name": "user 42 has waiting shipment 1"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/shipments/1"
+      },
+      "response": {
+        "body": {
+          "assignedCourierId": null,
+          "assignedCourierName": null,
+          "createdAt": "2026-11-12T12:02:00",
+          "deliveryAddress": "Lviv, Svobody 10",
+          "distance": 540.0,
+          "height": 15.0,
+          "length": 30.0,
+          "pickupAddress": "Kyiv, Khreshchatyk 1",
+          "price": 885.0,
+          "recipientName": "Marta Shevchenko",
+          "recipientPhone": "+380671234567",
+          "shipmentId": 1,
+          "status": "WAITING_FOR_COURIER",
+          "userId": 42,
+          "weight": 2.5,
+          "width": 20.0
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.distance": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipientPhone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.userId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.weight": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "the sender's parcel list",
+      "providerStates": [
+        {
+          "name": "user 42 has waiting shipment 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "42"
+        },
+        "method": "GET",
+        "path": "/shipments/mine",
+        "query": {
+          "page": [
+            "0"
+          ],
+          "size": [
+            "50"
+          ]
+        }
+      },
+      "response": {
+        "body": [
+          {
+            "createdAt": "2026-11-12T12:02:00",
+            "deliveryAddress": "Lviv, Svobody 10",
+            "pickupAddress": "Kyiv, Khreshchatyk 1",
+            "price": 885.0,
+            "recipientName": "Marta Shevchenko",
+            "shipmentId": 1,
+            "status": "WAITING_FOR_COURIER",
+            "userId": 42
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].price": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$[*].recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].userId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "shipment-service"
+  }
+}

@@ -17,6 +17,7 @@
 
     <properties>
         <java.version>25</java.version>
+        <pact.version>4.6.17</pact.version>
     </properties>
 
     <dependencies>
@@ -150,6 +151,12 @@
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>au.com.dius.pact.provider</groupId>
+            <artifactId>junit5</artifactId>
+            <version>${pact.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -171,7 +178,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <systemPropertyVariables>
-                        <pact.rootDir>${project.build.directory}/pacts</pact.rootDir>
+                        <pact.rootDir>${project.basedir}/../pacts</pact.rootDir>
+                        <pact.writer.overwrite>true</pact.writer.overwrite>
+                        <pact_do_not_track>true</pact_do_not_track>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
