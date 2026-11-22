@@ -10,6 +10,10 @@ COPY tracking-grpc-client/pom.xml tracking-grpc-client/pom.xml
 COPY tracking-grpc-client/src tracking-grpc-client/src
 RUN mvn -B -f tracking-grpc-client/pom.xml clean install -DskipTests
 
+COPY web-problems/pom.xml web-problems/pom.xml
+COPY web-problems/src web-problems/src
+RUN mvn -B -f web-problems/pom.xml clean install -DskipTests
+
 COPY web-ui/pom.xml web-ui/pom.xml
 RUN mvn -B -f web-ui/pom.xml dependency:go-offline
 COPY web-ui/src web-ui/src

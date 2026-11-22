@@ -25,7 +25,8 @@ services:
   auth-service:
     restart: unless-stopped
     build:
-      context: ./auth-service
+      context: .
+      dockerfile: auth-service/Dockerfile
 
     ports:
       - "127.0.0.1:8081:8080"
@@ -75,7 +76,8 @@ services:
   shipment-service:
     restart: unless-stopped
     build:
-      context: ./shipment-service
+      context: .
+      dockerfile: shipment-service/Dockerfile
 
     ports:
       - "127.0.0.1:8082:8080"
