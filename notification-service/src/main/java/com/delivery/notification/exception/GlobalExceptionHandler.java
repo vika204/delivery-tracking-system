@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
-public class TrackingGrpcExceptionHandler extends DataAccessProblemExceptionHandler {
+public class GlobalExceptionHandler extends DataAccessProblemExceptionHandler {
 
     @ExceptionHandler(TrackingGrpcException.class)
     public ResponseEntity<ProblemDetail> handle(TrackingGrpcException ex) {

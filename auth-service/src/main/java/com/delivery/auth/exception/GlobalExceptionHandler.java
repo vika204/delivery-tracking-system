@@ -6,7 +6,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
-public class UserExceptionHandler extends DataAccessProblemExceptionHandler {
+public class GlobalExceptionHandler extends DataAccessProblemExceptionHandler {
 
     @Override
     protected ProblemDetail dataConflict(DataIntegrityViolationException ex) {

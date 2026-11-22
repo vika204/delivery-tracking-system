@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.net.URI;
 
 @RestControllerAdvice
-public class DispatchExceptionHandler extends DataAccessProblemExceptionHandler {
+public class GlobalExceptionHandler extends DataAccessProblemExceptionHandler {
 
     @ExceptionHandler(DispatchNotFoundException.class)
     public ProblemDetail notFound(DispatchNotFoundException ex) {

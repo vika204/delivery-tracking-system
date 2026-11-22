@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 /** Whatever a controller throws, dispatch-service answers with a typed problem+json and never leaks the cause. */
 class CentralExceptionHandlingContractTest {
 
-    private final MockMvc mvc = standaloneSetup(new Thrower()).setControllerAdvice(new DispatchExceptionHandler()).build();
+    private final MockMvc mvc = standaloneSetup(new Thrower()).setControllerAdvice(new GlobalExceptionHandler()).build();
 
     @Test
     void unexpectedFailureIsATypedInternalErrorWithoutTheCause() throws Exception {
