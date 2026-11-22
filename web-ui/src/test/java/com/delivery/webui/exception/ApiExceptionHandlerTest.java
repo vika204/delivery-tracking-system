@@ -175,7 +175,7 @@ class ApiExceptionHandlerTest {
         response.setContentType(MediaType.TEXT_EVENT_STREAM_VALUE);
         response.setCommitted(true);
 
-        var result = new ApiExceptionHandler().unexpected(new IllegalStateException("stream already closed"),
+        var result = new ApiExceptionHandler().handleUnexpected(new IllegalStateException("stream already closed"),
                 new ServletWebRequest(new MockHttpServletRequest(), response));
 
         assertThat(result).isNull();
