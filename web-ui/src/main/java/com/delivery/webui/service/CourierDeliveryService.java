@@ -4,10 +4,8 @@ import com.delivery.webui.client.CourierShipmentClient;
 import com.delivery.webui.client.DispatchCourierDashboardClient;
 import com.delivery.webui.client.TrackingLocationClient;
 import com.delivery.webui.client.dto.CourierShipmentResponse;
-import com.delivery.webui.client.dto.DispatchCourierAssignment;
 import com.delivery.webui.client.dto.RecordLocationRequest;
 import com.delivery.webui.client.dto.TrackingLocationResponse;
-import com.delivery.webui.exception.NoActiveAssignmentException;
 import com.delivery.webui.exception.ShipmentNotInTransitException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -41,12 +39,7 @@ public class CourierDeliveryService {
     }
 
     public void withdraw(long courierId, long shipmentId) {
-        long assignmentId = dispatchClient.activeAssignments(courierId, courierId).stream()
-                .filter(assignment -> assignment.shipmentId() == shipmentId)
-                .map(DispatchCourierAssignment::assignmentId)
-                .findFirst()
-                .orElseThrow(() -> new NoActiveAssignmentException(courierId, shipmentId));
-        dispatchClient.withdrawAssignment(courierId, courierId, assignmentId);
+        dispatchClient.withdrawShipment(courierId, shipmentId);
     }
 
     public ResponseEntity<TrackingLocationResponse> recordLocation(long courierId, long shipmentId, RecordLocationRequest point) {

@@ -30,7 +30,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** web-ui (consumer) -> dispatch-service (provider): courier dashboard and "who is my courier". */
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "dispatch-service", pactVersion = PactSpecVersion.V3)
 class DispatchServicePactTest {
@@ -212,11 +211,6 @@ class DispatchServicePactTest {
                 .stringType("pickupAddress", "Kyiv, Khreshchatyk 1")
                 .stringType("deliveryAddress", "Lviv, Svobody 10")
                 .closeObject();
-        PactDslJsonBody withdrawn = new PactDslJsonBody()
-                .integerType("assignmentId", 3L)
-                .integerType("shipmentId", 15L)
-                .stringType("status", "COURIER_WITHDREW")
-                .booleanType("pickedUp", false);
         return builder
                 .given("courier 10 has active assignment 3")
                 .uponReceiving("an active assignments read")
@@ -224,8 +218,8 @@ class DispatchServicePactTest {
                 .willRespondWith().status(200).headers(JSON).body(list)
                 .given("courier 10 has active assignment 3")
                 .uponReceiving("an assignment withdraw")
-                .method("POST").path("/couriers/10/assignments/3/withdraw").headers(asUser("10"))
-                .willRespondWith().status(200).headers(JSON).body(withdrawn)
+                .method("POST").path("/couriers/shipments/15/withdraw").headers(asUser("10"))
+                .willRespondWith().status(204)
                 .toPact();
     }
 
@@ -238,7 +232,7 @@ class DispatchServicePactTest {
         assertThat(active).isNotEmpty();
         assertThat(active.getFirst().shipmentId()).isEqualTo(15);
 
-        client.withdrawAssignment(10, 10, 3);
+        client.withdrawShipment(10, 15);
     }
 
     @Pact(consumer = "web-ui", provider = "dispatch-service")

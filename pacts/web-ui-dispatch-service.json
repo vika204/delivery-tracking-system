@@ -618,55 +618,10 @@
           "X-User-Id": "10"
         },
         "method": "POST",
-        "path": "/couriers/10/assignments/3/withdraw"
+        "path": "/couriers/shipments/15/withdraw"
       },
       "response": {
-        "body": {
-          "assignmentId": 3,
-          "pickedUp": false,
-          "shipmentId": 15,
-          "status": "COURIER_WITHDREW"
-        },
-        "headers": {
-          "Content-Type": "application/json"
-        },
-        "matchingRules": {
-          "body": {
-            "$.assignmentId": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "integer"
-                }
-              ]
-            },
-            "$.pickedUp": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "type"
-                }
-              ]
-            },
-            "$.shipmentId": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "integer"
-                }
-              ]
-            },
-            "$.status": {
-              "combine": "AND",
-              "matchers": [
-                {
-                  "match": "type"
-                }
-              ]
-            }
-          }
-        },
-        "status": 200
+        "status": 204
       }
     },
     {

@@ -172,11 +172,10 @@ class CourierDeliveryApiControllerTest {
 
     @Test
     void withdrawsFromAssignmentOfThisShipment() throws Exception {
-        expectActiveAssignments();
-        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments/31/withdraw"))
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/shipments/15/withdraw"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("X-User-Id", "7"))
-                .andRespond(withSuccess("{\"assignmentId\": 31, \"status\": \"COURIER_WITHDREW\"}", MediaType.APPLICATION_JSON));
+                .andRespond(withNoContent());
 
         mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
                 .andExpect(status().isNoContent());
@@ -185,25 +184,27 @@ class CourierDeliveryApiControllerTest {
 
     @Test
     void withdrawalWithoutActiveAssignmentIsConflict() throws Exception {
-        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments?active=true"))
-                .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/shipments/15/withdraw"))
+                .andRespond(problem(HttpStatus.CONFLICT, "urn:delivery:problem:dispatch-conflict",
+                        "Courier 7 has no active assignment for shipment 15"));
 
         mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.type").value("urn:delivery:problem:no-active-assignment"));
+                .andExpect(jsonPath("$.type").value("urn:delivery:problem:dispatch-conflict"))
+                .andExpect(jsonPath("$.detail").value("Courier 7 has no active assignment for shipment 15"));
         dispatchService.verify();
     }
 
     @Test
     void withdrawalAfterPickupIsRejectedByDispatch() throws Exception {
-        expectActiveAssignments();
-        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments/31/withdraw"))
+        dispatchService.expect(requestTo("http://dispatch.test/couriers/shipments/15/withdraw"))
                 .andRespond(problem(HttpStatus.CONFLICT, "urn:delivery:problem:dispatch-conflict",
                         "The parcel is already picked up: withdrawal is not available"));
 
         mockMvc.perform(local(post("/api/courier/shipments/15/withdraw")))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("The parcel is already picked up: withdrawal is not available"));
+        dispatchService.verify();
     }
 
     @Test
@@ -224,15 +225,6 @@ class CourierDeliveryApiControllerTest {
                 }))
                 .andExpect(status().isForbidden());
         shipmentService.verify();
-    }
-
-    private void expectActiveAssignments() {
-        dispatchService.expect(requestTo("http://dispatch.test/couriers/7/assignments?active=true"))
-                .andExpect(header("X-User-Id", "7"))
-                .andRespond(withSuccess("""
-                        [{"assignmentId": 30, "shipmentId": 99, "status": "ACTIVE", "pickedUp": false},
-                         {"assignmentId": 31, "shipmentId": 15, "status": "ACTIVE", "pickedUp": false}]
-                        """, MediaType.APPLICATION_JSON));
     }
 
     private void expectCourierView(String status) {
