@@ -105,12 +105,6 @@ public class DispatchService {
         if (!request.isSearchable()) {
             return request.getStatus();
         }
-        if (!request.hasRoute()) {
-            log.warn("Dispatch request has no shipment details, skipped: shipmentId={}", request.getShipmentId());
-            request.setStatus(DispatchRequestStatus.WAITING_FOR_COURIERS);
-            request.setUpdatedAt(Instant.now(clock));
-            return request.getStatus();
-        }
 
         Set<Long> excludedCourierIds = new HashSet<>(offerRepository.findCourierIdsByShipmentIdAndStatusIn(
                 request.getShipmentId(), List.of(OfferStatus.REJECTED, OfferStatus.EXPIRED)));
@@ -135,7 +129,6 @@ public class DispatchService {
         for (CourierCandidate candidate : candidates) {
             Courier courier = courierRepository.findByIdForUpdate(candidate.courier().getUserId()).orElse(null);
             if (courier == null || !courier.isAvailable()
-                    || courier.getMaxPackageWeight().compareTo(request.getParcelWeight()) < 0
                     || !offerRepository.findPendingByCourier(courier.getUserId()).isEmpty()
                     || assignmentRepository.existsByCourierUserIdAndStatus(courier.getUserId(), AssignmentStatus.ACTIVE)) {
                 continue;
@@ -196,14 +189,6 @@ public class DispatchService {
     public Assignment acceptOffer(long courierId, long offerId) {
         DeliveryOffer offer = findOwnOfferForUpdate(courierId, offerId);
 
-        if (offer.getStatus() == OfferStatus.ACCEPTED) {
-            List<Assignment> active = assignmentRepository
-                    .findByCourierAndShipmentAndStatus(courierId, offer.getShipmentId(), AssignmentStatus.ACTIVE);
-            if (active.isEmpty()) {
-                throw new DispatchConflictException("Offer " + offerId + " was accepted but the assignment has ended");
-            }
-            return active.getFirst();
-        }
         if (offer.getStatus() != OfferStatus.PENDING) {
             throw new DispatchConflictException("Offer " + offerId + " is already " + offer.getStatus());
         }
@@ -218,13 +203,7 @@ public class DispatchService {
             throw new OfferNoLongerAvailableException("Shipment " + offer.getShipmentId() + " is no longer available");
         }
 
-        Courier courier = courierRepository.findByIdForUpdate(courierId).orElseThrow();
-        if (!courier.isAvailable()) {
-            throw new DispatchConflictException("Courier " + courierId + " is offline: go online to accept offers");
-        }
-        if (assignmentRepository.existsByCourierUserIdAndStatus(courierId, AssignmentStatus.ACTIVE)) {
-            throw new DispatchConflictException("Courier " + courierId + " already has an active delivery");
-        }
+        Courier courier = offer.getCourier();
         Instant now = Instant.now(clock);
         Assignment assignment = assignmentRepository.save(Assignment.builder()
                 .shipmentId(offer.getShipmentId())
@@ -275,9 +254,6 @@ public class DispatchService {
     @Transactional
     public void declineOffer(long courierId, long offerId) {
         DeliveryOffer offer = findOwnOfferForUpdate(courierId, offerId);
-        if (offer.getStatus() == OfferStatus.REJECTED) {
-            return;
-        }
         if (offer.getStatus() != OfferStatus.PENDING) {
             throw new DispatchConflictException("Offer " + offerId + " is already " + offer.getStatus());
         }

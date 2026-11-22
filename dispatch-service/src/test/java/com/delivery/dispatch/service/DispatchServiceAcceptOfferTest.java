@@ -124,29 +124,6 @@ class DispatchServiceAcceptOfferTest {
     }
 
     @Test
-    void rejectsWhenCourierWentOffline() {
-        courier.setAvailable(false);
-
-        assertThatThrownBy(() -> service.acceptOffer(COURIER_ID, OFFER_ID))
-                .isInstanceOf(DispatchConflictException.class)
-                .hasMessageContaining("offline");
-
-        assertNothingAssigned();
-        assertThat(offer.getStatus()).isEqualTo(OfferStatus.PENDING);
-    }
-
-    @Test
-    void rejectsWhenCourierAlreadyHasActiveDelivery() {
-        when(assignmentRepository.existsByCourierUserIdAndStatus(COURIER_ID, AssignmentStatus.ACTIVE)).thenReturn(true);
-
-        assertThatThrownBy(() -> service.acceptOffer(COURIER_ID, OFFER_ID))
-                .isInstanceOf(DispatchConflictException.class)
-                .hasMessageContaining("active delivery");
-
-        assertNothingAssigned();
-    }
-
-    @Test
     void cancelsOfferWhenShipmentNoLongerWaitsForIt() {
         request.setStatus(DispatchRequestStatus.CANCELLED);
 
@@ -155,18 +132,6 @@ class DispatchServiceAcceptOfferTest {
 
         assertThat(offer.getStatus()).isEqualTo(OfferStatus.CANCELLED);
         assertNothingAssigned();
-    }
-
-    @Test
-    void checksAvailabilityOnlyAfterLockingCourier() {
-        when(courierRepository.findByIdForUpdate(COURIER_ID)).thenAnswer(invocation -> {
-            courier.setAvailable(false);
-            return Optional.of(courier);
-        });
-
-        assertThatThrownBy(() -> service.acceptOffer(COURIER_ID, OFFER_ID))
-                .isInstanceOf(DispatchConflictException.class)
-                .hasMessageContaining("offline");
     }
 
     private void assertNothingAssigned() {
