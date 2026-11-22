@@ -1,0 +1,134 @@
+{
+  "consumer": {
+    "name": "tracking-service-events"
+  },
+  "messages": [
+    {
+      "contents": {
+        "eventId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+        "eventType": "SHIPMENT_STATUS_CHANGED",
+        "occurredAt": "2026-11-22T12:00:00Z",
+        "shipmentId": 15,
+        "status": "DELIVERED"
+      },
+      "description": "a SHIPMENT_STATUS_CHANGED event to DELIVERED",
+      "generators": {
+        "body": {
+          "$.eventId": {
+            "type": "Uuid"
+          }
+        }
+      },
+      "matchingRules": {
+        "body": {
+          "$.eventId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+              }
+            ]
+          },
+          "$.occurredAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z"
+              }
+            ]
+          },
+          "$.shipmentId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          },
+          "$.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metaData": {
+        "contentType": "application/json"
+      }
+    },
+    {
+      "contents": {
+        "eventId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+        "eventType": "SHIPMENT_STATUS_CHANGED",
+        "occurredAt": "2026-11-22T12:00:00Z",
+        "shipmentId": 15,
+        "status": "IN_TRANSIT"
+      },
+      "description": "a SHIPMENT_STATUS_CHANGED event to IN_TRANSIT",
+      "generators": {
+        "body": {
+          "$.eventId": {
+            "type": "Uuid"
+          }
+        }
+      },
+      "matchingRules": {
+        "body": {
+          "$.eventId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+              }
+            ]
+          },
+          "$.occurredAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z"
+              }
+            ]
+          },
+          "$.shipmentId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          },
+          "$.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metaData": {
+        "contentType": "application/json"
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "shipment-service"
+  }
+}

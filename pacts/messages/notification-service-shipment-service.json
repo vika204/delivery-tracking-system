@@ -1,0 +1,154 @@
+{
+  "consumer": {
+    "name": "notification-service"
+  },
+  "messages": [
+    {
+      "contents": {
+        "eventId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+        "eventType": "SHIPMENT_CREATED",
+        "occurredAt": "2026-11-22T12:00:00Z",
+        "payload": {
+          "shipmentId": 15,
+          "status": "WAITING_FOR_COURIER",
+          "userId": 42
+        }
+      },
+      "description": "a SHIPMENT_CREATED event",
+      "generators": {
+        "body": {
+          "$.eventId": {
+            "type": "Uuid"
+          }
+        }
+      },
+      "matchingRules": {
+        "body": {
+          "$.eventId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+              }
+            ]
+          },
+          "$.occurredAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z"
+              }
+            ]
+          },
+          "$.payload.shipmentId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          },
+          "$.payload.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.payload.userId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          }
+        }
+      },
+      "metaData": {
+        "contentType": "application/json"
+      }
+    },
+    {
+      "contents": {
+        "eventId": "e2490de5-5bd3-43d5-b7c4-526e33f71304",
+        "eventType": "SHIPMENT_STATUS_CHANGED",
+        "occurredAt": "2026-11-22T12:00:00Z",
+        "senderId": 42,
+        "shipmentId": 15,
+        "status": "DELIVERED"
+      },
+      "description": "a SHIPMENT_STATUS_CHANGED event to DELIVERED",
+      "generators": {
+        "body": {
+          "$.eventId": {
+            "type": "Uuid"
+          }
+        }
+      },
+      "matchingRules": {
+        "body": {
+          "$.eventId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+              }
+            ]
+          },
+          "$.occurredAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "regex",
+                "regex": "\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z"
+              }
+            ]
+          },
+          "$.senderId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          },
+          "$.shipmentId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "integer"
+              }
+            ]
+          },
+          "$.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metaData": {
+        "contentType": "application/json"
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "shipment-service"
+  }
+}
