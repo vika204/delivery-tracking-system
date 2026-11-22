@@ -38,10 +38,9 @@ public class ShipmentStatusChangedListener {
     @KafkaListener(topics = "shipment.status.changed", groupId = "shipment-status-notification-group")
     public void listen(ShipmentStatusChangedEvent event) {
         metrics.timeProcessing(() -> {
-            if (event.eventId() == null || !ShipmentStatusChangedEvent.TYPE.equals(event.eventType())
-                    || event.occurredAt() == null || event.shipmentId() == null || event.shipmentId() <= 0
-                    || event.senderId() == null || event.senderId() <= 0 || event.status() == null) {
-                throw new InvalidShipmentEventException("Shipment status event is missing required notification fields");
+            String violations = EventValidator.violations(event);
+            if (violations != null) {
+                throw new InvalidShipmentEventException("Shipment status event is invalid: " + violations);
             }
             handler.handle(event);
         });

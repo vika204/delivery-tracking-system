@@ -76,11 +76,9 @@ public class ShipmentEventListener {
     }
 
     private void validate(ShipmentCreatedEvent event) {
-        if (event.eventId() == null) {
-            throw new InvalidShipmentEventException("Shipment event has no eventId");
-        }
-        if (event.payload() == null || event.payload().shipmentId() == null) {
-            throw new InvalidShipmentEventException("Shipment event " + event.eventId() + " has no shipmentId");
+        String violations = EventValidator.violations(event);
+        if (violations != null) {
+            throw new InvalidShipmentEventException("Shipment event is invalid: " + violations);
         }
     }
 

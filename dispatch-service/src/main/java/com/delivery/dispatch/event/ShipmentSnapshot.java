@@ -1,23 +1,27 @@
 package com.delivery.dispatch.event;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.DecimalMax;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ShipmentSnapshot(
-        Long shipmentId,
-        Long userId,
+        @NotNull @Positive Long shipmentId,
+        @Positive Long userId,
         String status,
         String pickupAddress,
         String pickupCityCode,
-        Double pickupLatitude,
-        Double pickupLongitude,
+        @DecimalMin("-90") @DecimalMax("90") Double pickupLatitude,
+        @DecimalMin("-180") @DecimalMax("180") Double pickupLongitude,
         String deliveryAddress,
         String deliveryCityCode,
-        Double deliveryLatitude,
-        Double deliveryLongitude,
-        BigDecimal weight,
+        @DecimalMin("-90") @DecimalMax("90") Double deliveryLatitude,
+        @DecimalMin("-180") @DecimalMax("180") Double deliveryLongitude,
+        @Positive BigDecimal weight,
         BigDecimal distance,
         BigDecimal price
 ) {

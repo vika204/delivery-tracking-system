@@ -25,10 +25,9 @@ public class ShipmentStatusChangedListener {
     public void onStatusChanged(String json) {
         ShipmentStatusChangedEvent event = jsonMapper.readValue(json, ShipmentStatusChangedEvent.class);
 
-        if (event.eventId() == null || event.occurredAt() == null || event.status() == null
-                || event.shipmentId() == null || event.shipmentId() <= 0
-                || !"SHIPMENT_STATUS_CHANGED".equals(event.eventType())) {
-            throw new IllegalArgumentException("Invalid shipment status event");
+        String violations = EventValidator.violations(event);
+        if (violations != null) {
+            throw new IllegalArgumentException("Invalid shipment status event: " + violations);
         }
 
         log.info("Shipment status changed: shipmentId={}, status={}", event.shipmentId(), event.status());

@@ -1,8 +1,11 @@
 package com.delivery.notification.event;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
 public record ShipmentPayload(
-        Long shipmentId,
-        Long userId,
+        @NotNull @Positive Long shipmentId,
+        @Positive Long userId,
         String status
 ) {
 }

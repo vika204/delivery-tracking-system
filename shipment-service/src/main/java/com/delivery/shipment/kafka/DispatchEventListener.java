@@ -44,9 +44,9 @@ public class DispatchEventListener {
         } catch (JacksonException ex) {
             throw new InvalidDispatchEventException("Malformed dispatch event", ex);
         }
-        if (event.eventId() == null || event.eventType() == null || event.shipmentId() == null
-                || (event.changesAssignment() && event.courierId() == null)) {
-            throw new InvalidDispatchEventException("Dispatch event misses required fields: " + json, null);
+        String violations = EventValidator.violations(event);
+        if (violations != null) {
+            throw new InvalidDispatchEventException("Dispatch event is invalid (" + violations + "): " + json, null);
         }
         return event;
     }

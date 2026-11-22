@@ -29,10 +29,7 @@ public class ShipmentEventsListener {
             groupId = "dispatch-shipment-group")
     public void onShipmentEvent(String json) {
         ShipmentEventMessage event = parse(json, ShipmentEventMessage.class);
-        if (event.eventId() == null || event.eventType() == null
-                || event.payload() == null || event.payload().shipmentId() == null) {
-            throw new InvalidShipmentEventException("Shipment event misses required fields: " + json, null);
-        }
+        requireValid(event, json);
         log.info("Shipment event received: eventId={}, type={}, shipmentId={}",
                 event.eventId(), event.eventType(), event.payload().shipmentId());
         processor.process(event);
@@ -41,13 +38,17 @@ public class ShipmentEventsListener {
     @KafkaListener(topics = KafkaTopicConfig.SHIPMENT_STATUS_CHANGED_TOPIC, groupId = "dispatch-shipment-status-group")
     public void onShipmentStatusChanged(String json) {
         ShipmentStatusChangedMessage event = parse(json, ShipmentStatusChangedMessage.class);
-        if (event.eventId() == null || event.shipmentId() == null || event.status() == null
-                || !ShipmentStatusChangedMessage.TYPE.equals(event.eventType())) {
-            throw new InvalidShipmentEventException("Shipment status event misses required fields: " + json, null);
-        }
+        requireValid(event, json);
         log.info("Shipment status event received: eventId={}, shipmentId={}, status={}, courierId={}",
                 event.eventId(), event.shipmentId(), event.status(), event.courierId());
         processor.process(event);
+    }
+
+    private static void requireValid(Object event, String json) {
+        String violations = EventValidator.violations(event);
+        if (violations != null) {
+            throw new InvalidShipmentEventException("Shipment event is invalid (" + violations + "): " + json, null);
+        }
     }
 
     private <T> T parse(String json, Class<T> type) {
