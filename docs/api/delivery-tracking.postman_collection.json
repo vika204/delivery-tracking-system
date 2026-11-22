@@ -1,0 +1,1289 @@
+{
+  "info": {
+    "_postman_id": "75d93da8-e648-412e-8f91-73e67a61a96f",
+    "name": "Delivery Tracking System",
+    "description": "All requests go through the single entry point (web-ui, {{baseUrl}}); the session cookie set by Login is reused automatically. Run the folders in order. Folder 6 talks to services directly and is for local debugging only.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('runId')) pm.collectionVariables.set('runId', Date.now());"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register/client",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "client"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Olena\",\n  \"lastName\": \"Kovalenko\",\n  \"email\": \"client.{{runId}}@example.com\",\n  \"phone\": \"+380501234567\",\n  \"password\": \"Secret123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register/courier",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "courier"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Andrii\",\n  \"lastName\": \"Shevchenko\",\n  \"email\": \"courier.{{runId}}@example.com\",\n  \"phone\": \"+380671234567\",\n  \"workZone\": \"Kyiv\",\n  \"workZoneCode\": \"UA80000000000093317\",\n  \"maxWeight\": 20,\n  \"password\": \"Secret123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout courier",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"client.{{runId}}@example.com\",\n  \"password\": \"Secret123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.test('redirects to profile', () => pm.expect(pm.response.json().redirectUrl || JSON.stringify(pm.response.json())).to.include('/profile'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Client: shipments",
+      "item": [
+        {
+          "name": "Get profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Olena\",\n  \"lastName\": \"Kovalenko\",\n  \"email\": \"client.{{runId}}@example.com\",\n  \"phone\": \"+380501234568\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Price quote",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments/quotes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments",
+                "quotes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupAddress\": \"Khreshchatyk 1\",\n  \"pickupCityCode\": \"UA80000000000093317\",\n  \"deliveryAddress\": \"Svobody 10\",\n  \"deliveryCityCode\": \"UA46060250010015970\",\n  \"weight\": 2.5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201', () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "pm.collectionVariables.set('quoteId', pm.response.json().quoteId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380501234567\",\n  \"recipientName\": \"Marta Shevchenko\",\n  \"recipientPhone\": \"+380671234567\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 15\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "pm.collectionVariables.set('shipmentId', pm.response.json().shipmentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications: unread?",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/unread",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "unread"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notifications: mark read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read?throughId=999999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read"
+              ],
+              "query": [
+                {
+                  "key": "throughId",
+                  "value": "999999999"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Public tracking",
+      "item": [
+        {
+          "name": "Shipment status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tracking/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Location history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tracking/shipments/{{shipmentId}}/locations?afterLocationId=0&limit=100",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "locations"
+              ],
+              "query": [
+                {
+                  "key": "afterLocationId",
+                  "value": "0"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Live locations (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/tracking/shipments/{{shipmentId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "events"
+              ]
+            },
+            "description": "Server-sent events; Postman shows the stream until you cancel the request."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Courier",
+      "item": [
+        {
+          "name": "Login as courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"courier.{{runId}}@example.com\",\n  \"password\": \"Secret123!\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));",
+                  "const offer = pm.response.json().offer; if (offer) pm.collectionVariables.set('offerId', offer.offerId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Go online",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/dashboard/availability",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard",
+                "availability"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"online\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept current offer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/dashboard/offers/{{offerId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard",
+                "offers",
+                "{{offerId}}",
+                "accept"
+              ]
+            },
+            "description": "Needs a pending offer: create a shipment in the courier's work zone first."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404/409', () => pm.expect(pm.response.code).to.be.oneOf([200,404,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Decline current offer",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/dashboard/offers/{{offerId}}/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard",
+                "offers",
+                "{{offerId}}",
+                "decline"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404/409', () => pm.expect(pm.response.code).to.be.oneOf([200,404,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assigned shipment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/403/404', () => pm.expect(pm.response.code).to.be.oneOf([200,403,404]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm pickup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/shipments/{{shipmentId}}/pickup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "shipments",
+                "{{shipmentId}}",
+                "pickup"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/403/409', () => pm.expect(pm.response.code).to.be.oneOf([200,403,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Record location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/shipments/{{shipmentId}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "shipments",
+                "{{shipmentId}}",
+                "locations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pointId\": \"{{$guid}}\",\n  \"latitude\": 50.4501,\n  \"longitude\": 30.5234,\n  \"recordedAt\": \"{{$isoTimestamp}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/201/403/409', () => pm.expect(pm.response.code).to.be.oneOf([200,201,403,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete delivery",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/shipments/{{shipmentId}}/deliver",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "shipments",
+                "{{shipmentId}}",
+                "deliver"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/403/409', () => pm.expect(pm.response.code).to.be.oneOf([200,403,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdraw before pickup",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/shipments/{{shipmentId}}/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "shipments",
+                "{{shipmentId}}",
+                "withdraw"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/204/403/409', () => pm.expect(pm.response.code).to.be.oneOf([200,204,403,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Courier profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Errors and limits",
+      "item": [
+        {
+          "name": "Validation error (400 problem+json)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 400', () => pm.expect(pm.response.code).to.be.oneOf([400]));",
+                  "pm.test('problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test('lists invalid fields', () => pm.expect(pm.response.json().errors).to.be.an('array').that.is.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unauthenticated (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courier/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard"
+              ]
+            },
+            "description": "Run after Logout, or in a fresh cookie jar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 401/403', () => pm.expect(pm.response.code).to.be.oneOf([401,403]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rate limit (429)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tracking/shipments/{{shipmentId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "status"
+              ]
+            },
+            "description": "Run this request with the Collection Runner, 70 iterations: after 60 requests per minute the gateway answers 429 with Retry-After."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/429', () => pm.expect(pm.response.code).to.be.oneOf([200,429]));",
+                  "if (pm.response.code === 429) pm.test('Retry-After set', () => pm.expect(pm.response.headers.get('Retry-After')).to.exist);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Direct service APIs (local development only)",
+      "description": "Bypass the gateway; the services are bound to 127.0.0.1 in docker-compose. X-User-Id is normally set by web-ui.",
+      "item": [
+        {
+          "name": "shipment-service: health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/actuator/health",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "shipment-service: get shipment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "shipment-service: history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}/history",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "history"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "dispatch-service: shipment courier",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{dispatchUrl}}/dispatch/shipments/{{shipmentId}}/courier",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "shipments",
+                "{{shipmentId}}",
+                "courier"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "tracking-service: shipment via tracking",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments/{{shipmentId}}",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "notification-service: my notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/mine?limit=20",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.expect(pm.response.code).to.be.oneOf([200]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "auth-service: profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "1"
+              }
+            ],
+            "url": {
+              "raw": "{{authUrl}}/users/profile",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "shipment-service: chaos state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/internal/chaos",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "internal",
+                "chaos"
+              ]
+            },
+            "description": "404 unless APP_CHAOS_ENABLED=true."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200/404', () => pm.expect(pm.response.code).to.be.oneOf([200,404]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086"
+    },
+    {
+      "key": "shipmentUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "dispatchUrl",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "trackingUrl",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "notificationUrl",
+      "value": "http://localhost:8085"
+    },
+    {
+      "key": "authUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "quoteId",
+      "value": ""
+    },
+    {
+      "key": "shipmentId",
+      "value": ""
+    },
+    {
+      "key": "offerId",
+      "value": ""
+    }
+  ]
+}
