@@ -67,7 +67,7 @@ extends DataAccessProblemExceptionHandler {
         if (problem == null) {
             problem = ProblemDetail.forStatusAndDetail(
                     ex.getStatusCode(),
-                    "Shipment відхилив запит."
+                    "Shipment service rejected the request"
             );
         }
 
@@ -88,7 +88,7 @@ extends DataAccessProblemExceptionHandler {
         ProblemDetail problem =
                 ProblemDetail.forStatusAndDetail(
                         HttpStatus.SERVICE_UNAVAILABLE,
-                        "Отримати відповідь від Shipment зараз неможливо. Спробуйте пізніше."
+                        "Shipment service is unavailable, please try again later"
                 );
 
         problem.setType(
@@ -99,8 +99,4 @@ extends DataAccessProblemExceptionHandler {
         return problem;
     }
 
-    @Override
-    protected String internalErrorDetail() {
-        return "Сталася внутрішня помилка сервера.";
-    }
 }
