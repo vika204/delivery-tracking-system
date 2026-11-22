@@ -1,0 +1,340 @@
+{
+  "consumer": {
+    "name": "web-ui"
+  },
+  "interactions": [
+    {
+      "description": "a tracking batch lookup",
+      "providerStates": [
+        {
+          "name": "shipment 1 is known to shipment-service"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/tracking/shipments/batch",
+        "query": {
+          "ids": [
+            "1"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "missingIds": [
+
+          ],
+          "shipments": [
+            {
+              "deliveryAddress": "Lviv, Svobody 10",
+              "shipmentId": 1
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipments[0].deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipments[0].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a tracking lookup for shipment 1",
+      "providerStates": [
+        {
+          "name": "shipment 1 is known to shipment-service"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/tracking/shipments/1"
+      },
+      "response": {
+        "body": {
+          "recipientName": "Marta Shevchenko",
+          "shipmentId": 1,
+          "status": "WAITING_FOR_COURIER"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a new location point",
+      "providerStates": [
+        {
+          "name": "shipment 15 accepts locations"
+        }
+      ],
+      "request": {
+        "body": {
+          "latitude": 50.4501,
+          "longitude": 30.5234,
+          "pointId": "4b3f1d5e-1c1b-4d6e-9d52-0c1f8f6a7b11",
+          "recordedAt": "2026-11-12T12:02:00Z"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.pointId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recordedAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/tracking/shipments/15/locations"
+      },
+      "response": {
+        "body": {
+          "latitude": 50.4501,
+          "locationId": 1,
+          "longitude": 30.5234,
+          "recordedAt": "2026-11-12T12:02:00",
+          "shipmentId": 15
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.locationId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.recordedAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 201
+      }
+    },
+    {
+      "description": "a location history read",
+      "providerStates": [
+        {
+          "name": "shipment 15 has recorded locations"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/tracking/shipments/15/locations",
+        "query": {
+          "afterLocationId": [
+            "0"
+          ],
+          "limit": [
+            "100"
+          ]
+        }
+      },
+      "response": {
+        "body": [
+          {
+            "latitude": 50.4501,
+            "locationId": 1,
+            "longitude": 30.5234,
+            "recordedAt": "2026-11-12T12:02:00",
+            "shipmentId": 15
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].latitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$[*].locationId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].longitude": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$[*].recordedAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a tracking lookup for an unknown shipment",
+      "providerStates": [
+        {
+          "name": "shipment 404 is unknown to shipment-service"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/tracking/shipments/404"
+      },
+      "response": {
+        "status": 404
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "tracking-service"
+  }
+}

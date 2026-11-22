@@ -1,0 +1,183 @@
+{
+  "consumer": {
+    "name": "web-ui"
+  },
+  "interactions": [
+    {
+      "description": "a feed read with a non-positive user id",
+      "request": {
+        "headers": {
+          "X-User-Id": "0"
+        },
+        "method": "GET",
+        "path": "/notifications/mine",
+        "query": {
+          "limit": [
+            "20"
+          ]
+        }
+      },
+      "response": {
+        "status": 400
+      }
+    },
+    {
+      "description": "a mark-as-read request",
+      "providerStates": [
+        {
+          "name": "user 42 has an unread notification 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "42"
+        },
+        "method": "POST",
+        "path": "/notifications/mine/read",
+        "query": {
+          "throughId": [
+            "1"
+          ]
+        }
+      },
+      "response": {
+        "body": false,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a notification feed read",
+      "providerStates": [
+        {
+          "name": "user 42 has an unread notification 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "42"
+        },
+        "method": "GET",
+        "path": "/notifications/mine",
+        "query": {
+          "limit": [
+            "20"
+          ]
+        }
+      },
+      "response": {
+        "body": [
+          {
+            "createdAt": "2026-11-12T12:02:00",
+            "message": "Your parcel was delivered",
+            "notificationId": 1,
+            "read": false,
+            "shipmentId": 15,
+            "type": "DELIVERED"
+          }
+        ],
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$[*].createdAt": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].message": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].notificationId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].read": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$[*].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$[*].type": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "regex",
+                  "regex": "[A-Z_]+"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "an unread check",
+      "providerStates": [
+        {
+          "name": "user 42 has an unread notification 1"
+        }
+      ],
+      "request": {
+        "headers": {
+          "X-User-Id": "42"
+        },
+        "method": "GET",
+        "path": "/notifications/mine/unread"
+      },
+      "response": {
+        "body": true,
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "status": 200
+      }
+    }
+  ],
+  "metadata": {
+    "pact-jvm": {
+      "version": "4.6.17"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "notification-service"
+  }
+}

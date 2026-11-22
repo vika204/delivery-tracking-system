@@ -4,6 +4,222 @@
   },
   "interactions": [
     {
+      "description": "a shipment creation from a quote",
+      "providerStates": [
+        {
+          "name": "a usable price quote exists for user 42"
+        }
+      ],
+      "request": {
+        "body": {
+          "height": 15.0,
+          "length": 30.0,
+          "quoteId": "7d444840-9dc0-11d1-b245-5ffdce74fad2",
+          "recipientName": "Marta Shevchenko",
+          "recipientPhone": "+380671234567",
+          "senderName": "Olena Kovalenko",
+          "senderPhone": "+380501234567",
+          "width": 20.0
+        },
+        "headers": {
+          "Content-Type": "application/json",
+          "Idempotency-Key": "key-1",
+          "X-User-Id": "42"
+        },
+        "matchingRules": {
+          "body": {
+            "$.height": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.length": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            },
+            "$.quoteId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.recipientPhone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.senderName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.senderPhone": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.width": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "decimal"
+                }
+              ]
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/shipments"
+      },
+      "response": {
+        "body": {
+          "recipientName": "Marta Shevchenko",
+          "shipmentId": 1,
+          "status": "WAITING_FOR_COURIER"
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.recipientName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
+      "description": "a batch request for shipments 1 and 404",
+      "providerStates": [
+        {
+          "name": "shipment 1 exists"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/shipments/batch",
+        "query": {
+          "ids": [
+            "1",
+            "404"
+          ]
+        }
+      },
+      "response": {
+        "body": {
+          "missingIds": [
+            404
+          ],
+          "shipments": [
+            {
+              "deliveryAddress": "Lviv, Svobody 10",
+              "pickupAddress": "Kyiv, Khreshchatyk 1",
+              "shipmentId": 1,
+              "status": "WAITING_FOR_COURIER"
+            }
+          ]
+        },
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "matchingRules": {
+          "body": {
+            "$.shipments": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type",
+                  "min": 1
+                }
+              ]
+            },
+            "$.shipments[*].deliveryAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipments[*].pickupAddress": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            },
+            "$.shipments[*].shipmentId": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "integer"
+                }
+              ]
+            },
+            "$.shipments[*].status": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
+                }
+              ]
+            }
+          }
+        },
+        "status": 200
+      }
+    },
+    {
       "description": "a request for shipment 1",
       "providerStates": [
         {
@@ -52,6 +268,21 @@
           }
         },
         "status": 200
+      }
+    },
+    {
+      "description": "a request for an unknown shipment",
+      "providerStates": [
+        {
+          "name": "shipment 404 does not exist"
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "path": "/shipments/404"
+      },
+      "response": {
+        "status": 404
       }
     }
   ],
