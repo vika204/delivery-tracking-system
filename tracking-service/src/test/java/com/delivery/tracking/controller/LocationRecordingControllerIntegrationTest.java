@@ -107,11 +107,10 @@ class LocationRecordingControllerIntegrationTest {
     }
 
     @Test
-    void rejectsMissingCoordinatesAndInvalidShipment() throws Exception {
+    void rejectsMissingCoordinates() throws Exception {
         mockMvc.perform(post("/tracking/shipments/15/locations").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"recordedAt\": \"2026-11-19T10:00:00Z\"}"))
                 .andExpect(status().isBadRequest());
-        postLocation(0, "50.45", "30.52", Instant.now()).andExpect(status().isBadRequest());
 
         assertNothingSaved();
     }

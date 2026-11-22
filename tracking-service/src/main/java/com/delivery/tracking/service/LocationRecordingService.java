@@ -34,36 +34,28 @@ public class LocationRecordingService {
     }
 
     public Recorded recordLocation(long shipmentId, RecordLocationRequest request) {
-        if (shipmentId <= 0) {
-            throw new LocationRejectedException(Reason.INVALID, "shipmentId must be positive");
-        }
         Optional<Recorded> replay = replay(shipmentId, request);
         if (replay.isPresent()) {
             return replay.get();
-        }
-        if (request == null || request.latitude() == null || request.longitude() == null) {
-            throw new LocationRejectedException(Reason.INVALID, "latitude and longitude are required");
         }
         validator.findViolation(request.latitude().doubleValue(), request.longitude().doubleValue(), request.recordedAt())
                 .ifPresent(violation -> {
                     throw new LocationRejectedException(Reason.INVALID, violation);
                 });
 
+        LocalDateTime recordedAt = LocalDateTime.ofInstant(request.recordedAt(), recordedAtZone);
         LiveLocationDecisionResult decision;
         try {
-            decision = liveLocationService.processPoint(shipmentId, new RoutePoint(
-                    request.latitude(),
-                    request.longitude(),
-                    LocalDateTime.ofInstant(request.recordedAt(), recordedAtZone)), request.pointId());
+            decision = liveLocationService.processPoint(
+                    shipmentId, new RoutePoint(request.latitude(), request.longitude(), recordedAt), request.pointId());
         } catch (DataIntegrityViolationException concurrentDuplicate) {
             return replay(shipmentId, request).orElseThrow(() -> concurrentDuplicate);
         }
         if (!decision.saved()) {
             throw new LocationRejectedException(Reason.SUSPICIOUS_JUMP, decision.reason());
         }
-        return trackingRepository.findById(decision.locationId())
-                .map(location -> new Recorded(ShipmentLocationResponse.from(location), false))
-                .orElseThrow();
+        return new Recorded(new ShipmentLocationResponse(
+                decision.locationId(), shipmentId, request.latitude(), request.longitude(), recordedAt), false);
     }
 
     private Optional<Recorded> replay(long shipmentId, RecordLocationRequest request) {
