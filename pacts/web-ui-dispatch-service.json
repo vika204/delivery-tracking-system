@@ -660,6 +660,7 @@
         "body": {
           "activeAssignments": 0,
           "courierId": 10,
+          "displayName": "Andrii Kovalenko",
           "online": true,
           "pendingOfferId": null,
           "state": "AVAILABLE"
@@ -682,6 +683,14 @@
               "matchers": [
                 {
                   "match": "integer"
+                }
+              ]
+            },
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
                 }
               ]
             },
@@ -741,6 +750,7 @@
         "body": {
           "activeAssignments": 0,
           "courierId": 10,
+          "displayName": "Andrii Kovalenko",
           "online": false,
           "pendingOfferId": null,
           "state": "UNAVAILABLE"
@@ -763,6 +773,14 @@
               "matchers": [
                 {
                   "match": "integer"
+                }
+              ]
+            },
+            "$.displayName": {
+              "combine": "AND",
+              "matchers": [
+                {
+                  "match": "type"
                 }
               ]
             },
