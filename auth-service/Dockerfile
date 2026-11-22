@@ -2,13 +2,17 @@ FROM maven:3.9-eclipse-temurin-25-alpine AS builder
 
 WORKDIR /workspace
 
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
+COPY web-problems/pom.xml web-problems/pom.xml
+COPY web-problems/src web-problems/src
+RUN mvn -B -f web-problems/pom.xml clean install -DskipTests
 
-COPY src ./src
-RUN mvn clean package -DskipTests
+COPY auth-service/pom.xml auth-service/pom.xml
+RUN mvn -B -f auth-service/pom.xml dependency:go-offline
 
-RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination extracted
+COPY auth-service/src auth-service/src
+RUN mvn -B -f auth-service/pom.xml clean package -DskipTests
+
+RUN java -Djarmode=tools -jar auth-service/target/*.jar extract --layers --launcher --destination extracted
 
 FROM eclipse-temurin:25-jre-alpine
 

@@ -8,6 +8,10 @@ RUN mvn -B -f tracking-api/pom.xml dependency:go-offline
 COPY tracking-api/src tracking-api/src
 RUN mvn -B -f tracking-api/pom.xml clean install -DskipTests
 
+COPY web-problems/pom.xml web-problems/pom.xml
+COPY web-problems/src web-problems/src
+RUN mvn -B -f web-problems/pom.xml clean install -DskipTests
+
 COPY tracking-service/pom.xml tracking-service/pom.xml
 RUN mvn -B -f tracking-service/pom.xml dependency:go-offline
 
