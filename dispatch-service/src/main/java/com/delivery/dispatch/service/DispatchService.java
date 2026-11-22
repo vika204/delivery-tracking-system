@@ -67,43 +67,28 @@ public class DispatchService {
                     shipmentData.shipmentId(), existing.get().getStatus());
             return;
         }
-        createDispatchRequest(shipmentData);
-    }
-
-    private void createDispatchRequest(ShipmentSnapshot shipmentData) {
         Instant now = Instant.now(clock);
         DispatchRequest request = DispatchRequest.builder()
                 .shipmentId(shipmentData.shipmentId())
+                .senderId(shipmentData.userId())
+                .pickupAddress(shipmentData.pickupAddress())
+                .pickupCityCode(shipmentData.pickupCityCode())
+                .pickupLatitude(shipmentData.pickupLatitude())
+                .pickupLongitude(shipmentData.pickupLongitude())
+                .deliveryAddress(shipmentData.deliveryAddress())
+                .deliveryCityCode(shipmentData.deliveryCityCode())
+                .deliveryLatitude(shipmentData.deliveryLatitude())
+                .deliveryLongitude(shipmentData.deliveryLongitude())
+                .parcelWeight(shipmentData.weight())
+                .distanceKm(shipmentData.distance())
+                .price(shipmentData.price())
                 .status(DispatchRequestStatus.SEARCHING)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
-        copyShipmentDetails(request, shipmentData);
         request = requestRepository.save(request);
         log.info("Courier search started: shipmentId={}, pickupCityCode={}, weight={}",
                 request.getShipmentId(), request.getPickupCityCode(), request.getParcelWeight());
-        offerDelivery(request);
-    }
-
-    @Transactional
-    public void onShipmentDetailsUpdated(ShipmentSnapshot shipmentData) {
-        List<DeliveryOffer> pending = offerRepository.findByShipmentIdAndStatusForUpdate(shipmentData.shipmentId(), OfferStatus.PENDING);
-        Optional<DispatchRequest> found = requestRepository.findByIdForUpdate(shipmentData.shipmentId());
-        if (found.isEmpty()) {
-            createDispatchRequest(shipmentData);
-            return;
-        }
-        DispatchRequest request = found.get();
-        copyShipmentDetails(request, shipmentData);
-        if (!request.isSearchable() && request.getStatus() != DispatchRequestStatus.OFFERED) {
-            log.warn("Shipment details updated after assignment, shipment details refreshed only: shipmentId={}, status={}",
-                    request.getShipmentId(), request.getStatus());
-            return;
-        }
-
-        cancelOffers(pending, "shipment details changed");
-        request.setStatus(DispatchRequestStatus.SEARCHING);
-        log.info("Courier search restarted after details update: shipmentId={}", request.getShipmentId());
         offerDelivery(request);
     }
 
@@ -493,22 +478,6 @@ public class DispatchService {
         if (!pending.isEmpty()) {
             applicationEvents.publishEvent(new CourierCapacityFreedEvent());
         }
-    }
-
-    private void copyShipmentDetails(DispatchRequest request, ShipmentSnapshot shipmentData) {
-        request.setSenderId(shipmentData.userId());
-        request.setPickupAddress(shipmentData.pickupAddress());
-        request.setPickupCityCode(shipmentData.pickupCityCode());
-        request.setPickupLatitude(shipmentData.pickupLatitude());
-        request.setPickupLongitude(shipmentData.pickupLongitude());
-        request.setDeliveryAddress(shipmentData.deliveryAddress());
-        request.setDeliveryCityCode(shipmentData.deliveryCityCode());
-        request.setDeliveryLatitude(shipmentData.deliveryLatitude());
-        request.setDeliveryLongitude(shipmentData.deliveryLongitude());
-        request.setParcelWeight(shipmentData.weight());
-        request.setDistanceKm(shipmentData.distance());
-        request.setPrice(shipmentData.price());
-        request.setUpdatedAt(Instant.now(clock));
     }
 
     private record Candidate(Courier courier, double distanceToPickupKm) {

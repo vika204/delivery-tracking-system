@@ -3,7 +3,6 @@ package com.delivery.shipment.outbox;
 import com.delivery.shipment.config.KafkaTopicConfig;
 import com.delivery.shipment.entity.OutboxEvent;
 import com.delivery.shipment.event.ShipmentCreatedEvent;
-import com.delivery.shipment.event.ShipmentDetailsUpdatedEvent;
 import com.delivery.shipment.event.ShipmentStatusChangedEvent;
 import com.delivery.shipment.repository.OutboxEventRepository;
 
@@ -109,7 +108,6 @@ public class OutboxRelay {
         return switch (event.getEventType()) {
             case ShipmentCreatedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC;
             case ShipmentStatusChangedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_STATUS_CHANGED_TOPIC;
-            case ShipmentDetailsUpdatedEvent.TYPE -> KafkaTopicConfig.SHIPMENT_DETAILS_UPDATED_TOPIC;
             default -> throw new IllegalArgumentException("Unknown outbox event type: " + event.getEventType());
         };
     }

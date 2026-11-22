@@ -11,7 +11,6 @@ public class KafkaTopicConfig {
     public static final String DISPATCH_EVENTS_TOPIC = "dispatch.events";
 
     public static final String SHIPMENT_EVENTS_TOPIC = "shipment.events";
-    public static final String SHIPMENT_DETAILS_UPDATED_TOPIC = "shipment.details.updated";
     public static final String SHIPMENT_STATUS_CHANGED_TOPIC = "shipment.status.changed";
 
     public static final String DLT_SUFFIX = ".dispatch-dlt";
@@ -24,11 +23,6 @@ public class KafkaTopicConfig {
     @Bean
     public NewTopic shipmentEventsDispatchDlt() {
         return topic(SHIPMENT_EVENTS_TOPIC + DLT_SUFFIX);
-    }
-
-    @Bean
-    public NewTopic shipmentDetailsUpdatedDispatchDlt() {
-        return topic(SHIPMENT_DETAILS_UPDATED_TOPIC + DLT_SUFFIX);
     }
 
     @Bean

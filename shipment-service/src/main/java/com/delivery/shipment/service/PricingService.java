@@ -1,7 +1,6 @@
 package com.delivery.shipment.service;
 
 import com.delivery.shipment.dto.PriceBreakdown;
-import com.delivery.shipment.dto.RouteQuote;
 import com.delivery.shipment.entity.PriceQuote;
 import com.delivery.shipment.exception.QuoteException;
 import com.delivery.shipment.geo.Coordinates;
@@ -41,7 +40,9 @@ public class PricingService {
         this.clock = clock;
     }
 
-    public RouteQuote calculate(
+    @Transactional
+    public PriceQuote createQuote(
+            long userId,
             String pickupCityCode,
             String pickupAddress,
             String deliveryCityCode,
@@ -52,21 +53,7 @@ public class PricingService {
         Coordinates delivery = routingClient.geocode(deliveryCityCode, deliveryAddress);
         BigDecimal distanceKm = BigDecimal.valueOf(routingClient.routeDistanceKm(pickup, delivery))
                 .setScale(2, RoundingMode.HALF_UP);
-
-        return new RouteQuote(pickup, delivery, distanceKm, calculator.calculate(distanceKm, weight));
-    }
-
-    @Transactional
-    public PriceQuote createQuote(
-            long userId,
-            String pickupCityCode,
-            String pickupAddress,
-            String deliveryCityCode,
-            String deliveryAddress,
-            BigDecimal weight
-    ) {
-        RouteQuote route = calculate(pickupCityCode, pickupAddress, deliveryCityCode, deliveryAddress, weight);
-        PriceBreakdown price = route.breakdown();
+        PriceBreakdown price = calculator.calculate(distanceKm, weight);
         Instant now = Instant.now(clock);
 
         PriceQuote quote = quoteRepository.save(PriceQuote.builder()
@@ -74,13 +61,13 @@ public class PricingService {
                 .userId(userId)
                 .pickupAddress(pickupAddress.trim())
                 .pickupCityCode(pickupCityCode)
-                .pickupLatitude(route.pickup().latitude())
-                .pickupLongitude(route.pickup().longitude())
+                .pickupLatitude(pickup.latitude())
+                .pickupLongitude(pickup.longitude())
                 .deliveryAddress(deliveryAddress.trim())
                 .deliveryCityCode(deliveryCityCode)
-                .deliveryLatitude(route.delivery().latitude())
-                .deliveryLongitude(route.delivery().longitude())
-                .distanceKm(route.distanceKm())
+                .deliveryLatitude(delivery.latitude())
+                .deliveryLongitude(delivery.longitude())
+                .distanceKm(distanceKm)
                 .weight(weight)
                 .basePrice(price.basePrice())
                 .pricePerKm(price.pricePerKm())
@@ -92,7 +79,7 @@ public class PricingService {
                 .build());
 
         log.info("Price quote calculated: quoteId={}, userId={}, distanceKm={}, weight={}, total={}",
-                quote.getQuoteId(), userId, route.distanceKm(), weight, price.total());
+                quote.getQuoteId(), userId, distanceKm, weight, price.total());
         return quote;
     }
 

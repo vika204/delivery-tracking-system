@@ -25,7 +25,7 @@ public class ShipmentEventsListener {
         this.processor = processor;
     }
 
-    @KafkaListener(topics = {KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC, KafkaTopicConfig.SHIPMENT_DETAILS_UPDATED_TOPIC},
+    @KafkaListener(topics = KafkaTopicConfig.SHIPMENT_EVENTS_TOPIC,
             groupId = "dispatch-shipment-group")
     public void onShipmentEvent(String json) {
         ShipmentEventMessage event = parse(json, ShipmentEventMessage.class);

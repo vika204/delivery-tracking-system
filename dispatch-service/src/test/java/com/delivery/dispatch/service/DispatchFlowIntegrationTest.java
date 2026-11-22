@@ -593,34 +593,6 @@ class DispatchFlowIntegrationTest {
     }
 
     @Test
-    void detailsUpdateRestartsSearchWithNewSnapshot() {
-        courier(1, KYIV, "5", true, 50.45, 30.52);
-        courier(2, KYIV, "50", true, 50.55, 30.70);
-        long shipmentId = created(KYIV, "3");
-        long firstOffer = pendingOffer(shipmentId).getOfferId();
-
-        events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
-                Instant.now(), snapshot(shipmentId, KYIV, "20")));
-
-        assertThat(offers.findById(firstOffer).orElseThrow().getStatus()).isEqualTo(OfferStatus.CANCELLED);
-        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(2L);
-    }
-
-    @Test
-    void detailsArrivingBeforeCreationStillStartOneCourierSearch() {
-        courier(1, KYIV, "20", true, null, null);
-        long shipmentId = nextShipmentId++;
-
-        events.process(new ShipmentEventMessage(UUID.randomUUID(), ShipmentEventMessage.SHIPMENT_DETAILS_UPDATED,
-                Instant.now(), snapshot(shipmentId, KYIV, "3")));
-        events.process(createdEvent(shipmentId, KYIV, "3"));
-
-        assertThat(request(shipmentId)).isEqualTo(DispatchRequestStatus.OFFERED);
-        assertThat(pendingOffer(shipmentId).getCourier().getUserId()).isEqualTo(1L);
-        assertThat(offers.count()).isEqualTo(1);
-    }
-
-    @Test
     void duplicateShipmentEventIsProcessedOnce() {
         courier(1, KYIV, "20", true, null, null);
         long shipmentId = nextShipmentId++;

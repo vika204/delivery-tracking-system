@@ -5,7 +5,6 @@ import com.delivery.shipment.dto.CreateShipmentRequest;
 import com.delivery.shipment.entity.ShipmentStatus;
 import com.delivery.shipment.event.DispatchEvent;
 import com.delivery.shipment.event.ShipmentCreatedEvent;
-import com.delivery.shipment.event.ShipmentDetailsUpdatedEvent;
 import com.delivery.shipment.event.ShipmentStatusChangedEvent;
 import com.delivery.shipment.exception.InvalidDispatchEventException;
 import com.delivery.shipment.geo.OfflineRoutingClient;
@@ -571,52 +570,23 @@ class ShipmentApiIntegrationTest {
     }
 
     @Test
-    void contactChangeKeepsPrice() throws Exception {
-        long shipmentId = createShipment();
-        var before = shipments.findById(shipmentId).orElseThrow().getPrice();
-
-        edit(SENDER, shipmentId, "{\"recipientName\": \"Ivan Bondarenko\"}")
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.priceRecalculated").value(false))
-                .andExpect(jsonPath("$.shipment.recipientName").value("Ivan Bondarenko"))
-                .andExpect(jsonPath("$.shipment.price").value(before.doubleValue()));
-    }
-
-    @Test
-    void routeChangeRecalculatesPriceAndNotifiesDispatch() throws Exception {
+    void shipmentDetailsCannotBeEditedAfterCreation() throws Exception {
         long shipmentId = createShipment();
         var before = shipments.findById(shipmentId).orElseThrow();
 
-        JsonNode result = json(edit(SENDER, shipmentId, """
-                {"deliveryAddress": "Saksahanskoho 28", "deliveryCityCode": "%s", "weight": 4}
-                """.formatted(KYIV)).andExpect(status().isOk()));
+        mockMvc.perform(patch("/shipments/" + shipmentId).header("X-User-Id", SENDER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"recipientName":"Ivan Bondarenko","deliveryAddress":"Another address","weight":4}
+                                """))
+                .andExpect(status().isMethodNotAllowed());
 
-        assertThat(result.get("priceRecalculated").asBoolean()).isTrue();
-        assertThat(result.get("previousPrice").decimalValue()).isEqualByComparingTo(before.getPrice());
-        assertThat(result.get("shipment").get("distance").decimalValue()).isLessThan(before.getDistance());
-        assertThat(result.get("shipment").get("price").decimalValue())
-                .isEqualByComparingTo(result.get("breakdown").get("total").decimalValue());
-
-        ShipmentDetailsUpdatedEvent event = onlyEvent(ShipmentDetailsUpdatedEvent.TYPE, ShipmentDetailsUpdatedEvent.class);
-        assertThat(event.priceRecalculated()).isTrue();
-        assertThat(event.payload().deliveryCityCode()).isEqualTo(KYIV);
-        assertThat(event.payload().weight()).isEqualByComparingTo("4");
-    }
-
-    @Test
-    void editIsForbiddenAfterAssignment() throws Exception {
-        long shipmentId = assignedShipment();
-
-        edit(SENDER, shipmentId, "{\"weight\": 3}").andExpect(status().isConflict());
-    }
-
-    @Test
-    void editValidatesAddressPairAndEmptyBody() throws Exception {
-        long shipmentId = createShipment();
-
-        edit(SENDER, shipmentId, "{\"deliveryAddress\": \"Saksahanskoho 28\"}").andExpect(status().isBadRequest());
-        edit(SENDER, shipmentId, "{}").andExpect(status().isBadRequest());
-        edit(99, shipmentId, "{\"weight\": 3}").andExpect(status().isForbidden());
+        var after = shipments.findById(shipmentId).orElseThrow();
+        assertThat(after.getRecipientName()).isEqualTo(before.getRecipientName());
+        assertThat(after.getDeliveryAddress()).isEqualTo(before.getDeliveryAddress());
+        assertThat(after.getWeight()).isEqualByComparingTo(before.getWeight());
+        assertThat(after.getPrice()).isEqualByComparingTo(before.getPrice());
+        assertThat(outbox.count()).isZero();
     }
 
     @Test
@@ -701,11 +671,6 @@ class ShipmentApiIntegrationTest {
     private ResultActions cancel(long userId, long shipmentId) throws Exception {
         return mockMvc.perform(post("/shipments/" + shipmentId + "/cancel").header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"reason\": \"plans changed\"}"));
-    }
-
-    private ResultActions edit(long userId, long shipmentId, String body) throws Exception {
-        return mockMvc.perform(patch("/shipments/" + shipmentId).header("X-User-Id", userId)
-                .contentType(MediaType.APPLICATION_JSON).content(body));
     }
 
     private JsonNode json(ResultActions result) throws Exception {
