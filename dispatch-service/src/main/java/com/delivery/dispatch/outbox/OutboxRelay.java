@@ -12,10 +12,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Component
 @ConditionalOnProperty(prefix = "outbox.relay", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -27,7 +29,7 @@ public class OutboxRelay {
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final OutboxTraceContext traceContext;
     private final Clock clock;
-    private final Set<UUID> inFlight = ConcurrentHashMap.newKeySet();
+    private static final Duration SEND_TIMEOUT = Duration.ofSeconds(10);
 
     public OutboxRelay(OutboxEventRepository outboxRepository, KafkaTemplate<String, String> kafkaTemplate,
                        OutboxTraceContext traceContext, Clock clock) {
@@ -39,38 +41,42 @@ public class OutboxRelay {
 
     @Scheduled(fixedDelayString = "${outbox.relay.delay-ms:1000}")
     public void publishPendingEvents() {
+        // Each send is awaited: once an event fails, later events with the same key (= same partition) wait for
+        // the next cycle, which retries the failed one first. Otherwise a retried older event would be delivered
+        // after a newer one.
+        Set<String> blockedKeys = new HashSet<>();
         for (OutboxEvent event : outboxRepository.findTop50ByPublishedFalseOrderByCreatedAtAsc()) {
-            UUID eventId = event.getEventId();
-            if (!inFlight.add(eventId)) {
+            if (blockedKeys.contains(event.getAggregateId())) {
                 continue;
             }
-
-            Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
-            try (var _ = traceContext.activate(span)) {
-                kafkaTemplate.send(KafkaTopicConfig.DISPATCH_EVENTS_TOPIC, event.getAggregateId(), event.getPayload())
-                        .whenComplete((result, ex) -> {
-                            try {
-                                if (ex != null) {
-                                    log.error("Failed to publish outbox event: {}", eventId, ex);
-                                    return;
-                                }
-                                if (outboxRepository.markPublished(eventId, Instant.now(clock)) == 1) {
-                                    log.info("Outbox event published: eventId={}, type={}, shipmentId={}",
-                                            eventId, event.getEventType(), event.getAggregateId());
-                                }
-                            } catch (Exception e) {
-                                log.error("Failed to update outbox event: {}", eventId, e);
-                            } finally {
-                                inFlight.remove(eventId);
-                            }
-                        });
-            } catch (Exception e) {
-                inFlight.remove(eventId);
-                span.error(e);
-                log.error("Failed to send outbox event: {}", eventId, e);
-            } finally {
-                span.end();
+            if (!publish(event)) {
+                blockedKeys.add(event.getAggregateId());
             }
+        }
+    }
+
+    private boolean publish(OutboxEvent event) {
+        UUID eventId = event.getEventId();
+        Span span = traceContext.startChild("outbox relay publish", event.getTraceparent());
+        try (var _ = traceContext.activate(span)) {
+            kafkaTemplate.send(KafkaTopicConfig.DISPATCH_EVENTS_TOPIC, event.getAggregateId(), event.getPayload())
+                    .get(SEND_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            if (outboxRepository.markPublished(eventId, Instant.now(clock)) == 1) {
+                log.info("Outbox event published: eventId={}, type={}, shipmentId={}",
+                        eventId, event.getEventType(), event.getAggregateId());
+            }
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            span.error(e);
+            log.error("Interrupted while publishing outbox event: {}", eventId, e);
+            return false;
+        } catch (Exception e) {
+            span.error(e);
+            log.error("Failed to publish outbox event: {}", eventId, e);
+            return false;
+        } finally {
+            span.end();
         }
     }
 }
