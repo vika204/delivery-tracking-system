@@ -289,10 +289,10 @@
     </article>
 </main>
 
-<div class="modal" id="confirmation" hidden role="presentation">
-    <div class="modal-card"
-         role="dialog"
-         aria-modal="true"
+<div class="modal" id="confirmation" hidden>
+    <dialog class="modal-card"
+            open
+            aria-modal="true"
          aria-labelledby="modal-title"
          aria-describedby="modal-description">
         <h2 id="modal-title">CONFIRM SHIPMENT</h2>
@@ -308,7 +308,7 @@
             </button>
             <button class="btn btn-secondary" type="button" id="close-modal">BACK TO FORM</button>
         </div>
-    </div>
+    </dialog>
 </div>
 
 <div th:replace="~{fragments/ui/modal :: modal}"></div>

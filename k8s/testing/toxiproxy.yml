@@ -64,9 +64,11 @@ spec:
             requests:
               cpu: 25m
               memory: 32Mi
+              ephemeral-storage: 64Mi
             limits:
               cpu: 100m
               memory: 128Mi
+              ephemeral-storage: 128Mi
           volumeMounts:
             - name: config
               mountPath: /config
