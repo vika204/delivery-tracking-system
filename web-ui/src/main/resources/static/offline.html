@@ -153,6 +153,7 @@
     .screen-shell::before { left: -10px; border-radius: 0 4px 4px 0; }
     .screen-shell::after { right: -10px; border-radius: 4px 0 0 4px; }
     .reels {
+      margin: 0;
       position: relative;
       display: flex;
       gap: 8px;
@@ -458,11 +459,11 @@
         </div>
         <div class="cabinet">
           <div class="screen-shell">
-            <div class="reels" id="reels" role="img" aria-label="Three reels with lemon, cherry, 777 and BAR symbols">
+            <figure class="reels" id="reels" aria-label="Three reels with lemon, cherry, 777 and BAR symbols">
               <div class="reel"><div class="reel-track"></div><div class="win-line"></div></div>
               <div class="reel"><div class="reel-track"></div><div class="win-line"></div></div>
               <div class="reel"><div class="reel-track"></div><div class="win-line"></div></div>
-            </div>
+            </figure>
           </div>
           <div class="panel-details" aria-hidden="true">
             <div class="bolts"><i class="bolt"></i><i class="bolt"></i></div>

@@ -318,6 +318,8 @@ a {
 }
 
 .modal-card {
+    margin: 0;
+    color: inherit;
     position: relative;
     width: min(460px, 100%);
     padding: 32px;

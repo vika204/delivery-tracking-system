@@ -102,11 +102,10 @@
                      th:attr="data-spider-url=@{/images/spider-courier.webp}">
                 </div>
 
-                <div id="map-error"
-                     class="tracking-map-panel__error"
-                     role="status">
+                <output id="map-error"
+                        class="tracking-map-panel__error">
                     Loading the map…
-                </div>
+                </output>
 
                 <div class="tracking-map-panel__top">
                     <span class="tracking-map-panel__pill">
@@ -117,14 +116,13 @@
                         </span>
                     </span>
 
-                    <span th:if="${trackingStreamEnabled and !tracking.terminal}"
+                    <output th:if="${trackingStreamEnabled and !tracking.terminal}"
                           id="tracking-stream-status"
                           class="tracking-map-panel__pill tracking-map-panel__pill--stream"
-                          data-state="connecting"
-                          role="status">
+                          data-state="connecting">
                         <span class="tracking-map-panel__dot"></span>
                         <span data-stream-status-text>CONNECTING</span>
-                    </span>
+                    </output>
                 </div>
 
             </section>

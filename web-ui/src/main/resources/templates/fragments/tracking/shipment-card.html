@@ -10,10 +10,9 @@
 
         <div class="tracking-card__field tracking-card__field--status">
             <dt>STATUS</dt>
-            <dd id="delivery-status"
-                role="status"
-                aria-live="polite"
-                th:text="${tracking.statusText}">IN TRANSIT</dd>
+            <dd><output id="delivery-status"
+                        aria-live="polite"
+                        th:text="${tracking.statusText}">IN TRANSIT</output></dd>
         </div>
 
         <div class="tracking-card__field">
