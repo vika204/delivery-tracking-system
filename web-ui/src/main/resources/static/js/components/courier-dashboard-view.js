@@ -1,3 +1,4 @@
+import {humanizeStatuses} from './courier-delivery.js';
 
 const STATES = new Set(['AVAILABLE', 'BUSY', 'UNAVAILABLE']);
 
@@ -24,5 +25,5 @@ export function secondsUntil(deadlineMs, nowMs) {
 }
 
 export function problemMessage(problem, fallback) {
-    return problem && typeof problem.detail === 'string' && problem.detail.trim() ? problem.detail : fallback;
+    return problem && typeof problem.detail === 'string' && problem.detail.trim() ? humanizeStatuses(problem.detail) : fallback;
 }

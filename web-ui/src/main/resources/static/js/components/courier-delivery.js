@@ -14,6 +14,11 @@ export function statusLabel(status) {
     return LABELS[status] ?? '—';
 }
 
+export function humanizeStatuses(text) {
+    return String(text).replace(/\b[A-Z]+(?:_[A-Z]+)+\b/g,
+        token => (LABELS[token] ?? token.replaceAll('_', ' ')).toLowerCase());
+}
+
 export function statusClass(status) {
     if (status === 'IN_TRANSIT') return 'in-transit';
     if (status === 'DELIVERED') return 'delivered';

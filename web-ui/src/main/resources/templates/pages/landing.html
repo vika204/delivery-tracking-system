@@ -55,7 +55,8 @@
             tracked the whole way, no detours, no drama.
         </p>
 
-        <a class="landing-cta web-button" href="/ship" th:href="@{/ship}">
+        <a class="landing-cta web-button" href="/ship" th:href="@{/ship}"
+           th:unless="${T(com.delivery.webui.security.AuthenticatedUser).currentHeaderState() == 'COURIER'}">
             <th:block th:replace="~{fragments/ui/button-webs :: buttonWebs}"></th:block>
             <span class="web-button__label">SEND A PACKAGE</span>
         </a>
