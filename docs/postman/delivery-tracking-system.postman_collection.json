@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "d4e8123a-9b41-4c72-a118-7e6f92a31001",
     "name": "delivery-tracking-system",
-    "description": "колекція запитів до мікросервісної системи кур'єрської доставки web express (єдина точка входу web-ui та внутрішні сервіси).",
+    "description": "повна колекція запитів до мікросервісної системи кур'єрської доставки web express: єдина точка входу web-ui, усі внутрішні мікросервіси (auth, shipment, dispatch, tracking, notification), 4 моделі grpc, chaos / circuit breaker, rate limiter та actuator.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -52,8 +52,18 @@
       "type": "string"
     },
     {
+      "key": "clientId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "courierId",
+      "value": "2",
+      "type": "string"
+    },
+    {
       "key": "quoteId",
-      "value": "",
+      "value": "3f2c1d7e-8a4b-4c5d-9e6f-1a2b3c4d5e6f",
       "type": "string"
     },
     {
@@ -72,35 +82,27 @@
       "type": "string"
     },
     {
-      "key": "clientId",
+      "key": "assignmentId",
       "value": "1",
       "type": "string"
     },
     {
-      "key": "courierId",
-      "value": "2",
+      "key": "locationId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "1",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "01 - auth and profiles",
+      "name": "01 - web-ui entry point - main demo scenarios",
       "item": [
         {
-          "name": "register client",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status is 200', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "1. register client",
           "request": {
             "method": "POST",
             "header": [
@@ -132,7 +134,7 @@
           }
         },
         {
-          "name": "get client profile",
+          "name": "2. get client profile",
           "request": {
             "method": "GET",
             "header": [
@@ -154,7 +156,7 @@
           }
         },
         {
-          "name": "update client profile",
+          "name": "3. update client profile",
           "request": {
             "method": "PUT",
             "header": [
@@ -184,7 +186,7 @@
           }
         },
         {
-          "name": "logout",
+          "name": "4. logout client",
           "request": {
             "method": "POST",
             "header": [
@@ -207,7 +209,7 @@
           }
         },
         {
-          "name": "register courier (with katottg and max weight)",
+          "name": "5. register courier (katottg and max weight)",
           "request": {
             "method": "POST",
             "header": [
@@ -239,7 +241,7 @@
           }
         },
         {
-          "name": "get courier profile",
+          "name": "6. get courier profile",
           "request": {
             "method": "GET",
             "header": [
@@ -262,7 +264,7 @@
           }
         },
         {
-          "name": "update courier profile",
+          "name": "7. update courier profile",
           "request": {
             "method": "PUT",
             "header": [
@@ -293,106 +295,16 @@
           }
         },
         {
-          "name": "login as client",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{clientEmail}}\",\n  \"password\": \"{{password}}\"\n}"
-            },
-            "url": {
-              "raw": "{{webUiUrl}}/api/auth/login",
-              "host": [
-                "{{webUiUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          }
-        },
-        {
-          "name": "login as courier",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{courierEmail}}\",\n  \"password\": \"{{password}}\"\n}"
-            },
-            "url": {
-              "raw": "{{webUiUrl}}/api/auth/login",
-              "host": [
-                "{{webUiUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "02 - scenario 1 - create shipment, outbox and courier offer",
-      "item": [
-        {
-          "name": "1. login as courier and go online",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{courierEmail}}\",\n  \"password\": \"{{password}}\"\n}"
-            },
-            "url": {
-              "raw": "{{webUiUrl}}/api/auth/login",
-              "host": [
-                "{{webUiUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          }
-        },
-        {
-          "name": "2. set courier availability online",
+          "name": "8. set courier availability online",
           "request": {
             "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -415,12 +327,16 @@
           }
         },
         {
-          "name": "3. login as client",
+          "name": "9. login as client",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -442,7 +358,7 @@
           }
         },
         {
-          "name": "4. calculate delivery quote",
+          "name": "10. calculate shipment quote",
           "event": [
             {
               "listen": "test",
@@ -488,7 +404,7 @@
           }
         },
         {
-          "name": "5. create shipment (transactional outbox to kafka)",
+          "name": "11. create shipment (transactional outbox -> kafka)",
           "event": [
             {
               "listen": "test",
@@ -511,47 +427,7 @@
                 "value": "application/json"
               },
               {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Marta Boyko\",\n  \"recipientPhone\": \"+380501234569\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 15\n}"
-            },
-            "url": {
-              "raw": "{{webUiUrl}}/api/shipments",
-              "host": [
-                "{{webUiUrl}}"
-              ],
-              "path": [
-                "api",
-                "shipments"
-              ]
-            }
-          }
-        },
-        {
-          "name": "6. replay create shipment with same idempotency-key",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('idempotent replay returns 200 and header Idempotent-Replayed=true', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    pm.expect(pm.response.headers.get('Idempotent-Replayed')).to.eql('true');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
+                "key": "Accept",
                 "value": "application/json"
               },
               {
@@ -576,12 +452,64 @@
           }
         },
         {
-          "name": "7. login as courier to view offer",
+          "name": "12. replay create shipment (same idempotency-key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('idempotent replay returns Idempotent-Replayed=true', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.headers.get('Idempotent-Replayed')).to.eql('true');",
+                  "});"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Marta Boyko\",\n  \"recipientPhone\": \"+380501234569\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 15\n}"
+            },
+            "url": {
+              "raw": "{{webUiUrl}}/api/shipments",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13. login as courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -603,7 +531,7 @@
           }
         },
         {
-          "name": "8. get courier dashboard (current offer)",
+          "name": "14. get courier dashboard (view current offer)",
           "event": [
             {
               "listen": "test",
@@ -640,7 +568,7 @@
           }
         },
         {
-          "name": "9. accept delivery offer",
+          "name": "15. accept delivery offer (status -> assigned)",
           "request": {
             "method": "POST",
             "header": [
@@ -664,14 +592,35 @@
               ]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "03 - scenario 2 - pickup, gps tracking, grpc streaming and sse",
-      "item": [
+        },
         {
-          "name": "1. get assigned shipment details (courier view)",
+          "name": "16. decline delivery offer (alternative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{webUiUrl}}/api/courier/dashboard/offers/{{offerId}}/decline",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "api",
+                "courier",
+                "dashboard",
+                "offers",
+                "{{offerId}}",
+                "decline"
+              ]
+            }
+          }
+        },
+        {
+          "name": "17. get courier shipment details",
           "request": {
             "method": "GET",
             "header": [
@@ -695,7 +644,7 @@
           }
         },
         {
-          "name": "2. confirm pickup (status -> in_transit)",
+          "name": "18. confirm pickup (status -> in_transit)",
           "request": {
             "method": "POST",
             "header": [
@@ -720,12 +669,16 @@
           }
         },
         {
-          "name": "3. record courier gps location point 1",
+          "name": "19. record courier gps point 1",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -749,12 +702,16 @@
           }
         },
         {
-          "name": "4. record courier gps location point 2",
+          "name": "20. record courier gps point 2",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -778,7 +735,7 @@
           }
         },
         {
-          "name": "5. get public tracking shipment status",
+          "name": "21. get tracking shipment status",
           "request": {
             "method": "GET",
             "header": [
@@ -803,7 +760,7 @@
           }
         },
         {
-          "name": "6. get gps location history (backfill)",
+          "name": "22. get tracking gps location history (backfill)",
           "request": {
             "method": "GET",
             "header": [
@@ -838,7 +795,7 @@
           }
         },
         {
-          "name": "7. subscribe to live gps sse stream (grpc -> sse)",
+          "name": "23. subscribe to live gps sse stream (grpc server streaming -> sse)",
           "request": {
             "method": "GET",
             "header": [
@@ -861,14 +818,9 @@
               ]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "04 - scenario 3 - delivery completion, withdrawal and notifications",
-      "item": [
+        },
         {
-          "name": "1. complete delivery (status -> delivered)",
+          "name": "24. complete delivery (status -> delivered)",
           "request": {
             "method": "POST",
             "header": [
@@ -893,7 +845,7 @@
           }
         },
         {
-          "name": "2. withdraw courier from assignment (before pickup)",
+          "name": "25. withdraw courier from shipment (alternative before pickup)",
           "request": {
             "method": "POST",
             "header": [
@@ -918,12 +870,16 @@
           }
         },
         {
-          "name": "3. login as client to check notifications",
+          "name": "26. login as client for notifications and cancellation",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -945,7 +901,7 @@
           }
         },
         {
-          "name": "4. check unread notifications indicator",
+          "name": "27. check unread notifications indicator",
           "request": {
             "method": "GET",
             "header": [
@@ -968,7 +924,7 @@
           }
         },
         {
-          "name": "5. mark notifications read",
+          "name": "28. mark notifications read",
           "request": {
             "method": "POST",
             "header": [
@@ -997,7 +953,7 @@
           }
         },
         {
-          "name": "6. cancel shipment by client (before pickup)",
+          "name": "29. cancel shipment by client (alternative before pickup)",
           "request": {
             "method": "POST",
             "header": [
@@ -1023,7 +979,283 @@
       ]
     },
     {
-      "name": "05 - validation, problem detail and rate limiter",
+      "name": "02 - web-ui entry point - pages and static data",
+      "item": [
+        {
+          "name": "landing page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "login page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/login",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "register page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/register",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "tracking page (search and live map)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/tracking?shipmentId={{shipmentId}}",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "tracking"
+              ],
+              "query": [
+                {
+                  "key": "shipmentId",
+                  "value": "{{shipmentId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "katottg settlements data json",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{webUiUrl}}/data/katottg-settlements.json",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "data",
+                "katottg-settlements.json"
+              ]
+            }
+          }
+        },
+        {
+          "name": "client profile page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/profile",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "create shipment page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/ship",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "ship"
+              ]
+            }
+          }
+        },
+        {
+          "name": "shipment created success page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/ship/success/{{shipmentId}}",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "ship",
+                "success",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "my parcels page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/my-parcels?page=0",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "my-parcels"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "parcel details page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/my-parcels/{{shipmentId}}",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "my-parcels",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "notifications page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/notifications",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "notifications fragment (polling)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/notifications?fragment=true",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "fragment",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "courier profile page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/courier/profile",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "courier",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "courier dashboard page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/courier/dashboard",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "courier",
+                "dashboard"
+              ]
+            }
+          }
+        },
+        {
+          "name": "courier delivery details page",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{webUiUrl}}/courier/deliveries/{{shipmentId}}",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "courier",
+                "deliveries",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - web-ui entry point - validation, problem detail and rate limiter",
       "item": [
         {
           "name": "invalid login credentials (401 problem detail)",
@@ -1032,6 +1264,10 @@
             "header": [
               {
                 "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
                 "value": "application/json"
               }
             ],
@@ -1060,11 +1296,47 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Olena\",\n  \"lastName\": \"Kovalenko\",\n  \"email\": \"{{clientEmail}}\",\n  \"phone\": \"+380671234567\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{webUiUrl}}/api/auth/register/client",
+              "host": [
+                "{{webUiUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register",
+                "client"
+              ]
+            }
+          }
+        },
+        {
+          "name": "validation error on registration (400 bad request problem detail)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"not-an-email\",\n  \"phone\": \"123\",\n  \"password\": \"short\"\n}"
             },
             "url": {
               "raw": "{{webUiUrl}}/api/auth/register/client",
@@ -1088,11 +1360,15 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Marta\",\n  \"recipientPhone\": \"+380501234569\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 15\n}"
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Marta Boyko\",\n  \"recipientPhone\": \"+380501234569\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 15\n}"
             },
             "url": {
               "raw": "{{webUiUrl}}/api/shipments",
@@ -1107,7 +1383,7 @@
           }
         },
         {
-          "name": "rate limiter check (x-ratelimit-limit and x-ratelimit-remaining headers)",
+          "name": "rate limiter check (headers x-ratelimit-limit and 429 on burst)",
           "event": [
             {
               "listen": "test",
@@ -1148,10 +1424,75 @@
       ]
     },
     {
-      "name": "06 - direct microservice endpoints (ports 8081-8085)",
+      "name": "04 - auth-service (port 8081)",
       "item": [
         {
-          "name": "auth-service - list users",
+          "name": "create user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.userId) {",
+                  "    pm.collectionVariables.set('clientId', String(data.userId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Taras\",\n  \"lastName\": \"Melnyk\",\n  \"email\": \"taras.melnyk@example.com\",\n  \"phone\": \"+380671234599\",\n  \"password\": \"password123\",\n  \"role\": \"CLIENT\"\n}"
+            },
+            "url": {
+              "raw": "{{authUrl}}/users",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "login user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"taras.melnyk@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{authUrl}}/users/login",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "users",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "list all users",
           "request": {
             "method": "GET",
             "header": [],
@@ -1167,24 +1508,231 @@
           }
         },
         {
-          "name": "shipment-service - get shipment by id",
+          "name": "get user by id",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}",
+              "raw": "{{authUrl}}/users/{{clientId}}",
               "host": [
-                "{{shipmentUrl}}"
+                "{{authUrl}}"
               ],
               "path": [
-                "shipments",
-                "{{shipmentId}}"
+                "users",
+                "{{clientId}}"
               ]
             }
           }
         },
         {
-          "name": "shipment-service - get shipment batch",
+          "name": "get user profile (by x-user-id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{authUrl}}/users/profile",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "update user profile (by x-user-id)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Taras\",\n  \"lastName\": \"Melnyk\",\n  \"email\": \"taras.melnyk@example.com\",\n  \"phone\": \"+380671234588\"\n}"
+            },
+            "url": {
+              "raw": "{{authUrl}}/users/profile",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "users",
+                "profile"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - shipment-service (port 8082)",
+      "item": [
+        {
+          "name": "create delivery quote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.quoteId) {",
+                  "    pm.collectionVariables.set('quoteId', data.quoteId);",
+                  "    pm.collectionVariables.set('idempotencyKey', 'direct-idem-' + data.quoteId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pickupCityCode\": \"UA80000000000093317\",\n  \"pickupAddress\": \"Київ, вул. Хрещатик, 1\",\n  \"deliveryCityCode\": \"UA80000000000093317\",\n  \"deliveryAddress\": \"Київ, Контрактова площа, 2\",\n  \"weight\": 2.5\n}"
+            },
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/quotes",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "quotes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "create shipment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data && data.shipmentId) {",
+                  "    pm.collectionVariables.set('shipmentId', String(data.shipmentId));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Ivan Petrenko\",\n  \"recipientPhone\": \"+380501112233\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 10\n}"
+            },
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "search shipments (filters and pagination)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments?page=0&size=20",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get my shipments (by x-user-id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/mine?page=0&size=20",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "mine"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get shipments batch",
           "request": {
             "method": "GET",
             "header": [],
@@ -1207,7 +1755,24 @@
           }
         },
         {
-          "name": "shipment-service - get shipment status history",
+          "name": "get shipment by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get shipment status history",
           "request": {
             "method": "GET",
             "header": [],
@@ -1225,7 +1790,137 @@
           }
         },
         {
-          "name": "dispatch-service - list couriers",
+          "name": "get courier view of shipment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}/courier-view",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "courier-view"
+              ]
+            }
+          }
+        },
+        {
+          "name": "confirm shipment pickup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}/pickup",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "pickup"
+              ]
+            }
+          }
+        },
+        {
+          "name": "complete shipment delivery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}/deliver",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "deliver"
+              ]
+            }
+          }
+        },
+        {
+          "name": "cancel shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Changed delivery plans\"\n}"
+            },
+            "url": {
+              "raw": "{{shipmentUrl}}/shipments/{{shipmentId}}/cancel",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "shipments",
+                "{{shipmentId}}",
+                "cancel"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - dispatch-service (port 8083)",
+      "item": [
+        {
+          "name": "register courier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{courierId}},\n  \"displayName\": \"Andrii Shevchenko\",\n  \"phone\": \"+380509876543\",\n  \"workZone\": \"Київ\",\n  \"workZoneCode\": \"UA80000000000093317\",\n  \"maxPackageWeight\": 25.0,\n  \"available\": true\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "list all couriers",
           "request": {
             "method": "GET",
             "header": [],
@@ -1241,7 +1936,320 @@
           }
         },
         {
-          "name": "tracking-service - get shipment locations",
+          "name": "get courier by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "update courier profile (patch)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Andrii Shevchenko\",\n  \"phone\": \"+380509876543\",\n  \"workZone\": \"Київ\",\n  \"workZoneCode\": \"UA80000000000093317\",\n  \"maxPackageWeight\": 30.0\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get courier status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/status",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "set courier availability",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"online\": true\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/availability",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "availability"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get current pending offer",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/offers/current",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "offers",
+                "current"
+              ]
+            }
+          }
+        },
+        {
+          "name": "accept delivery offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/offers/{{offerId}}/accept",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "offers",
+                "{{offerId}}",
+                "accept"
+              ]
+            }
+          }
+        },
+        {
+          "name": "decline delivery offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/offers/{{offerId}}/decline",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "offers",
+                "{{offerId}}",
+                "decline"
+              ]
+            }
+          }
+        },
+        {
+          "name": "list courier assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/assignments?active=true",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "assignments"
+              ],
+              "query": [
+                {
+                  "key": "active",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "withdraw assignment by assignment id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Vehicle issue before pickup\"\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/{{courierId}}/assignments/{{assignmentId}}/withdraw",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "{{courierId}}",
+                "assignments",
+                "{{assignmentId}}",
+                "withdraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "withdraw assignment by shipment id",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{courierId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{dispatchUrl}}/couriers/shipments/{{shipmentId}}/withdraw",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "couriers",
+                "shipments",
+                "{{shipmentId}}",
+                "withdraw"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get assigned courier for shipment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{dispatchUrl}}/dispatch/shipments/{{shipmentId}}/courier",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "shipments",
+                "{{shipmentId}}",
+                "courier"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - tracking-service (port 8084)",
+      "item": [
+        {
+          "name": "record shipment gps location",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pointId\": \"11111111-2222-4333-8444-555555555503\",\n  \"latitude\": 50.4501,\n  \"longitude\": 30.5234,\n  \"recordedAt\": \"2026-11-21T12:05:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments/{{shipmentId}}/locations",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "locations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get shipment gps locations (paginated afterLocationId)",
           "request": {
             "method": "GET",
             "header": [],
@@ -1270,7 +2278,179 @@
           }
         },
         {
-          "name": "notification-service - get client notifications",
+          "name": "list all recorded locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get location by location id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/{{locationId}}",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "{{locationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get shipment via tracking-service (resilience4j circuit breaker)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments/{{shipmentId}}",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get shipments batch via tracking-service",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments/batch?ids={{shipmentId}},9999",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments",
+                "batch"
+              ],
+              "query": [
+                {
+                  "key": "ids",
+                  "value": "{{shipmentId}},9999"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "create shipment via tracking-service proxy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "tracking-proxy-{{idempotencyKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quoteId\": \"{{quoteId}}\",\n  \"senderName\": \"Olena Kovalenko\",\n  \"senderPhone\": \"+380671234567\",\n  \"recipientName\": \"Ivan Petrenko\",\n  \"recipientPhone\": \"+380501112233\",\n  \"length\": 30,\n  \"width\": 20,\n  \"height\": 10\n}"
+            },
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - notification-service (port 8085)",
+      "item": [
+        {
+          "name": "create notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{clientId}},\n  \"shipmentId\": {{shipmentId}},\n  \"type\": \"SHIPMENT_CREATED\",\n  \"message\": \"Your shipment has been created.\",\n  \"isRead\": false\n}"
+            },
+            "url": {
+              "raw": "{{notificationUrl}}/notifications",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "list all notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get notification by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/{{notificationId}}",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "get my notifications (by x-user-id)",
           "request": {
             "method": "GET",
             "header": [
@@ -1293,6 +2473,393 @@
                   "key": "limit",
                   "value": "50"
                 }
+              ]
+            }
+          }
+        },
+        {
+          "name": "check unread notifications (by x-user-id)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/mine/unread",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "mine",
+                "unread"
+              ]
+            }
+          }
+        },
+        {
+          "name": "mark notifications as read (by x-user-id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-User-Id",
+                "value": "{{clientId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/mine/read?throughId=10",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "mine",
+                "read"
+              ],
+              "query": [
+                {
+                  "key": "throughId",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - grpc 4 interaction models (rest triggers)",
+      "item": [
+        {
+          "name": "1. unary rpc (GetLatestLocation via notification-service)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/tracking/shipments/{{shipmentId}}/delivery-info",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "tracking",
+                "shipments",
+                "{{shipmentId}}",
+                "delivery-info"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. server streaming rpc - subscribe (SubscribeLocationUpdates via notification-service)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/tracking/subscriptions/{{shipmentId}}",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "tracking",
+                "subscriptions",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. server streaming rpc - unsubscribe (via notification-service)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/notifications/tracking/subscriptions/{{shipmentId}}",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "tracking",
+                "subscriptions",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. client streaming rpc (RecordCourierLocationHistory via dispatch-service)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "route-upload-001"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": [\n    {\n      \"latitude\": 50.4501,\n      \"longitude\": 30.5234,\n      \"recordedAt\": \"2026-11-21T12:10:00Z\"\n    },\n    {\n      \"latitude\": 50.4512,\n      \"longitude\": 30.5245,\n      \"recordedAt\": \"2026-11-21T12:11:00Z\"\n    },\n    {\n      \"latitude\": 50.4525,\n      \"longitude\": 30.5260,\n      \"recordedAt\": \"2026-11-21T12:12:00Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/dispatch/shipments/{{shipmentId}}/route",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "shipments",
+                "{{shipmentId}}",
+                "route"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. bidirectional streaming rpc (StreamCourierLocations via dispatch-service)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"points\": [\n    {\n      \"latitude\": 50.4530,\n      \"longitude\": 30.5270,\n      \"recordedAt\": \"2026-11-21T12:15:00Z\"\n    },\n    {\n      \"latitude\": 50.4540,\n      \"longitude\": 30.5280,\n      \"recordedAt\": \"2026-11-21T12:16:00Z\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{dispatchUrl}}/dispatch/shipments/{{shipmentId}}/live-locations",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "dispatch",
+                "shipments",
+                "{{shipmentId}}",
+                "live-locations"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - chaos engineering, circuit breaker and actuator probes",
+      "item": [
+        {
+          "name": "chaos - get current chaos state (shipment-service)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/internal/chaos",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "internal",
+                "chaos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "chaos - inject 3000ms latency (triggers circuit breaker timeout/fallback)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/internal/chaos/latency?ms=3000",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "internal",
+                "chaos",
+                "latency"
+              ],
+              "query": [
+                {
+                  "key": "ms",
+                  "value": "3000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "chaos - inject 100% failure rate (triggers circuit breaker open)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/internal/chaos/fail?rate=1.0",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "internal",
+                "chaos",
+                "fail"
+              ],
+              "query": [
+                {
+                  "key": "rate",
+                  "value": "1.0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "verify tracking-service circuit breaker fallback response",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/tracking/shipments/{{shipmentId}}",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "tracking",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "chaos - reset chaos state",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/internal/chaos",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "internal",
+                "chaos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - auth-service health readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{authUrl}}/actuator/health/readiness",
+              "host": [
+                "{{authUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - shipment-service health readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/actuator/health/readiness",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - dispatch-service health readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{dispatchUrl}}/actuator/health/readiness",
+              "host": [
+                "{{dispatchUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - tracking-service health readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{trackingUrl}}/actuator/health/readiness",
+              "host": [
+                "{{trackingUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - notification-service health readiness",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{notificationUrl}}/actuator/health/readiness",
+              "host": [
+                "{{notificationUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health",
+                "readiness"
+              ]
+            }
+          }
+        },
+        {
+          "name": "actuator - prometheus metrics (shipment-service)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{shipmentUrl}}/actuator/prometheus",
+              "host": [
+                "{{shipmentUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "prometheus"
               ]
             }
           }
