@@ -33,9 +33,29 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: web-ui-config
+          env:
+            - name: SERVER_PORT
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: SERVER_PORT}}
+            - name: AUTH_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: AUTH_SERVICE_URL}}
+            - name: SHIPMENT_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: SHIPMENT_SERVICE_URL}}
+            - name: DISPATCH_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: DISPATCH_SERVICE_URL}}
+            - name: TRACKING_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: TRACKING_SERVICE_URL}}
+            - name: NOTIFICATION_SERVICE_URL
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: NOTIFICATION_SERVICE_URL}}
+            - name: TRACKING_GRPC_TARGET
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: TRACKING_GRPC_TARGET}}
+            - name: TRACKING_GRPC_TLS_ENABLED
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: TRACKING_GRPC_TLS_ENABLED}}
+            - name: TRACKING_STREAM_ENABLED
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: TRACKING_STREAM_ENABLED}}
+            - name: DISPATCH_COURIER_LOOKUP_ENABLED
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: DISPATCH_COURIER_LOOKUP_ENABLED}}
+            - name: WEB_LOCAL_DEV_LOOPBACK_ONLY
+              valueFrom: {configMapKeyRef: {name: web-ui-config, key: WEB_LOCAL_DEV_LOOPBACK_ONLY}}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
