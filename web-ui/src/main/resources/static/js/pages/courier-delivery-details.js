@@ -1,6 +1,7 @@
 import {
     canWithdraw,
     formatValue,
+    humanizeStatuses,
     isRetriableFailure,
     locationPayload,
     nextAction,
@@ -46,7 +47,7 @@ async function call(method, path, body) {
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-        throw Object.assign(new Error(payload?.detail || 'Delivery data is unavailable right now.'),
+        throw Object.assign(new Error(humanizeStatuses(payload?.detail || 'Delivery data is unavailable right now.')),
             {status: response.status});
     }
     return payload;

@@ -159,3 +159,8 @@ async function openPage(...responses) {
         }
     };
 }
+
+test('humanizeStatuses replaces raw backend statuses in messages', () => {
+    assert.equal(delivery.humanizeStatuses('Cannot pick up for shipment 5 in status WAITING_FOR_COURIER'),
+        'Cannot pick up for shipment 5 in status not assigned');
+});
